@@ -358,7 +358,8 @@ export default function App() {
     const dynamicHeight = 360 + viz.maxColumnNodes * 34;
     return Math.max(460, Math.min(980, dynamicHeight));
   }, [viz.maxColumnNodes]);
-  const chartRightMargin = incomeMode === "expenses" ? 430 : merchantDetailMode === "summary" ? 360 : 430;
+  const chartLeftMargin = incomeMode === "modeled" ? 230 : 240;
+  const chartRightMargin = incomeMode === "expenses" ? 390 : merchantDetailMode === "summary" ? 360 : 420;
   const nodePadding = useMemo(() => {
     const branchCount = viz.maxColumnNodes;
     if (branchCount >= 24) {
@@ -809,6 +810,7 @@ export default function App() {
             uncategorizedCount={uncategorizedInPeriod.length}
             flowTitle={flowTitle}
             chartHeight={chartHeight}
+            chartLeftMargin={chartLeftMargin}
             chartRightMargin={chartRightMargin}
             nodePadding={nodePadding}
             expensePieData={expensePieData}

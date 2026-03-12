@@ -602,6 +602,20 @@ textarea {
   flex-wrap: wrap;
 }
 
+.sankey-stage {
+  position: relative;
+}
+
+.sankey-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 105;
+  border: 0;
+  background: rgba(25, 40, 39, 0.38);
+  cursor: zoom-out;
+  animation: sankeyBackdropIn 180ms ease-out;
+}
+
 .chart {
   margin-top: 0.68rem;
   border-radius: 14px;
@@ -615,6 +629,47 @@ textarea {
       transparent 1px,
       transparent 54px
     );
+}
+
+.sankey-stage.is-expanded {
+  position: fixed;
+  inset: 0.95rem;
+  z-index: 110;
+  background: #f2f8f5;
+  border-radius: 16px;
+  border: 1px solid rgba(176, 197, 189, 0.9);
+  box-shadow: 0 32px 80px -42px rgba(10, 22, 20, 0.7);
+  padding: 0.82rem;
+  animation: sankeyExpandIn 220ms cubic-bezier(0.2, 0.95, 0.33, 1);
+}
+
+.sankey-stage-toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.sankey-stage.is-expanded .chart {
+  margin-top: 0.5rem;
+}
+
+@keyframes sankeyExpandIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes sankeyBackdropIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .pie-panel {
@@ -743,19 +798,27 @@ textarea {
 }
 
 .sankey-chip {
-  fill: #f7fcfb;
-  stroke: #bfd5cd;
+  fill: rgba(248, 253, 251, 0.94);
+  stroke: #b6d2c8;
 }
 
 .sankey-label-main {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
   fill: #233937;
+  paint-order: stroke;
+  stroke: rgba(249, 252, 250, 0.9);
+  stroke-width: 2px;
+  stroke-linejoin: round;
 }
 
 .sankey-label-sub {
-  font-size: 10px;
+  font-size: 9.5px;
   fill: #577170;
+  paint-order: stroke;
+  stroke: rgba(249, 252, 250, 0.9);
+  stroke-width: 2px;
+  stroke-linejoin: round;
 }
 
 .error {

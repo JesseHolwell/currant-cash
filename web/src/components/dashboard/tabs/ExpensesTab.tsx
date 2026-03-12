@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Sankey, Tooltip } from "recharts";
 import { SUMMARY_TOP_MERCHANTS_PER_GROUP, formatCurrency, formatTimelineLabel } from "../../../models";
 import type { BuildVizResult, IncomeMode, MerchantDetailMode, TimelinePeriod } from "../../../models";
@@ -23,6 +24,7 @@ export function ExpensesTab({
   uncategorizedCount,
   flowTitle,
   chartHeight,
+  chartLeftMargin,
   chartRightMargin,
   nodePadding,
   expensePieData
@@ -40,10 +42,28 @@ export function ExpensesTab({
   uncategorizedCount: number;
   flowTitle: string;
   chartHeight: number;
+  chartLeftMargin: number;
   chartRightMargin: number;
   nodePadding: number;
   expensePieData: ExpensePieDatum[];
 }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  useEffect(() => {
+    if (typeof document === "undefined") {
+      return;
+    }
+    const previousOverflow = document.body.style.overflow;
+    if (isExpanded) {
+      document.body.style.overflow = "hidden";
+    }
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isExpanded]);
+
+  const effectiveChartHeight: number | string = isExpanded ? "calc(100vh - 180px)" : chartHeight;
+
   return (
     <>
       <section className="panel controls-panel">
@@ -150,36 +170,59 @@ export function ExpensesTab({
       <section className="expenses-layout">
         <div className="canvas-panel">
           <div className="canvas-header">
-            <h3>{flowTitle}</h3>
-            {incomeMode !== "expenses" ? (
-              merchantDetailMode === "summary" ? (
-                <p className="mode-note">
-                  Merchant view: top {SUMMARY_TOP_MERCHANTS_PER_GROUP} per subcategory, rest grouped as Other.
-                </p>
+            <div>
+              <h3>{flowTitle}</h3>
+              {incomeMode !== "expenses" ? (
+                merchantDetailMode === "summary" ? (
+                  <p className="mode-note">
+                    Merchant view: top {SUMMARY_TOP_MERCHANTS_PER_GROUP} per subcategory, rest grouped as Other.
+                  </p>
+                ) : (
+                  <p className="mode-note">Detailed view: per-transaction nodes ({viz.merchantNodeCount}).</p>
+                )
               ) : (
-                <p className="mode-note">Detailed view: per-transaction nodes ({viz.merchantNodeCount}).</p>
-              )
-            ) : (
-              <p className="mode-note">Expense-only flow view.</p>
-            )}
+                <p className="mode-note">Expense-only flow view.</p>
+              )}
+            </div>
+            <button type="button" className="mode-btn" onClick={() => setIsExpanded(true)}>
+              Expand Chart
+            </button>
           </div>
 
-          <div className="chart" style={{ height: chartHeight }}>
-            <ResponsiveContainer width="100%" height={chartHeight}>
-              <Sankey
-                data={viz.sankey}
-                nodePadding={nodePadding}
-                nodeWidth={15}
-                linkCurvature={0.3}
-                iterations={64}
-                sort={false}
-                margin={{ top: 42, right: chartRightMargin, bottom: 28, left: 260 }}
-                node={NodeShape}
-                link={LinkShape}
-              >
-                <Tooltip content={<FlowTooltip currency={currency} />} />
-              </Sankey>
-            </ResponsiveContainer>
+          {isExpanded ? (
+            <button
+              type="button"
+              aria-label="Close expanded chart"
+              className="sankey-backdrop"
+              onClick={() => setIsExpanded(false)}
+            />
+          ) : null}
+
+          <div className={isExpanded ? "sankey-stage is-expanded" : "sankey-stage"}>
+            {isExpanded ? (
+              <div className="sankey-stage-toolbar">
+                <button type="button" className="mode-btn" onClick={() => setIsExpanded(false)}>
+                  Close Expanded View
+                </button>
+              </div>
+            ) : null}
+            <div className="chart" style={{ height: effectiveChartHeight }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <Sankey
+                  data={viz.sankey}
+                  nodePadding={nodePadding}
+                  nodeWidth={14}
+                  linkCurvature={0.3}
+                  iterations={64}
+                  sort={false}
+                  margin={{ top: 42, right: chartRightMargin, bottom: 28, left: chartLeftMargin }}
+                  node={NodeShape}
+                  link={LinkShape}
+                >
+                  <Tooltip content={<FlowTooltip currency={currency} />} />
+                </Sankey>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
 

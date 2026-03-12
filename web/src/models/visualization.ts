@@ -30,6 +30,37 @@ import type {
   VizNode
 } from "./types";
 
+type MerchantSummary = {
+  merchant: string;
+  total: number;
+  count: number;
+};
+
+function summarizeMerchantStats(
+  merchantStatsRaw: MerchantSummary[],
+  subcategoryLabel: string,
+  _subcategoryTotal: number
+): MerchantSummary[] {
+  if (merchantStatsRaw.length === 0) {
+    return [];
+  }
+
+  const kept = merchantStatsRaw.slice(0, SUMMARY_TOP_MERCHANTS_PER_GROUP);
+  const tail = merchantStatsRaw.slice(SUMMARY_TOP_MERCHANTS_PER_GROUP);
+
+  const tailTotal = tail.reduce((sum, item) => sum + item.total, 0);
+  const tailCount = tail.reduce((sum, item) => sum + item.count, 0);
+  if (tailTotal > 0) {
+    kept.push({
+      merchant: `Other ${subcategoryLabel}`,
+      total: Number(tailTotal.toFixed(2)),
+      count: tailCount
+    });
+  }
+
+  return kept;
+}
+
 export function buildVisualization(
   transactions: RawTransaction[],
   currency: string,
@@ -244,13 +275,14 @@ export function buildVisualization(
           continue;
         }
 
-        const merchantStats = [...merchantTotals.entries()]
+        const merchantStatsRaw = [...merchantTotals.entries()]
           .sort((a, b) => b[1].total - a[1].total)
           .map(([merchant, summary]) => ({
             merchant,
             total: summary.total,
             count: summary.count
           }));
+        const merchantStats = summarizeMerchantStats(merchantStatsRaw, subcategory.subcategory, subcategory.total);
 
         for (const merchant of merchantStats) {
           const merchantKey = `merchant:${group.category}:${subcategory.subcategory}:${merchant.merchant}`;
@@ -715,20 +747,7 @@ export function buildVisualization(
           count: summary.count
         }));
 
-      const merchantStats = (() => {
-        const top = merchantStatsRaw.slice(0, SUMMARY_TOP_MERCHANTS_PER_GROUP);
-        const tail = merchantStatsRaw.slice(SUMMARY_TOP_MERCHANTS_PER_GROUP);
-        const tailTotal = tail.reduce((sum, item) => sum + item.total, 0);
-        const tailCount = tail.reduce((sum, item) => sum + item.count, 0);
-        if (tailTotal > 0) {
-          top.push({
-            merchant: `Other ${subcategory.subcategory}`,
-            total: Number(tailTotal.toFixed(2)),
-            count: tailCount
-          });
-        }
-        return top;
-      })();
+      const merchantStats = summarizeMerchantStats(merchantStatsRaw, subcategory.subcategory, subcategory.total);
 
       for (const merchant of merchantStats) {
         const merchantKey = `merchant:${group.category}:${subcategory.subcategory}:${merchant.merchant}`;
