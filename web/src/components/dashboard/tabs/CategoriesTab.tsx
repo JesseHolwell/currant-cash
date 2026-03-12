@@ -138,7 +138,6 @@ export function CategoriesTab({
             {visibleEditableTransactions.slice(0, 120).map((transaction) => {
               const draft = draftFor(transaction);
               const draftSubcategoryOptions = subcategoryOptionsByGroup.get(draft.categoryGroup) ?? [];
-              const draftSubcategoryListId = `subcategory-options-${transaction.id}`;
               return (
                 <li key={transaction.id} className="rule-item">
                   <div className="rule-item-top">
@@ -165,22 +164,19 @@ export function CategoriesTab({
                         });
                       }}
                     >
-                      {categoryGroupOptions.map((option) => (
+                      {[...new Set([draft.categoryGroup, ...categoryGroupOptions].filter(Boolean))].map((option) => (
                         <option key={option} value={option}>{option}</option>
                       ))}
                     </select>
-                    <input
-                      type="text"
-                      list={draftSubcategoryListId}
+                    <select
                       value={draft.category}
-                      placeholder="Subcategory"
+                      aria-label="Subcategory"
                       onChange={(event) => onUpdateDraft(transaction, { category: event.target.value })}
-                    />
-                    <datalist id={draftSubcategoryListId}>
-                      {draftSubcategoryOptions.map((option) => (
-                        <option key={option} value={option} />
+                    >
+                      {[...new Set([draft.category, ...draftSubcategoryOptions].filter(Boolean))].map((option) => (
+                        <option key={option} value={option}>{option}</option>
                       ))}
-                    </datalist>
+                    </select>
                     <input
                       type="text"
                       value={draft.nickname}
