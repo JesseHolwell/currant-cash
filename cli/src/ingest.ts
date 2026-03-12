@@ -24,6 +24,8 @@ type NormalizedTransaction = {
   sourceCategory: string;
   category: string;
   categoryReason: string;
+  categoryGroup: string;
+  categoryGroupReason: string;
 };
 
 type CliOptions = {
@@ -31,16 +33,81 @@ type CliOptions = {
   outDir: string;
   rulesFile: string;
   overridesFile: string;
+  payrollFile: string;
   publishWeb: boolean;
 };
 
 type CategoryRulesFile = {
   rules?: Record<string, string[]>;
+  groups?: Record<string, string[]>;
+  group_rules?: Record<string, string[]>;
 };
 
 type OverridesFile = {
   overrides?: Record<string, string>;
   narrative_contains?: Record<string, string>;
+  group_overrides?: Record<string, string>;
+  group_narrative_contains?: Record<string, string>;
+};
+
+type PayrollConfig = {
+  enabled?: boolean;
+  employer_keywords?: string[];
+  net_pay?: number;
+  gross_pay?: number;
+  income_tax?: number;
+  super_gross?: number;
+  super_tax?: number;
+  net_tolerance?: number;
+  tax_components?: Record<string, number>;
+  super_components?: Record<string, number>;
+};
+
+type ModelComponent = {
+  name: string;
+  perPay: number;
+  total: number;
+};
+
+type PayEvent = {
+  transactionId: string;
+  date: string;
+  depositAmount: number;
+  grossPay: number;
+  netPay: number;
+  incomeTax: number;
+  superGross: number;
+  superTax: number;
+};
+
+type IncomeModelOutput = {
+  generatedAt: string;
+  currency: string;
+  enabled: boolean;
+  employerKeywords: string[];
+  payEventCount: number;
+  salaryMatchIds: string[];
+  payEvents: PayEvent[];
+  matchedPayDateSamples: string[];
+  salary: {
+    netPay: number;
+    grossPay: number;
+    incomeTax: number;
+    superGross: number;
+    superTax: number;
+    taxComponents: ModelComponent[];
+    superComponents: ModelComponent[];
+  };
+  totals: {
+    salaryNet: number;
+    salaryGross: number;
+    tax: number;
+    super: number;
+    superTax: number;
+    otherCredits: number;
+    grossPlusOtherCredits: number;
+    netPlusOtherCredits: number;
+  };
 };
 
 const bankRowSchema = z.object({
@@ -54,7 +121,7 @@ const bankRowSchema = z.object({
   Serial: z.string().optional()
 });
 
-const EXCLUDED_SPEND_CATEGORIES = new Set(["Income", "Transfers"]);
+const EXCLUDED_SPEND_GROUPS = new Set(["Income", "Transfers"]);
 
 function findProjectRoot(startDir: string): string {
   let current = path.resolve(startDir);
@@ -94,6 +161,7 @@ function parseArgs(argv: string[]): CliOptions {
     outDir: path.join("data", "processed"),
     rulesFile: path.join("rules", "categories.yml"),
     overridesFile: path.join("rules", "overrides.yml"),
+    payrollFile: path.join("rules", "payroll.private.yml"),
     publishWeb: true
   };
 
@@ -116,6 +184,11 @@ function parseArgs(argv: string[]): CliOptions {
     }
     if (arg === "--overrides" && argv[i + 1]) {
       options.overridesFile = argv[i + 1];
+      i += 1;
+      continue;
+    }
+    if (arg === "--payroll" && argv[i + 1]) {
+      options.payrollFile = argv[i + 1];
       i += 1;
       continue;
     }
@@ -200,9 +273,11 @@ function buildCategoryMatcher(
   rulesFile: CategoryRulesFile,
   overridesFile: OverridesFile
 ): {
-  categoryFor: (transaction: Omit<NormalizedTransaction, "category" | "categoryReason">) => {
+  categoryFor: (transaction: Omit<NormalizedTransaction, "category" | "categoryReason" | "categoryGroup" | "categoryGroupReason">) => {
     category: string;
     reason: string;
+    group: string;
+    groupReason: string;
   };
 } {
   const overridesById = Object.entries(overridesFile.overrides ?? {}).map(([id, category]) => [id.trim(), category.trim()]);
@@ -210,39 +285,139 @@ function buildCategoryMatcher(
     normalizeText(needle),
     category.trim()
   ]);
+  const groupOverridesById = Object.entries(overridesFile.group_overrides ?? {}).map(([id, group]) => [id.trim(), group.trim()]);
+  const groupNarrativeOverrides = Object.entries(overridesFile.group_narrative_contains ?? {}).map(([needle, group]) => [
+    normalizeText(needle),
+    group.trim()
+  ]);
+
   const ruleEntries = Object.entries(rulesFile.rules ?? {}).map(([category, needles]) => ({
     category,
     needles: needles.map((needle) => normalizeText(needle))
   }));
 
+  const groupRuleEntries = Object.entries(rulesFile.group_rules ?? {}).map(([group, needles]) => ({
+    group,
+    needles: needles.map((needle) => normalizeText(needle))
+  }));
+
+  const categoryToGroup = new Map<string, string>();
+  for (const [group, categories] of Object.entries(rulesFile.groups ?? {})) {
+    for (const category of categories) {
+      categoryToGroup.set(category.trim(), group.trim());
+    }
+  }
+
   return {
     categoryFor(transaction) {
+      let category: string | null = null;
+      let reason: string | null = null;
+
       const idOverride = overridesById.find(([id]) => id === transaction.id);
       if (idOverride) {
-        return { category: idOverride[1], reason: "override:id" };
+        category = idOverride[1];
+        reason = "override:id";
       }
 
-      const narrativeOverride = narrativeOverrides.find(([needle]) => transaction.narrativeNormalized.includes(needle));
-      if (narrativeOverride) {
-        return { category: narrativeOverride[1], reason: `override:narrative:${narrativeOverride[0]}` };
-      }
-
-      for (const entry of ruleEntries) {
-        const matchedNeedle = entry.needles.find((needle) => transaction.narrativeNormalized.includes(needle));
-        if (matchedNeedle) {
-          return { category: entry.category, reason: `rule:${matchedNeedle}` };
+      if (!category) {
+        const narrativeOverride = narrativeOverrides.find(([needle]) => transaction.narrativeNormalized.includes(needle));
+        if (narrativeOverride) {
+          category = narrativeOverride[1];
+          reason = `override:narrative:${narrativeOverride[0]}`;
         }
       }
 
-      if (transaction.direction === "credit") {
-        return { category: "Income", reason: "fallback:credit" };
+      if (!category) {
+        for (const entry of ruleEntries) {
+          const matchedNeedle = entry.needles.find((needle) => transaction.narrativeNormalized.includes(needle));
+          if (matchedNeedle) {
+            category = entry.category;
+            reason = `rule:${matchedNeedle}`;
+            break;
+          }
+        }
       }
 
-      if (transaction.sourceCategory.toUpperCase() === "INT") {
-        return { category: "Interest", reason: "fallback:sourceCategory=INT" };
+      if (!category && transaction.direction === "credit") {
+        category = "Income";
+        reason = "fallback:credit";
       }
 
-      return { category: "Uncategorized", reason: "fallback:uncategorized" };
+      if (!category && transaction.sourceCategory.toUpperCase() === "INT") {
+        category = "Interest";
+        reason = "fallback:sourceCategory=INT";
+      }
+
+      if (!category) {
+        category = "Uncategorized";
+        reason = "fallback:uncategorized";
+      }
+
+      const groupIdOverride = groupOverridesById.find(([id]) => id === transaction.id);
+      if (groupIdOverride) {
+        return {
+          category,
+          reason: reason ?? "unknown",
+          group: groupIdOverride[1],
+          groupReason: "override:group:id"
+        };
+      }
+
+      const groupNarrativeOverride = groupNarrativeOverrides.find(([needle]) => transaction.narrativeNormalized.includes(needle));
+      if (groupNarrativeOverride) {
+        return {
+          category,
+          reason: reason ?? "unknown",
+          group: groupNarrativeOverride[1],
+          groupReason: `override:group:narrative:${groupNarrativeOverride[0]}`
+        };
+      }
+
+      for (const entry of groupRuleEntries) {
+        const matchedNeedle = entry.needles.find((needle) => transaction.narrativeNormalized.includes(needle));
+        if (matchedNeedle) {
+          return {
+            category,
+            reason: reason ?? "unknown",
+            group: entry.group,
+            groupReason: `rule:group:${matchedNeedle}`
+          };
+        }
+      }
+
+      if (category === "Income") {
+        return { category, reason: reason ?? "unknown", group: "Income", groupReason: "fallback:group=income" };
+      }
+
+      if (category === "Transfers") {
+        return { category, reason: reason ?? "unknown", group: "Transfers", groupReason: "fallback:group=transfers" };
+      }
+
+      if (category === "Uncategorized") {
+        return {
+          category,
+          reason: reason ?? "unknown",
+          group: "Uncategorized",
+          groupReason: "fallback:group=uncategorized"
+        };
+      }
+
+      const mappedGroup = categoryToGroup.get(category);
+      if (mappedGroup) {
+        return {
+          category,
+          reason: reason ?? "unknown",
+          group: mappedGroup,
+          groupReason: "mapping:group-by-category"
+        };
+      }
+
+      return {
+        category,
+        reason: reason ?? "unknown",
+        group: "Other Spending",
+        groupReason: "fallback:group=other-spending"
+      };
     }
   };
 }
@@ -266,9 +441,11 @@ function readCsvRows(inputPath: string): Array<z.infer<typeof bankRowSchema>> {
 
 function normalizeTransactions(
   rows: Array<z.infer<typeof bankRowSchema>>,
-  categoryFor: (transaction: Omit<NormalizedTransaction, "category" | "categoryReason">) => {
+  categoryFor: (transaction: Omit<NormalizedTransaction, "category" | "categoryReason" | "categoryGroup" | "categoryGroupReason">) => {
     category: string;
     reason: string;
+    group: string;
+    groupReason: string;
   }
 ): NormalizedTransaction[] {
   return rows.map((row, index) => {
@@ -288,7 +465,7 @@ function normalizeTransactions(
     ].join("|");
     const id = hashString(idSignature);
 
-    const baseTransaction: Omit<NormalizedTransaction, "category" | "categoryReason"> = {
+    const baseTransaction: Omit<NormalizedTransaction, "category" | "categoryReason" | "categoryGroup" | "categoryGroupReason"> = {
       id,
       date: parseDate(row.Date),
       accountId: row["Bank Account"].trim(),
@@ -308,7 +485,9 @@ function normalizeTransactions(
     return {
       ...baseTransaction,
       category: categorization.category,
-      categoryReason: categorization.reason
+      categoryReason: categorization.reason,
+      categoryGroup: categorization.group,
+      categoryGroupReason: categorization.groupReason
     };
   });
 }
@@ -327,73 +506,74 @@ function buildSankeyData(transactions: NormalizedTransaction[]): {
     (transaction) =>
       transaction.direction === "debit" &&
       transaction.amount > 0 &&
-      !EXCLUDED_SPEND_CATEGORIES.has(transaction.category)
+      !EXCLUDED_SPEND_GROUPS.has(transaction.categoryGroup)
   );
 
-  const categoryTotals = new Map<string, number>();
-  const merchantTotalsByCategory = new Map<string, Map<string, number>>();
+  const groupTotals = new Map<string, number>();
+  const categoryTotalsByGroup = new Map<string, Map<string, number>>();
 
   for (const transaction of spendTransactions) {
-    categoryTotals.set(transaction.category, (categoryTotals.get(transaction.category) ?? 0) + transaction.amount);
+    groupTotals.set(transaction.categoryGroup, (groupTotals.get(transaction.categoryGroup) ?? 0) + transaction.amount);
 
-    if (!merchantTotalsByCategory.has(transaction.category)) {
-      merchantTotalsByCategory.set(transaction.category, new Map<string, number>());
+    if (!categoryTotalsByGroup.has(transaction.categoryGroup)) {
+      categoryTotalsByGroup.set(transaction.categoryGroup, new Map<string, number>());
     }
-    const merchantTotals = merchantTotalsByCategory.get(transaction.category);
-    if (!merchantTotals) {
+    const categoryTotals = categoryTotalsByGroup.get(transaction.categoryGroup);
+    if (!categoryTotals) {
       continue;
     }
-    merchantTotals.set(transaction.merchant, (merchantTotals.get(transaction.merchant) ?? 0) + transaction.amount);
+    categoryTotals.set(transaction.category, (categoryTotals.get(transaction.category) ?? 0) + transaction.amount);
   }
 
   const nodes: SankeyNode[] = [{ name: "Total Spend" }];
   const nodeIndex = new Map<string, number>([["Total Spend", 0]]);
 
-  const sortedCategories = [...categoryTotals.entries()].sort(([a], [b]) => a.localeCompare(b));
-  for (const [category] of sortedCategories) {
-    nodeIndex.set(category, nodes.length);
-    nodes.push({ name: category });
+  const sortedGroups = [...groupTotals.entries()].sort(([a], [b]) => a.localeCompare(b));
+  for (const [group] of sortedGroups) {
+    nodeIndex.set(`group:${group}`, nodes.length);
+    nodes.push({ name: group });
   }
 
-  for (const [category, merchants] of merchantTotalsByCategory.entries()) {
-    for (const merchant of merchants.keys()) {
-      if (!nodeIndex.has(merchant)) {
-        nodeIndex.set(merchant, nodes.length);
-        nodes.push({ name: merchant });
+  for (const [group, categories] of categoryTotalsByGroup.entries()) {
+    for (const category of categories.keys()) {
+      const categoryKey = `category:${group}:${category}`;
+      if (!nodeIndex.has(categoryKey)) {
+        nodeIndex.set(categoryKey, nodes.length);
+        nodes.push({ name: category });
       }
     }
   }
 
   const links: SankeyLink[] = [];
 
-  for (const [category, total] of sortedCategories) {
+  for (const [group, total] of sortedGroups) {
     const source = nodeIndex.get("Total Spend");
-    const target = nodeIndex.get(category);
+    const target = nodeIndex.get(`group:${group}`);
     if (source === undefined || target === undefined) {
       continue;
     }
     links.push({ source, target, value: Number(total.toFixed(2)) });
 
-    const merchants = merchantTotalsByCategory.get(category);
-    if (!merchants) {
+    const categories = categoryTotalsByGroup.get(group);
+    if (!categories) {
       continue;
     }
 
-    const sortedMerchants = [...merchants.entries()].sort(([a], [b]) => a.localeCompare(b));
-    for (const [merchant, merchantTotal] of sortedMerchants) {
-      const merchantIndex = nodeIndex.get(merchant);
-      if (merchantIndex === undefined) {
+    const sortedCategories = [...categories.entries()].sort(([a], [b]) => a.localeCompare(b));
+    for (const [category, categoryTotal] of sortedCategories) {
+      const categoryIndex = nodeIndex.get(`category:${group}:${category}`);
+      if (categoryIndex === undefined) {
         continue;
       }
       links.push({
         source: target,
-        target: merchantIndex,
-        value: Number(merchantTotal.toFixed(2))
+        target: categoryIndex,
+        value: Number(categoryTotal.toFixed(2))
       });
     }
   }
 
-  const totalSpend = [...categoryTotals.values()].reduce((sum, value) => sum + value, 0);
+  const totalSpend = [...groupTotals.values()].reduce((sum, value) => sum + value, 0);
 
   return {
     generatedAt: new Date().toISOString(),
@@ -403,6 +583,149 @@ function buildSankeyData(transactions: NormalizedTransaction[]): {
     summary: {
       totalSpend: Number(totalSpend.toFixed(2)),
       transactionCount: spendTransactions.length
+    }
+  };
+}
+
+function normalizeComponentPerPayMap(
+  components: Record<string, number> | undefined,
+  fallbackLabel: string,
+  fallbackValue: number
+): Array<{ name: string; perPay: number }> {
+  const entries = Object.entries(components ?? {})
+    .map(([name, value]) => [name.trim(), Number(value)] as const)
+    .filter(([name, value]) => name.length > 0 && Number.isFinite(value) && value > 0);
+
+  if (entries.length > 0) {
+    return entries.map(([name, perPay]) => ({ name, perPay: Number(perPay.toFixed(2)) }));
+  }
+
+  if (fallbackValue > 0) {
+    return [{ name: fallbackLabel, perPay: Number(fallbackValue.toFixed(2)) }];
+  }
+
+  return [];
+}
+
+function toModelComponents(components: Array<{ name: string; perPay: number }>, payEventCount: number): ModelComponent[] {
+  return components.map((component) => ({
+    name: component.name,
+    perPay: component.perPay,
+    total: Number((component.perPay * payEventCount).toFixed(2))
+  }));
+}
+
+function buildIncomeModel(transactions: NormalizedTransaction[], config: PayrollConfig): IncomeModelOutput {
+  const employerKeywords = (config.employer_keywords ?? []).map((keyword) => normalizeText(keyword));
+  const netPay = config.net_pay ?? 0;
+  const grossPay = config.gross_pay ?? 0;
+  const incomeTax = config.income_tax ?? 0;
+  const superGross = config.super_gross ?? 0;
+  const superTax = config.super_tax ?? 0;
+  const tolerance = config.net_tolerance ?? 2;
+  const taxComponentsPerPay = normalizeComponentPerPayMap(config.tax_components, "Income Tax", incomeTax);
+  const superComponentsPerPay = normalizeComponentPerPayMap(config.super_components, "Super Guarantee", superGross);
+
+  const disabledOutput: IncomeModelOutput = {
+    generatedAt: new Date().toISOString(),
+    currency: "AUD",
+    enabled: false,
+    employerKeywords,
+    payEventCount: 0,
+    salaryMatchIds: [],
+    payEvents: [],
+    matchedPayDateSamples: [],
+    salary: {
+      netPay,
+      grossPay,
+      incomeTax,
+      superGross,
+      superTax,
+      taxComponents: [],
+      superComponents: []
+    },
+    totals: {
+      salaryNet: 0,
+      salaryGross: 0,
+      tax: 0,
+      super: 0,
+      superTax: 0,
+      otherCredits: 0,
+      grossPlusOtherCredits: 0,
+      netPlusOtherCredits: 0
+    }
+  };
+
+  if (!config.enabled) {
+    return disabledOutput;
+  }
+
+  if (netPay <= 0 || grossPay <= 0) {
+    return disabledOutput;
+  }
+
+  const creditTransactions = transactions.filter((transaction) => transaction.direction === "credit" && transaction.amount < 0);
+
+  const salaryMatches = creditTransactions.filter((transaction) => {
+    const amount = Math.abs(transaction.amount);
+    const amountMatch = Math.abs(amount - netPay) <= tolerance;
+    const merchantText = normalizeText(transaction.merchant);
+    const keywordMatch = employerKeywords.some(
+      (keyword) => transaction.narrativeNormalized.includes(keyword) || merchantText.includes(keyword)
+    );
+    return amountMatch || keywordMatch;
+  }).sort((a, b) => a.date.localeCompare(b.date));
+
+  const salaryMatchIds = new Set(salaryMatches.map((transaction) => transaction.id));
+
+  const otherCredits = creditTransactions
+    .filter((transaction) => !salaryMatchIds.has(transaction.id) && transaction.categoryGroup !== "Transfers")
+    .reduce((sum, transaction) => sum + Math.abs(transaction.amount), 0);
+
+  const payEventCount = salaryMatches.length;
+  const salaryNet = payEventCount * netPay;
+  const salaryGross = payEventCount * grossPay;
+  const totalTax = payEventCount * (taxComponentsPerPay.reduce((sum, component) => sum + component.perPay, 0) || incomeTax);
+  const totalSuper = payEventCount * (superComponentsPerPay.reduce((sum, component) => sum + component.perPay, 0) || superGross);
+  const totalSuperTax = payEventCount * superTax;
+  const payEvents: PayEvent[] = salaryMatches.map((transaction) => ({
+    transactionId: transaction.id,
+    date: transaction.date,
+    depositAmount: Number(Math.abs(transaction.amount).toFixed(2)),
+    grossPay: Number(grossPay.toFixed(2)),
+    netPay: Number(netPay.toFixed(2)),
+    incomeTax: Number(incomeTax.toFixed(2)),
+    superGross: Number(superGross.toFixed(2)),
+    superTax: Number(superTax.toFixed(2))
+  }));
+
+  return {
+    generatedAt: new Date().toISOString(),
+    currency: "AUD",
+    enabled: true,
+    employerKeywords,
+    payEventCount,
+    salaryMatchIds: [...salaryMatchIds],
+    payEvents,
+    matchedPayDateSamples: salaryMatches.slice(0, 8).map((transaction) => transaction.date),
+    salary: {
+      netPay,
+      grossPay,
+      incomeTax,
+      superGross,
+      superTax,
+      taxComponents: toModelComponents(taxComponentsPerPay, payEventCount),
+      superComponents: toModelComponents(superComponentsPerPay, payEventCount)
+    },
+    totals: {
+      salaryNet: Number(salaryNet.toFixed(2)),
+      salaryGross: Number(salaryGross.toFixed(2)),
+      tax: Number(totalTax.toFixed(2)),
+      super: Number(totalSuper.toFixed(2)),
+      superTax: Number(totalSuperTax.toFixed(2)),
+      otherCredits: Number(otherCredits.toFixed(2)),
+      grossPlusOtherCredits: Number((salaryGross + otherCredits).toFixed(2)),
+      netPlusOtherCredits: Number((salaryNet + otherCredits).toFixed(2))
     }
   };
 }
@@ -419,33 +742,59 @@ function main(): void {
   const outDir = resolveFromRoot(projectRoot, options.outDir);
   const rulesPath = resolveFromRoot(projectRoot, options.rulesFile);
   const overridesPath = resolveFromRoot(projectRoot, options.overridesFile);
+  const payrollPath = resolveFromRoot(projectRoot, options.payrollFile);
 
   if (!fs.existsSync(inputPath)) {
     throw new Error(`Input file does not exist: ${inputPath}`);
   }
 
-  const rulesConfig = loadYamlFile<CategoryRulesFile>(rulesPath, { rules: {} });
+  const rulesConfig = loadYamlFile<CategoryRulesFile>(rulesPath, {
+    rules: {},
+    groups: {},
+    group_rules: {}
+  });
+
   const overridesConfig = loadYamlFile<OverridesFile>(overridesPath, {
     overrides: {},
-    narrative_contains: {}
+    narrative_contains: {},
+    group_overrides: {},
+    group_narrative_contains: {}
   });
+
+  const payrollConfig = loadYamlFile<PayrollConfig>(payrollPath, {
+    enabled: false,
+    employer_keywords: [],
+    net_pay: 0,
+    gross_pay: 0,
+    income_tax: 0,
+    super_gross: 0,
+    super_tax: 0,
+    net_tolerance: 2,
+    tax_components: {},
+    super_components: {}
+  });
+
   const matcher = buildCategoryMatcher(rulesConfig, overridesConfig);
 
   const rows = readCsvRows(inputPath);
   const transactions = normalizeTransactions(rows, matcher.categoryFor);
   const sankey = buildSankeyData(transactions);
+  const incomeModel = buildIncomeModel(transactions, payrollConfig);
+
   const uncategorized = transactions.filter(
     (transaction) => transaction.direction === "debit" && transaction.category === "Uncategorized"
   );
 
   writeJsonFile(path.join(outDir, "transactions.json"), transactions);
   writeJsonFile(path.join(outDir, "sankey.json"), sankey);
+  writeJsonFile(path.join(outDir, "income-model.json"), incomeModel);
   writeJsonFile(path.join(outDir, "uncategorized.json"), uncategorized);
 
   if (options.publishWeb) {
     const webPublicDir = path.join(projectRoot, "web", "public");
     if (fs.existsSync(webPublicDir)) {
       writeJsonFile(path.join(webPublicDir, "sankey.json"), sankey);
+      writeJsonFile(path.join(webPublicDir, "income-model.json"), incomeModel);
       writeJsonFile(path.join(webPublicDir, "uncategorized.json"), uncategorized);
       writeJsonFile(path.join(webPublicDir, "transactions.json"), transactions);
     }
@@ -456,12 +805,24 @@ function main(): void {
     return acc;
   }, {});
 
+  const groupCounts = transactions.reduce<Record<string, number>>((acc, transaction) => {
+    acc[transaction.categoryGroup] = (acc[transaction.categoryGroup] ?? 0) + 1;
+    return acc;
+  }, {});
+
   console.log(`Input rows: ${rows.length}`);
   console.log(`Normalized transactions: ${transactions.length}`);
   console.log(`Sankey spend transactions: ${sankey.summary.transactionCount}`);
   console.log(`Total spend: ${sankey.currency} ${sankey.summary.totalSpend.toFixed(2)}`);
   console.log(`Uncategorized debit transactions: ${uncategorized.length}`);
   console.log("Category counts:", categoryCounts);
+  console.log("Category group counts:", groupCounts);
+  if (incomeModel.enabled) {
+    console.log(`Payroll model enabled: ${incomeModel.payEventCount} pay events matched`);
+    console.log(`Modeled gross income: AUD ${incomeModel.totals.grossPlusOtherCredits.toFixed(2)}`);
+  } else {
+    console.log("Payroll model disabled (missing or disabled rules/payroll.private.yml)");
+  }
   console.log(`Wrote output to: ${outDir}`);
 }
 

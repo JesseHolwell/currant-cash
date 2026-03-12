@@ -1,0 +1,25 @@
+# Copy to rules/payroll.private.yml (gitignored) and fill with your own values.
+enabled: true
+
+# Any of these keywords can match salary deposits in merchant/narrative text.
+employer_keywords:
+  - big tech company
+
+# Per-pay-cycle values
+net_pay: 1000
+gross_pay: 1500
+income_tax: 500
+super_gross: 100
+super_tax: 10
+
+# Optional per-pay component breakdowns used for modeled Sankey layers.
+# Keep each component positive and make totals match income_tax/super_gross.
+tax_components:
+  Income Tax: 500
+  Medicare Levy: 50
+
+super_components:
+  Super Guarantee: 100
+
+# Allowed difference when matching salary net deposits
+net_tolerance: 2.00

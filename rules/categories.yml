@@ -5,18 +5,26 @@ rules:
     - coles
     - woolworths
     - aldi
-  Dining:
+  Deliveries:
     - uber *eats
+    - doordash
+    - menulog
+  Restaurants:
     - mcdonalds
   Transport:
     - bp
     - uber
+    - myki
+    - ptv
   Shopping:
     - amazon
     - airbnb
+  Gifts:
+    - gift
+    - florist
+    - etsy
+  Hobbies:
     - steam
-  Insurance:
-    - ahm health
   Memberships:
     - racv
     - one membership
@@ -24,10 +32,25 @@ rules:
     - spotify
     - cursor
     - netflix
-  Utilities:
+  Health:
+    - ahm health
+    - chemist warehouse
+    - priceline pharmacy
+    - dental
+  Rent:
+    - rent
+    - real estate
+    - property manager
+  Phone:
     - telstra
     - optus
     - vodafone
+    - mobile plan
+  Internet:
+    - nbn
+    - aussie broadband
+    - iinet
+    - tpg
   Transfers:
     - tfr
     - osko payment
@@ -37,19 +60,26 @@ rules:
     - salary
 
 groups:
-  Food:
-    - Dining
+  Food & Drink:
+    - Deliveries
+    - Restaurants
     - Groceries
-  Recurring Payments:
+  Subscriptions:
     - Memberships
-    - Insurance
     - Subscriptions
-    - Utilities
     - Interest
   Lifestyle:
     - Shopping
-  Mobility:
+    - Gifts
+    - Hobbies
+  Transport:
     - Transport
+  Health:
+    - Health
+  Life:
+    - Rent
+    - Phone
+    - Internet
   Transfers:
     - Transfers
   Income:
@@ -57,15 +87,31 @@ groups:
 
 # Optional direct group keywords. These can override default group mapping.
 group_rules:
-  Food:
+  Food & Drink:
     - uber *eats
+    - doordash
+    - menulog
     - coles
     - woolworths
     - mcdonalds
-  Recurring Payments:
+  Subscriptions:
     - spotify
-    - insurance
     - membership
+    - cursor
+    - netflix
+  Lifestyle:
+    - amazon
+    - steam
+    - gift
+  Transport:
+    - uber
+    - bp
+  Health:
+    - ahm health
+    - chemist
+  Life:
+    - rent
+    - nbn
     - telstra
     - optus
-    - cursor
+    - vodafone

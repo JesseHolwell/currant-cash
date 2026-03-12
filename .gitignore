@@ -5,9 +5,11 @@ dist/
 # local raw exports (sensitive)
 Data_export_*.csv
 data/raw/*.csv
+rules/payroll.private.yml
 
 # generated outputs
 data/processed/*.json
 web/public/sankey.json
 web/public/uncategorized.json
 web/public/transactions.json
+web/public/income-model.json

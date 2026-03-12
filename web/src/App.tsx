@@ -1,594 +1,844 @@
 import { useEffect, useMemo, useState } from "react";
-import { ResponsiveContainer, Sankey, Tooltip } from "recharts";
-
-type RawTransaction = {
-  id: string;
-  date: string;
-  accountId: string;
-  merchant: string;
-  narrative: string;
-  amount: number;
-  direction: "debit" | "credit" | "neutral";
-  category: string;
-  categoryReason: string;
-};
-
-type UncategorizedTransaction = {
-  id: string;
-  date: string;
-  merchant: string;
-  amount: number;
-  narrative: string;
-  categoryReason: string;
-};
-
-type SankeyMeta = {
-  generatedAt: string;
-  currency: string;
-};
-
-type VizNode = {
-  name: string;
-  kind: "income" | "total" | "category" | "savings";
-  color: string;
-  value: number;
-  percent?: number;
-  labelMain?: string;
-  labelSub?: string;
-};
-
-type VizLink = {
-  source: number;
-  target: number;
-  value: number;
-  color: string;
-  kind: "income" | "category" | "savings";
-};
-
-type VizData = {
-  nodes: VizNode[];
-  links: VizLink[];
-};
-
-type AccountStat = {
-  source: string;
-  total: number;
-  percent: number;
-  color: string;
-};
-
-type CategoryStat = {
-  category: string;
-  total: number;
-  percent: number;
-  count: number;
-  color: string;
-};
-
-type BuildVizResult = {
-  sankey: VizData;
-  totalIncome: number;
-  totalSpend: number;
-  savings: number;
-  spendCount: number;
-  incomeStats: AccountStat[];
-  categoryStats: CategoryStat[];
-  outflowCount: number;
-};
-
-type RechartsSankeyNode = {
-  name?: string;
-  kind?: "income" | "total" | "category" | "savings";
-  color?: string;
-  labelMain?: string;
-  labelSub?: string;
-};
-
-type RechartsSankeyLinkPayload = {
-  source?: RechartsSankeyNode;
-  target?: RechartsSankeyNode;
-  value?: number;
-  color?: string;
-  kind?: "income" | "category" | "savings";
-};
-
-const EXCLUDED_CATEGORIES = new Set(["Transfers", "Income"]);
-
-const CATEGORY_COLORS = [
-  "#36b8ac",
-  "#6b67f2",
-  "#8f45e8",
-  "#35bf72",
-  "#8a62de",
-  "#f48b2b",
-  "#3d73e6",
-  "#eb59a7",
-  "#2ca2f6",
-  "#ef5e4a",
-  "#fc845b",
-  "#8f9eb4",
-  "#79c81d",
-  "#d18f2f"
-];
-
-const ACCOUNT_COLORS = ["#2f9ef6", "#4db7ff", "#18c5d5"];
-
-const EMPTY_VIZ: BuildVizResult = {
-  sankey: { nodes: [], links: [] },
-  totalIncome: 0,
-  totalSpend: 0,
-  savings: 0,
-  spendCount: 0,
-  incomeStats: [],
-  categoryStats: [],
-  outflowCount: 0
-};
-
-function formatCurrency(value: number, currency: string): string {
-  return new Intl.NumberFormat("en-AU", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 2
-  }).format(value);
-}
-
-function formatPercent(value: number): string {
-  if (value > 0 && value < 0.01) {
-    return "<1%";
-  }
-  return `${Math.round(value * 100)}%`;
-}
-
-function buildVisualization(transactions: RawTransaction[], currency: string): BuildVizResult {
-  const incomeBySource = new Map<string, number>();
-  const categorizedIncomeTransactions = transactions.filter(
-    (transaction) => transaction.direction === "credit" && transaction.amount < 0 && transaction.category === "Income"
-  );
-  const fallbackIncomeTransactions = transactions.filter(
-    (transaction) =>
-      transaction.direction === "credit" &&
-      transaction.amount < 0 &&
-      transaction.category !== "Transfers"
-  );
-  const incomeTransactions = categorizedIncomeTransactions.length > 0 ? categorizedIncomeTransactions : fallbackIncomeTransactions;
-
-  for (const transaction of incomeTransactions) {
-    const sourceName = transaction.merchant || transaction.narrative || "Income";
-    const amount = Math.abs(transaction.amount);
-    incomeBySource.set(sourceName, (incomeBySource.get(sourceName) ?? 0) + amount);
-  }
-
-  const rawIncomeSources = [...incomeBySource.entries()].sort((a, b) => b[1] - a[1]);
-  const compactIncomeSources = rawIncomeSources.slice(0, 3);
-  if (rawIncomeSources.length > 3) {
-    const otherTotal = rawIncomeSources.slice(3).reduce((sum, [, value]) => sum + value, 0);
-    if (otherTotal > 0) {
-      compactIncomeSources.push(["Other Income", otherTotal]);
-    }
-  }
-
-  const totalIncome = compactIncomeSources.reduce((sum, [, total]) => sum + total, 0);
-
-  const incomeStats = compactIncomeSources.map(([source, total], index) => ({
-    source,
-    total,
-    percent: totalIncome > 0 ? total / totalIncome : 0,
-    color: ACCOUNT_COLORS[index % ACCOUNT_COLORS.length]
-  }));
-
-  const spendTransactions = transactions.filter(
-    (transaction) =>
-      transaction.direction === "debit" &&
-      transaction.amount > 0 &&
-      !EXCLUDED_CATEGORIES.has(transaction.category)
-  );
-
-  const totalSpend = spendTransactions.reduce((sum, transaction) => sum + transaction.amount, 0);
-  const savings = Math.max(0, totalIncome - totalSpend);
-
-  const categoryTotals = new Map<string, { total: number; count: number }>();
-
-  for (const transaction of spendTransactions) {
-    const existing = categoryTotals.get(transaction.category);
-    if (existing) {
-      existing.total += transaction.amount;
-      existing.count += 1;
-    } else {
-      categoryTotals.set(transaction.category, { total: transaction.amount, count: 1 });
-    }
-  }
-
-  const categoryStats = [...categoryTotals.entries()]
-    .sort((a, b) => b[1].total - a[1].total)
-    .map(([category, summary], index) => ({
-      category,
-      total: summary.total,
-      count: summary.count,
-      percent: totalSpend > 0 ? summary.total / totalSpend : 0,
-      color: CATEGORY_COLORS[index % CATEGORY_COLORS.length]
-    }));
-
-  const outflowStats = [...categoryStats];
-  if (savings > 0) {
-    outflowStats.push({
-      category: "Savings",
-      total: savings,
-      count: 0,
-      percent: totalIncome > 0 ? savings / totalIncome : 0,
-      color: "#49d3a2"
-    });
-  }
-
-  const nodes: VizNode[] = [];
-  const links: VizLink[] = [];
-  const nodeIndex = new Map<string, number>();
-
-  for (const income of incomeStats) {
-    const key = `income:${income.source}`;
-    nodeIndex.set(key, nodes.length);
-    nodes.push({
-      name: income.source,
-      kind: "income",
-      color: income.color,
-      value: income.total,
-      percent: income.percent,
-      labelMain: income.source,
-      labelSub: `${formatCurrency(income.total, currency)} | ${formatPercent(income.percent)}`
-    });
-  }
-
-  const totalNodeKey = "total:income";
-  nodeIndex.set(totalNodeKey, nodes.length);
-  nodes.push({
-    name: "Total Income",
-    kind: "total",
-    color: "#7f8b98",
-    value: totalIncome,
-    percent: 1,
-    labelMain: "Total Income",
-    labelSub: formatCurrency(totalIncome, currency)
-  });
-
-  for (const outflow of outflowStats) {
-    const key = outflow.category === "Savings" ? "savings:bucket" : `category:${outflow.category}`;
-    nodeIndex.set(key, nodes.length);
-    nodes.push({
-      name: outflow.category,
-      kind: outflow.category === "Savings" ? "savings" : "category",
-      color: outflow.color,
-      value: outflow.total,
-      percent: totalIncome > 0 ? outflow.total / totalIncome : 0,
-      labelMain: outflow.category,
-      labelSub: `${formatCurrency(outflow.total, currency)} | ${formatPercent(totalIncome > 0 ? outflow.total / totalIncome : 0)}`
-    });
-  }
-
-  const totalNodeIndex = nodeIndex.get(totalNodeKey);
-  if (totalNodeIndex === undefined) {
-    return EMPTY_VIZ;
-  }
-
-  for (const income of incomeStats) {
-    const source = nodeIndex.get(`income:${income.source}`);
-    if (source === undefined) {
-      continue;
-    }
-    links.push({
-      source,
-      target: totalNodeIndex,
-      value: Number(income.total.toFixed(2)),
-      color: income.color,
-      kind: "income"
-    });
-  }
-
-  for (const outflow of outflowStats) {
-    const target = nodeIndex.get(outflow.category === "Savings" ? "savings:bucket" : `category:${outflow.category}`);
-    if (target === undefined) {
-      continue;
-    }
-    links.push({
-      source: totalNodeIndex,
-      target,
-      value: Number(outflow.total.toFixed(2)),
-      color: outflow.color,
-      kind: outflow.category === "Savings" ? "savings" : "category"
-    });
-  }
-
-  return {
-    sankey: { nodes, links },
-    totalIncome: Number(totalIncome.toFixed(2)),
-    totalSpend: Number(totalSpend.toFixed(2)),
-    savings: Number(savings.toFixed(2)),
-    spendCount: spendTransactions.length,
-    incomeStats,
-    categoryStats,
-    outflowCount: outflowStats.length
-  };
-}
-
-function LinkShape(props: {
-  sourceX: number;
-  sourceY: number;
-  sourceControlX: number;
-  targetX: number;
-  targetY: number;
-  targetControlX: number;
-  linkWidth: number;
-  payload: RechartsSankeyLinkPayload;
-}) {
-  const {
-    sourceX,
-    sourceY,
-    sourceControlX,
-    targetX,
-    targetY,
-    targetControlX,
-    linkWidth,
-    payload
-  } = props;
-
-  const path = `M${sourceX},${sourceY} C${sourceControlX},${sourceY} ${targetControlX},${targetY} ${targetX},${targetY}`;
-  const shoulder = Math.max(8, Math.min(26, (targetX - sourceX) * 0.12));
-  const startX = sourceX + shoulder;
-  const endX = targetX - shoulder;
-  const pathWithShoulders = endX > startX
-    ? `M${sourceX},${sourceY} L${startX},${sourceY} C${sourceControlX},${sourceY} ${targetControlX},${targetY} ${endX},${targetY} L${targetX},${targetY}`
-    : path;
-
-  return (
-    <path
-      d={pathWithShoulders}
-      fill="none"
-      stroke={payload.color ?? "#8ea0b2"}
-      strokeOpacity={payload.kind === "income" ? 0.62 : 0.74}
-      strokeWidth={Math.max(linkWidth, 1)}
-      strokeLinecap="butt"
-    />
-  );
-}
-
-function NodeShape(props: {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  payload: RechartsSankeyNode;
-}) {
-  const { x, y, width, height, payload } = props;
-
-  return (
-    <g>
-      <rect x={x} y={y} width={width} height={height} rx={2} fill="#bcc4cc" fillOpacity={0.95} />
-      <rect
-        x={payload.kind === "category" ? x : x + width - 3}
-        y={y}
-        width={3}
-        height={height}
-        fill={payload.color ?? "#5f6b79"}
-        opacity={0.94}
-      />
-      {payload.kind === "total" ? (
-        <rect x={x + width / 2 - 1} y={y} width={2} height={height} fill="#6e7b8a" opacity={0.42} />
-      ) : null}
-      {(payload.kind === "category" || payload.kind === "savings") ? (
-        <g className="sankey-label">
-          <rect x={x + width + 12} y={y + height / 2 - 12} width={24} height={24} rx={8} className="sankey-chip" />
-          <rect x={x + width + 21} y={y + height / 2 - 3} width={6} height={6} rx={2} fill={payload.color ?? "#5f6b79"} />
-          <text x={x + width + 46} y={y + height / 2 - 1} textAnchor="start" className="sankey-label-main">
-            {payload.labelMain}
-          </text>
-          <text x={x + width + 46} y={y + height / 2 + 16} textAnchor="start" className="sankey-label-sub">
-            {payload.labelSub}
-          </text>
-        </g>
-      ) : null}
-      {payload.kind === "income" ? (
-        <g className="sankey-label">
-          <text x={x - 12} y={y + height / 2 - 1} textAnchor="end" className="sankey-label-main">
-            {payload.labelMain}
-          </text>
-          <text x={x - 12} y={y + height / 2 + 16} textAnchor="end" className="sankey-label-sub">
-            {payload.labelSub}
-          </text>
-        </g>
-      ) : null}
-      {payload.kind === "total" ? (
-        <g className="sankey-label">
-          <text x={x + width / 2} y={Math.max(14, y - 16)} textAnchor="middle" className="sankey-label-main">
-            {payload.labelMain}
-          </text>
-          <text x={x + width / 2} y={Math.max(29, y - 1)} textAnchor="middle" className="sankey-label-sub">
-            {payload.labelSub}
-          </text>
-        </g>
-      ) : null}
-    </g>
-  );
-}
-
-function FlowTooltip({
-  active,
-  payload,
-  currency
-}: {
-  active?: boolean;
-  payload?: Array<{ payload?: RechartsSankeyLinkPayload }>;
-  currency: string;
-}) {
-  if (!active || !payload?.length) {
-    return null;
-  }
-
-  const item = payload[0]?.payload;
-  if (!item?.source || !item?.target || typeof item.value !== "number") {
-    return null;
-  }
-
-  return (
-    <div className="flow-tooltip">
-      <p>{item.source.name} -&gt; {item.target.name}</p>
-      <strong>{formatCurrency(item.value, currency)}</strong>
-    </div>
-  );
-}
-
+import {
+  ACCOUNT_ENTRIES_STORAGE_KEY,
+  CATEGORY_TAXONOMY_STORAGE_KEY,
+  DEFAULT_ACCOUNT_ENTRIES,
+  DEFAULT_GOALS,
+  EMPTY_MANUAL_RULES,
+  EMPTY_PAYROLL_DRAFT,
+  FORECAST_SETTINGS_STORAGE_KEY,
+  GOALS_STORAGE_KEY,
+  MANUAL_DRAFTS_STORAGE_KEY,
+  MANUAL_RULES_STORAGE_KEY,
+  PAYROLL_DRAFT_STORAGE_KEY,
+  UPLOADED_META_STORAGE_KEY,
+  UPLOADED_TRANSACTIONS_STORAGE_KEY,
+  applyManualRules,
+  buildIncomeModelFromTransactions,
+  buildDefaultCategoryDefinitions,
+  buildVisualization,
+  canonicalizeCategoryGroup,
+  categoryTaxonomyFromDefinitions,
+  createLocalId,
+  isInTimeline,
+  monthKey,
+  parseForecastSettings,
+  parseStoredRawTransactions,
+  parseStoredSankeyMeta,
+  parseStoredAccountEntries,
+  parseBankCsvToTransactions,
+  parseStoredCategoryDefinitions,
+  parseStoredGoals,
+  resolveCategoryGroupBucket,
+  resolveSubcategoryBucket,
+  sanitizeManualRule,
+  sanitizePayrollDraft,
+  similarityKeyForTransaction
+} from "./models";
+import type {
+  AccountEntry,
+  CategoryDefinition,
+  DashboardTab,
+  GoalEntry,
+  IncomeMode,
+  ManualRule,
+  ManualRulesState,
+  MerchantDetailMode,
+  PayrollDraft,
+  RawTransaction,
+  SankeyMeta,
+  TimelinePeriod,
+  TransactionDraft
+} from "./models";
+import { AccountsTab } from "./components/dashboard/tabs/AccountsTab";
+import { CategoriesTab } from "./components/dashboard/tabs/CategoriesTab";
+import { ExpensesTab } from "./components/dashboard/tabs/ExpensesTab";
+import { ForecastTab } from "./components/dashboard/tabs/ForecastTab";
+import { IncomeTab } from "./components/dashboard/tabs/IncomeTab";
+import { Sidebar } from "./components/dashboard/Sidebar";
+import { WorkspaceHeader } from "./components/dashboard/WorkspaceHeader";
 export default function App() {
+  const [activeTab, setActiveTab] = useState<DashboardTab>("forecast");
   const [transactions, setTransactions] = useState<RawTransaction[]>([]);
-  const [uncategorized, setUncategorized] = useState<UncategorizedTransaction[]>([]);
+  const [incomeMode, setIncomeMode] = useState<IncomeMode>("raw");
+  const [merchantDetailMode, setMerchantDetailMode] = useState<MerchantDetailMode>("summary");
+  const [timelinePeriod, setTimelinePeriod] = useState<TimelinePeriod>("all");
+  const [manualRules, setManualRules] = useState<ManualRulesState>(EMPTY_MANUAL_RULES);
+  const [drafts, setDrafts] = useState<Record<string, TransactionDraft>>({});
+  const [categoryDefinitions, setCategoryDefinitions] = useState<CategoryDefinition[]>(() => buildDefaultCategoryDefinitions());
+  const [rulesFilter, setRulesFilter] = useState<"needs" | "all">("needs");
+  const [hasHydratedLocalRules, setHasHydratedLocalRules] = useState(false);
+  const [accountEntries, setAccountEntries] = useState<AccountEntry[]>(DEFAULT_ACCOUNT_ENTRIES);
+  const [goals, setGoals] = useState<GoalEntry[]>(DEFAULT_GOALS);
+  const [payrollDraft, setPayrollDraft] = useState<PayrollDraft>(EMPTY_PAYROLL_DRAFT);
+  const [forecastStartNetWorth, setForecastStartNetWorth] = useState<number | null>(null);
+  const [forecastMonthlyDelta, setForecastMonthlyDelta] = useState<number | null>(null);
+  const [hasHydratedUiSettings, setHasHydratedUiSettings] = useState(false);
   const [meta, setMeta] = useState<SankeyMeta>({ generatedAt: "", currency: "AUD" });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
 
   useEffect(() => {
-    async function load() {
-      try {
-        const [transactionsResponse, uncategorizedResponse, sankeyMetaResponse] = await Promise.all([
-          fetch("/transactions.json"),
-          fetch("/uncategorized.json"),
-          fetch("/sankey.json")
-        ]);
+    try {
+      const uploadedTransactionsRaw = localStorage.getItem(UPLOADED_TRANSACTIONS_STORAGE_KEY);
+      const uploadedMetaRaw = localStorage.getItem(UPLOADED_META_STORAGE_KEY);
 
-        if (!transactionsResponse.ok) {
-          throw new Error("Missing /transactions.json. Run ingestion first.");
-        }
+      const uploadedTransactions = parseStoredRawTransactions(uploadedTransactionsRaw ? JSON.parse(uploadedTransactionsRaw) : null);
+      const uploadedMeta = parseStoredSankeyMeta(uploadedMetaRaw ? JSON.parse(uploadedMetaRaw) : null);
 
-        const transactionsJson = (await transactionsResponse.json()) as RawTransaction[];
-        setTransactions(transactionsJson);
-
-        if (uncategorizedResponse.ok) {
-          const uncategorizedJson = (await uncategorizedResponse.json()) as UncategorizedTransaction[];
-          setUncategorized(uncategorizedJson);
-        }
-
-        if (sankeyMetaResponse.ok) {
-          const sankeyMetaJson = (await sankeyMetaResponse.json()) as { generatedAt?: string; currency?: string };
-          setMeta({
-            generatedAt: sankeyMetaJson.generatedAt ?? "",
-            currency: sankeyMetaJson.currency ?? "AUD"
-          });
-        }
-      } catch (loadError) {
-        const message = loadError instanceof Error ? loadError.message : String(loadError);
-        setError(message);
-      } finally {
-        setLoading(false);
+      if (uploadedTransactions.length > 0) {
+        setTransactions(uploadedTransactions);
+        setMeta(uploadedMeta ?? {
+          generatedAt: new Date().toISOString(),
+          currency: "AUD"
+        });
+        setUploadStatus(`Loaded ${uploadedTransactions.length} transactions from browser storage.`);
+      } else {
+        setTransactions([]);
+        setMeta({ generatedAt: "", currency: "AUD" });
+        setUploadStatus("No CSV dataset loaded yet. Upload a bank CSV to begin.");
       }
+    } catch (loadError) {
+      const message = loadError instanceof Error ? loadError.message : String(loadError);
+      setError(message);
+      setTransactions([]);
+      setMeta({ generatedAt: "", currency: "AUD" });
+      setUploadStatus("Stored upload data is invalid. Upload a CSV to reset.");
+    } finally {
+      setLoading(false);
     }
-
-    void load();
   }, []);
 
-  const viz = useMemo(() => buildVisualization(transactions, meta.currency), [transactions, meta.currency]);
-  const flowTitle = "Flow: Income -> Spending + Savings";
+  useEffect(() => {
+    try {
+      const rawRules = localStorage.getItem(MANUAL_RULES_STORAGE_KEY);
+      if (rawRules) {
+        const parsed = JSON.parse(rawRules) as Partial<ManualRulesState>;
+        const byId: Record<string, ManualRule> = {};
+        const bySimilarity: Record<string, ManualRule> = {};
+        for (const [id, rule] of Object.entries(parsed.byId ?? {})) {
+          const cleaned = sanitizeManualRule(rule ?? {});
+          if (cleaned) {
+            byId[id] = cleaned;
+          }
+        }
+        for (const [similarity, rule] of Object.entries(parsed.bySimilarity ?? {})) {
+          const cleaned = sanitizeManualRule(rule ?? {});
+          if (cleaned) {
+            bySimilarity[similarity] = cleaned;
+          }
+        }
+        setManualRules({
+          byId,
+          bySimilarity
+        });
+      }
+
+      const rawDrafts = localStorage.getItem(MANUAL_DRAFTS_STORAGE_KEY);
+      if (rawDrafts) {
+        const parsedDrafts = JSON.parse(rawDrafts) as Record<string, TransactionDraft>;
+        const normalizedDrafts: Record<string, TransactionDraft> = {};
+        for (const [transactionId, draft] of Object.entries(parsedDrafts)) {
+          normalizedDrafts[transactionId] = {
+            categoryGroup: canonicalizeCategoryGroup(draft.categoryGroup),
+            category: (draft.category ?? "").trim(),
+            nickname: draft.nickname ?? "",
+            applySimilar: draft.applySimilar !== false
+          };
+        }
+        setDrafts(normalizedDrafts);
+      }
+
+      const rawCategoryTaxonomy = localStorage.getItem(CATEGORY_TAXONOMY_STORAGE_KEY);
+      if (rawCategoryTaxonomy) {
+        const parsedTaxonomy = parseStoredCategoryDefinitions(JSON.parse(rawCategoryTaxonomy));
+        if (parsedTaxonomy.length > 0) {
+          setCategoryDefinitions(parsedTaxonomy);
+        }
+      }
+    } catch {
+      setManualRules(EMPTY_MANUAL_RULES);
+      setDrafts({});
+      setCategoryDefinitions(buildDefaultCategoryDefinitions());
+    } finally {
+      setHasHydratedLocalRules(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hasHydratedLocalRules) {
+      return;
+    }
+    localStorage.setItem(MANUAL_RULES_STORAGE_KEY, JSON.stringify(manualRules));
+  }, [manualRules, hasHydratedLocalRules]);
+
+  useEffect(() => {
+    if (!hasHydratedLocalRules) {
+      return;
+    }
+    localStorage.setItem(MANUAL_DRAFTS_STORAGE_KEY, JSON.stringify(drafts));
+  }, [drafts, hasHydratedLocalRules]);
+
+  useEffect(() => {
+    if (!hasHydratedLocalRules) {
+      return;
+    }
+    localStorage.setItem(CATEGORY_TAXONOMY_STORAGE_KEY, JSON.stringify(categoryDefinitions));
+  }, [categoryDefinitions, hasHydratedLocalRules]);
+
+  useEffect(() => {
+    try {
+      const rawAccounts = localStorage.getItem(ACCOUNT_ENTRIES_STORAGE_KEY);
+      if (rawAccounts) {
+        const parsedAccounts = parseStoredAccountEntries(JSON.parse(rawAccounts));
+        if (parsedAccounts.length > 0) {
+          setAccountEntries(parsedAccounts);
+        }
+      }
+
+      const rawGoals = localStorage.getItem(GOALS_STORAGE_KEY);
+      if (rawGoals) {
+        const parsedGoals = parseStoredGoals(JSON.parse(rawGoals));
+        if (parsedGoals.length > 0) {
+          setGoals(parsedGoals);
+        }
+      }
+
+      const rawPayroll = localStorage.getItem(PAYROLL_DRAFT_STORAGE_KEY);
+      if (rawPayroll) {
+        setPayrollDraft(sanitizePayrollDraft(JSON.parse(rawPayroll)));
+      }
+
+      const rawForecast = localStorage.getItem(FORECAST_SETTINGS_STORAGE_KEY);
+      if (rawForecast) {
+        const parsedForecast = parseForecastSettings(JSON.parse(rawForecast));
+        setForecastStartNetWorth(parsedForecast.startNetWorth);
+        setForecastMonthlyDelta(parsedForecast.monthlyDelta);
+      }
+    } catch {
+      setAccountEntries(DEFAULT_ACCOUNT_ENTRIES);
+      setGoals(DEFAULT_GOALS);
+      setPayrollDraft(EMPTY_PAYROLL_DRAFT);
+      setForecastStartNetWorth(null);
+      setForecastMonthlyDelta(null);
+    } finally {
+      setHasHydratedUiSettings(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hasHydratedUiSettings) {
+      return;
+    }
+    localStorage.setItem(ACCOUNT_ENTRIES_STORAGE_KEY, JSON.stringify(accountEntries));
+  }, [accountEntries, hasHydratedUiSettings]);
+
+  useEffect(() => {
+    if (!hasHydratedUiSettings) {
+      return;
+    }
+    localStorage.setItem(GOALS_STORAGE_KEY, JSON.stringify(goals));
+  }, [goals, hasHydratedUiSettings]);
+
+  useEffect(() => {
+    if (!hasHydratedUiSettings) {
+      return;
+    }
+    localStorage.setItem(PAYROLL_DRAFT_STORAGE_KEY, JSON.stringify(payrollDraft));
+  }, [payrollDraft, hasHydratedUiSettings]);
+
+  useEffect(() => {
+    if (!hasHydratedUiSettings) {
+      return;
+    }
+    localStorage.setItem(FORECAST_SETTINGS_STORAGE_KEY, JSON.stringify({
+      startNetWorth: forecastStartNetWorth,
+      monthlyDelta: forecastMonthlyDelta
+    }));
+  }, [forecastStartNetWorth, forecastMonthlyDelta, hasHydratedUiSettings]);
+
+  const effectiveTransactions = useMemo(
+    () => applyManualRules(transactions, manualRules),
+    [transactions, manualRules]
+  );
+
+  const webIncomeModel = useMemo(
+    () => buildIncomeModelFromTransactions(effectiveTransactions, payrollDraft),
+    [effectiveTransactions, payrollDraft]
+  );
+
+  const incomeModel = webIncomeModel;
+
+  const timelineOptions = useMemo(() => {
+    const options = Array.from(new Set(effectiveTransactions.map((transaction) => monthKey(transaction.date)))).sort();
+    return ["all" as TimelinePeriod, ...options];
+  }, [effectiveTransactions]);
+
+  useEffect(() => {
+    if (timelinePeriod === "all") {
+      return;
+    }
+    if (!timelineOptions.includes(timelinePeriod)) {
+      setTimelinePeriod("all");
+    }
+  }, [timelineOptions, timelinePeriod]);
+
+  const viz = useMemo(
+    () => buildVisualization(effectiveTransactions, meta.currency, incomeMode, incomeModel, merchantDetailMode, timelinePeriod),
+    [effectiveTransactions, meta.currency, incomeMode, incomeModel, merchantDetailMode, timelinePeriod]
+  );
+
+  const configuredTaxonomy = useMemo(
+    () => categoryTaxonomyFromDefinitions(categoryDefinitions),
+    [categoryDefinitions]
+  );
+
+  const categoryGroupOptions = useMemo(() => {
+    const groups = new Set<string>();
+    for (const category of configuredTaxonomy.keys()) {
+      groups.add(category);
+    }
+    for (const transaction of effectiveTransactions) {
+      groups.add(resolveCategoryGroupBucket(transaction));
+    }
+    groups.delete("");
+    return [...groups].sort((a, b) => a.localeCompare(b));
+  }, [configuredTaxonomy, effectiveTransactions]);
+
+  const subcategoryOptionsByGroup = useMemo(() => {
+    const optionsByGroup = new Map<string, Set<string>>();
+    for (const [group, subcategories] of configuredTaxonomy.entries()) {
+      if (!optionsByGroup.has(group)) {
+        optionsByGroup.set(group, new Set<string>());
+      }
+      for (const subcategory of subcategories) {
+        optionsByGroup.get(group)?.add(subcategory);
+      }
+    }
+    for (const transaction of effectiveTransactions) {
+      const group = resolveCategoryGroupBucket(transaction);
+      const subcategory = resolveSubcategoryBucket(transaction);
+      if (!optionsByGroup.has(group)) {
+        optionsByGroup.set(group, new Set<string>());
+      }
+      optionsByGroup.get(group)?.add(subcategory);
+    }
+    const finalized = new Map<string, string[]>();
+    for (const [group, options] of optionsByGroup.entries()) {
+      finalized.set(group, [...options].sort((a, b) => a.localeCompare(b)));
+    }
+    return finalized;
+  }, [configuredTaxonomy, effectiveTransactions]);
+
+  const editableTransactions = useMemo(() => {
+    const scoped = effectiveTransactions.filter((transaction) => isInTimeline(transaction.date, timelinePeriod));
+    return scoped
+      .filter((transaction) => transaction.direction === "debit" && transaction.amount > 0)
+      .sort((a, b) => b.date.localeCompare(a.date));
+  }, [effectiveTransactions, timelinePeriod]);
+
+  const uncategorizedInPeriod = useMemo(
+    () => editableTransactions.filter((transaction) => resolveCategoryGroupBucket(transaction) === "Uncategorized"),
+    [editableTransactions]
+  );
+
+  const visibleEditableTransactions = useMemo(() => {
+    if (rulesFilter === "all") {
+      return editableTransactions;
+    }
+    return uncategorizedInPeriod;
+  }, [rulesFilter, editableTransactions, uncategorizedInPeriod]);
+  const flowTitle = incomeMode === "modeled"
+    ? "Flow: Income/Super/Credits -> Gross Income -> Net/Tax/Super Out -> Category + Tax Leaves -> Subcategory -> Detailed Transactions"
+    : incomeMode === "expenses"
+      ? "Flow: Total Spend -> Category -> Subcategory -> Transactions"
+      : "Flow: Income -> Category -> Subcategory -> Merchant + Savings";
   const chartHeight = useMemo(() => {
-    const branchCount = Math.max(viz.outflowCount, viz.incomeStats.length, 1);
-    const dynamicHeight = 280 + branchCount * 30;
-    return Math.max(360, Math.min(620, dynamicHeight));
-  }, [viz.outflowCount, viz.incomeStats.length]);
+    const dynamicHeight = 360 + viz.maxColumnNodes * 34;
+    return Math.max(460, Math.min(980, dynamicHeight));
+  }, [viz.maxColumnNodes]);
+  const chartRightMargin = incomeMode === "expenses" ? 430 : merchantDetailMode === "summary" ? 360 : 430;
   const nodePadding = useMemo(() => {
-    const branchCount = viz.outflowCount;
-    if (branchCount >= 14) {
+    const branchCount = viz.maxColumnNodes;
+    if (branchCount >= 24) {
+      return 8;
+    }
+    if (branchCount >= 16) {
       return 12;
     }
-    if (branchCount >= 10) {
-      return 18;
+    if (branchCount >= 14) {
+      return 14;
     }
-    return 24;
-  }, [viz.outflowCount]);
+    return 18;
+  }, [viz.maxColumnNodes]);
 
   const subtitle = useMemo(() => {
     if (!meta.generatedAt) {
-      return "No processed dataset loaded";
+      return "No CSV dataset loaded";
     }
     return `Generated ${new Date(meta.generatedAt).toLocaleString("en-AU")}`;
   }, [meta.generatedAt]);
 
+  const accountSummary = useMemo(() => {
+    let assets = 0;
+    let liabilities = 0;
+    const buckets = new Map<string, number>();
+
+    for (const account of accountEntries) {
+      const signedValue = account.kind === "asset" ? account.value : -account.value;
+      if (account.kind === "asset") {
+        assets += account.value;
+      } else {
+        liabilities += account.value;
+      }
+      buckets.set(account.bucket, (buckets.get(account.bucket) ?? 0) + signedValue);
+    }
+
+    return {
+      assets: Number(assets.toFixed(2)),
+      liabilities: Number(liabilities.toFixed(2)),
+      netWorth: Number((assets - liabilities).toFixed(2)),
+      byBucket: [...buckets.entries()].map(([bucket, total]) => ({ bucket, total })).sort((a, b) => b.total - a.total)
+    };
+  }, [accountEntries]);
+
+  const inferredMonthlyNetFlow = useMemo(() => {
+    const byMonth = new Map<string, { credits: number; debits: number }>();
+    for (const transaction of effectiveTransactions) {
+      const month = monthKey(transaction.date);
+      if (!byMonth.has(month)) {
+        byMonth.set(month, { credits: 0, debits: 0 });
+      }
+      const current = byMonth.get(month);
+      if (!current) {
+        continue;
+      }
+      if (transaction.direction === "credit" && transaction.amount < 0) {
+        current.credits += Math.abs(transaction.amount);
+      }
+      if (transaction.direction === "debit" && transaction.amount > 0) {
+        current.debits += transaction.amount;
+      }
+    }
+    const monthSummaries = [...byMonth.values()];
+    if (monthSummaries.length === 0) {
+      return 0;
+    }
+    const totalNet = monthSummaries.reduce((sum, summary) => sum + (summary.credits - summary.debits), 0);
+    return Number((totalNet / monthSummaries.length).toFixed(2));
+  }, [effectiveTransactions]);
+
+  const startNetWorth = forecastStartNetWorth ?? accountSummary.netWorth;
+  const monthlyForecastDelta = forecastMonthlyDelta ?? inferredMonthlyNetFlow;
+  const maxGoalTarget = goals.reduce((max, goal) => Math.max(max, goal.target), 0);
+
+  const forecastPoints = useMemo(() => {
+    const base = new Date();
+    base.setDate(1);
+    const points: Array<{ label: string; monthKey: string; netWorth: number; goal: number }> = [];
+    let running = startNetWorth;
+    for (let index = 0; index < 18; index += 1) {
+      const pointDate = new Date(base.getFullYear(), base.getMonth() + index, 1);
+      if (index > 0) {
+        running += monthlyForecastDelta;
+      }
+      points.push({
+        label: pointDate.toLocaleString("en-AU", { month: "short", year: "2-digit" }),
+        monthKey: `${pointDate.getFullYear()}-${String(pointDate.getMonth() + 1).padStart(2, "0")}`,
+        netWorth: Number(running.toFixed(2)),
+        goal: maxGoalTarget
+      });
+    }
+    return points;
+  }, [startNetWorth, monthlyForecastDelta, maxGoalTarget]);
+
+  const expensePieData = useMemo(() => {
+    const top = viz.categoryStats.slice(0, 7).map((item) => ({
+      name: item.category,
+      value: Number(item.total.toFixed(2)),
+      color: item.color
+    }));
+    const tail = viz.categoryStats.slice(7);
+    const tailTotal = tail.reduce((sum, item) => sum + item.total, 0);
+    if (tailTotal > 0) {
+      top.push({
+        name: "Other",
+        value: Number(tailTotal.toFixed(2)),
+        color: "#a3b0bf"
+      });
+    }
+    return top;
+  }, [viz.categoryStats]);
+
+  function defaultDraftFor(transaction: RawTransaction): TransactionDraft {
+    return {
+      categoryGroup: resolveCategoryGroupBucket(transaction),
+      category: resolveSubcategoryBucket(transaction),
+      nickname: transaction.manualNickname ?? "",
+      applySimilar: true
+    };
+  }
+
+  function draftFor(transaction: RawTransaction): TransactionDraft {
+    return drafts[transaction.id] ?? defaultDraftFor(transaction);
+  }
+
+  function updateDraft(transaction: RawTransaction, patch: Partial<TransactionDraft>): void {
+    setDrafts((prev) => {
+      const current = prev[transaction.id] ?? defaultDraftFor(transaction);
+      return {
+        ...prev,
+        [transaction.id]: {
+          ...current,
+          ...patch
+        }
+      };
+    });
+  }
+
+  function updateCategoryDefinition(id: string, patch: Partial<Omit<CategoryDefinition, "id">>): void {
+    setCategoryDefinitions((prev) => prev.map((definition) => (
+      definition.id === id ? { ...definition, ...patch } : definition
+    )));
+  }
+
+  function addCategoryDefinition(): void {
+    setCategoryDefinitions((prev) => [
+      ...prev,
+      { id: createLocalId("cat"), category: "", subcategories: "" }
+    ]);
+  }
+
+  function removeCategoryDefinition(id: string): void {
+    setCategoryDefinitions((prev) => prev.filter((definition) => definition.id !== id));
+  }
+
+  function resetCategoryDefinitions(): void {
+    setCategoryDefinitions(buildDefaultCategoryDefinitions());
+  }
+
+  function saveRule(transaction: RawTransaction): void {
+    const draft = draftFor(transaction);
+    const cleaned = sanitizeManualRule({
+      categoryGroup: draft.categoryGroup,
+      category: draft.category,
+      nickname: draft.nickname
+    });
+    const similarityKey = transaction.similarityKey ?? similarityKeyForTransaction(transaction);
+
+    setManualRules((prev) => {
+      const byId = { ...prev.byId };
+      const bySimilarity = { ...prev.bySimilarity };
+
+      if (cleaned) {
+        byId[transaction.id] = cleaned;
+      } else {
+        delete byId[transaction.id];
+      }
+
+      if (draft.applySimilar) {
+        if (cleaned) {
+          bySimilarity[similarityKey] = cleaned;
+        } else {
+          delete bySimilarity[similarityKey];
+        }
+      }
+
+      return { byId, bySimilarity };
+    });
+  }
+
+  function clearRule(transaction: RawTransaction): void {
+    const similarityKey = transaction.similarityKey ?? similarityKeyForTransaction(transaction);
+    setManualRules((prev) => {
+      const byId = { ...prev.byId };
+      const bySimilarity = { ...prev.bySimilarity };
+      delete byId[transaction.id];
+      delete bySimilarity[similarityKey];
+      return { byId, bySimilarity };
+    });
+    setDrafts((prev) => {
+      const next = { ...prev };
+      delete next[transaction.id];
+      return next;
+    });
+  }
+
+  function clearAllRules(): void {
+    setManualRules(EMPTY_MANUAL_RULES);
+    setDrafts({});
+    localStorage.removeItem(MANUAL_RULES_STORAGE_KEY);
+    localStorage.removeItem(MANUAL_DRAFTS_STORAGE_KEY);
+  }
+
+  function addAccount(): void {
+    setAccountEntries((prev) => [
+      ...prev,
+      {
+        id: createLocalId("acct"),
+        name: "",
+        bucket: "Other",
+        kind: "asset",
+        value: 0
+      }
+    ]);
+  }
+
+  function updateAccount(id: string, patch: Partial<Omit<AccountEntry, "id">>): void {
+    setAccountEntries((prev) => prev.map((account) => (
+      account.id === id ? { ...account, ...patch } : account
+    )));
+  }
+
+  function removeAccount(id: string): void {
+    setAccountEntries((prev) => prev.filter((account) => account.id !== id));
+  }
+
+  function addGoal(): void {
+    setGoals((prev) => [
+      ...prev,
+      {
+        id: createLocalId("goal"),
+        name: "",
+        target: 0,
+        current: 0
+      }
+    ]);
+  }
+
+  function updateGoal(id: string, patch: Partial<Omit<GoalEntry, "id">>): void {
+    setGoals((prev) => prev.map((goal) => (
+      goal.id === id ? { ...goal, ...patch } : goal
+    )));
+  }
+
+  function removeGoal(id: string): void {
+    setGoals((prev) => prev.filter((goal) => goal.id !== id));
+  }
+
+  async function handleCsvUpload(event: React.ChangeEvent<HTMLInputElement>): Promise<void> {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    try {
+      const csvRaw = await file.text();
+      const imported = parseBankCsvToTransactions(csvRaw, categoryDefinitions);
+      if (imported.transactions.length === 0) {
+        setUploadStatus(`No transactions were parsed from ${file.name}. Check CSV columns and format.`);
+        return;
+      }
+
+      setTransactions(imported.transactions);
+      const uploadedMeta: SankeyMeta = {
+        generatedAt: new Date().toISOString(),
+        currency: "AUD"
+      };
+      const uploadedIncomeModel = buildIncomeModelFromTransactions(imported.transactions, payrollDraft);
+      setMeta(uploadedMeta);
+      setError(null);
+      setTimelinePeriod("all");
+      localStorage.setItem(UPLOADED_TRANSACTIONS_STORAGE_KEY, JSON.stringify(imported.transactions));
+      localStorage.setItem(UPLOADED_META_STORAGE_KEY, JSON.stringify(uploadedMeta));
+      if (!uploadedIncomeModel.enabled && incomeMode === "modeled") {
+        setIncomeMode("raw");
+      }
+
+      if (imported.warnings.length > 0) {
+        setUploadStatus(`Loaded ${imported.transactions.length} transactions from ${file.name} with ${imported.warnings.length} skipped row(s).`);
+      } else {
+        setUploadStatus(`Loaded ${imported.transactions.length} transactions from ${file.name}.`);
+      }
+    } catch (uploadError) {
+      const message = uploadError instanceof Error ? uploadError.message : String(uploadError);
+      setUploadStatus(`Upload failed: ${message}`);
+    } finally {
+      event.target.value = "";
+    }
+  }
+
+  function clearUploadedData(): void {
+    setTransactions([]);
+    setMeta({ generatedAt: "", currency: "AUD" });
+    setError(null);
+    setTimelinePeriod("all");
+    if (incomeMode === "modeled") {
+      setIncomeMode("raw");
+    }
+    localStorage.removeItem(UPLOADED_TRANSACTIONS_STORAGE_KEY);
+    localStorage.removeItem(UPLOADED_META_STORAGE_KEY);
+    setUploadStatus("Cleared uploaded data. Upload a bank CSV to begin.");
+  }
+
   if (loading) {
     return (
-      <main className="page-shell">
-        <p>Loading Sankey dataset...</p>
+      <main className="dashboard-shell loading-state">
+        <p>Loading saved dataset...</p>
       </main>
     );
   }
 
-  if (error) {
-    return (
-      <main className="page-shell">
-        <h1>Personal Spend Sankey</h1>
-        <p className="error">{error}</p>
-        <p className="hint">Run `npm run ingest -- --input ./Data_export_23022026.csv` then reload.</p>
-      </main>
-    );
-  }
+  const tabMeta: Record<DashboardTab, { label: string; title: string; subtitle: string }> = {
+    forecast: {
+      label: "Forecast",
+      title: "Net Worth Forecast",
+      subtitle: "Balance trajectory using your current net worth and monthly flow."
+    },
+    accounts: {
+      label: "Accounts",
+      title: "Accounts",
+      subtitle: "Track assets and liabilities that make up your net worth."
+    },
+    income: {
+      label: "Income",
+      title: "Income Model",
+      subtitle: "Configure payroll values used for modeled salary flow."
+    },
+    expenses: {
+      label: "Expenses",
+      title: "Expense Analysis",
+      subtitle: "Sankey + category breakdown for spend behavior."
+    },
+    categories: {
+      label: "Categories",
+      title: "Categories & Rules",
+      subtitle: "Define taxonomy and classify transactions quickly."
+    }
+  };
+
+  const activeTabMeta = tabMeta[activeTab];
 
   return (
-    <main className="page-shell">
-      <header className="hero">
-        <p className="eyebrow">Personal Spend</p>
-        <h1>Sankey Flow</h1>
-        <p className="subtitle">{subtitle}</p>
-      </header>
+    <main className="dashboard-shell">
+      <Sidebar
+        tabMeta={tabMeta}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        accountSummary={accountSummary}
+        goals={goals}
+        currency={meta.currency}
+      />
 
-      <section className="stats">
-        <article>
-          <h2>Total Income</h2>
-          <p>{formatCurrency(viz.totalIncome, meta.currency)}</p>
-        </article>
-        <article>
-          <h2>Total Spend</h2>
-          <p>{formatCurrency(viz.totalSpend, meta.currency)}</p>
-        </article>
-        <article>
-          <h2>Savings</h2>
-          <p>{formatCurrency(viz.savings, meta.currency)}</p>
-        </article>
-        <article>
-          <h2>Uncategorized</h2>
-          <p>{uncategorized.length}</p>
-        </article>
-      </section>
-
-      <section className="studio">
-        <div className="canvas-panel">
-          <div className="canvas-header">
-            <h2>{flowTitle}</h2>
+      <section className="workspace">
+        <WorkspaceHeader
+          title={activeTabMeta.title}
+          subtitle={activeTabMeta.subtitle}
+          generatedLabel={subtitle}
+        />
+        <section className="panel controls-panel upload-panel">
+          <div>
+            <h3>Data Source</h3>
+            <p className="mode-note">
+              Upload your raw bank CSV directly in the browser. Imported data is stored locally on this device.
+            </p>
+            {error ? <p className="error">{error}</p> : null}
+            {uploadStatus ? <p className="mode-note">{uploadStatus}</p> : null}
           </div>
-
-          <div className="chart" style={{ height: chartHeight }}>
-            <ResponsiveContainer width="100%" height={chartHeight}>
-              <Sankey
-                data={viz.sankey}
-                nodePadding={nodePadding}
-                nodeWidth={15}
-                linkCurvature={0.3}
-                iterations={64}
-                sort={false}
-                margin={{ top: 34, right: 340, bottom: 20, left: 220 }}
-                node={NodeShape}
-                link={LinkShape}
-              >
-                <Tooltip content={<FlowTooltip currency={meta.currency} />} />
-              </Sankey>
-            </ResponsiveContainer>
+          <div className="mode-toggle">
+            <label className="mode-btn active upload-btn">
+              Upload CSV
+              <input
+                type="file"
+                accept=".csv,text/csv"
+                onChange={(event) => {
+                  void handleCsvUpload(event);
+                }}
+              />
+            </label>
+            <button type="button" className="mode-btn" onClick={clearUploadedData}>
+              Clear Data
+            </button>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section className="uncategorized">
-        <h2>Needs Categorization</h2>
-        {uncategorized.length === 0 ? (
-          <p>All debit transactions are categorized.</p>
-        ) : (
-          <ul>
-            {uncategorized.slice(0, 24).map((transaction) => (
-              <li key={transaction.id}>
-                <strong>{transaction.date}</strong> | {transaction.merchant} | {formatCurrency(transaction.amount, meta.currency)}
-              </li>
-            ))}
-          </ul>
-        )}
+        {activeTab === "forecast" ? (
+          <ForecastTab
+            currency={meta.currency}
+            accountSummary={accountSummary}
+            startNetWorth={startNetWorth}
+            monthlyForecastDelta={monthlyForecastDelta}
+            forecastStartNetWorth={forecastStartNetWorth}
+            forecastMonthlyDelta={forecastMonthlyDelta}
+            inferredMonthlyNetFlow={inferredMonthlyNetFlow}
+            forecastPoints={forecastPoints}
+            maxGoalTarget={maxGoalTarget}
+            goals={goals}
+            onForecastStartNetWorthChange={setForecastStartNetWorth}
+            onForecastMonthlyDeltaChange={setForecastMonthlyDelta}
+            onResetStartNetWorth={() => setForecastStartNetWorth(null)}
+            onResetMonthlyDelta={() => setForecastMonthlyDelta(null)}
+            onAddGoal={addGoal}
+            onUpdateGoal={updateGoal}
+            onRemoveGoal={removeGoal}
+          />
+        ) : null}
+
+        {activeTab === "accounts" ? (
+          <AccountsTab
+            currency={meta.currency}
+            accountSummary={accountSummary}
+            accountEntries={accountEntries}
+            onAddAccount={addAccount}
+            onUpdateAccount={updateAccount}
+            onRemoveAccount={removeAccount}
+          />
+        ) : null}
+
+        {activeTab === "income" ? (
+          <IncomeTab
+            currency={meta.currency}
+            payrollDraft={payrollDraft}
+            onPayrollDraftChange={(patch) => setPayrollDraft((prev) => ({ ...prev, ...patch }))}
+          />
+        ) : null}
+
+        {activeTab === "expenses" ? (
+          <ExpensesTab
+            currency={meta.currency}
+            incomeMode={incomeMode}
+            onIncomeModeChange={setIncomeMode}
+            incomeModelEnabled={Boolean(incomeModel?.enabled)}
+            merchantDetailMode={merchantDetailMode}
+            onMerchantDetailModeChange={setMerchantDetailMode}
+            timelinePeriod={timelinePeriod}
+            onTimelinePeriodChange={setTimelinePeriod}
+            timelineOptions={timelineOptions}
+            viz={viz}
+            uncategorizedCount={uncategorizedInPeriod.length}
+            flowTitle={flowTitle}
+            chartHeight={chartHeight}
+            chartRightMargin={chartRightMargin}
+            nodePadding={nodePadding}
+            expensePieData={expensePieData}
+          />
+        ) : null}
+
+        {activeTab === "categories" ? (
+          <CategoriesTab
+            currency={meta.currency}
+            timelinePeriod={timelinePeriod}
+            onTimelinePeriodChange={setTimelinePeriod}
+            timelineOptions={timelineOptions}
+            uncategorizedCount={uncategorizedInPeriod.length}
+            categoryDefinitions={categoryDefinitions}
+            onAddCategoryDefinition={addCategoryDefinition}
+            onResetCategoryDefinitions={resetCategoryDefinitions}
+            onUpdateCategoryDefinition={updateCategoryDefinition}
+            onRemoveCategoryDefinition={removeCategoryDefinition}
+            rulesFilter={rulesFilter}
+            onRulesFilterChange={setRulesFilter}
+            onClearAllRules={clearAllRules}
+            visibleEditableTransactions={visibleEditableTransactions}
+            draftFor={draftFor}
+            onUpdateDraft={updateDraft}
+            onSaveRule={saveRule}
+            onClearRule={clearRule}
+            subcategoryOptionsByGroup={subcategoryOptionsByGroup}
+            categoryGroupOptions={categoryGroupOptions}
+          />
+        ) : null}
       </section>
     </main>
   );
