@@ -2,6 +2,13 @@
 
 Turn bank CSV exports into a clear expense and net-worth dashboard with minimal friction.
 
+## Privacy model
+
+- All transaction data stays in the browser on the user's device.
+- CSVs are parsed client-side.
+- No backend or server-side financial data storage is required.
+- Clearing browser storage for this app will remove saved CSVs, rules, and settings.
+
 ## Tech stack
 
 - `Node.js + npm workspaces` (single command entry points)
@@ -27,8 +34,9 @@ Upload your CSV in the `Data Source` panel.
 1. Export CSV from your bank.
 2. Start UI: `npm run web`.
 3. Upload CSV in the app.
-4. Review Forecast, Accounts, Income, Expenses, and Categories tabs.
-5. Tune categories and rules directly in the UI.
+4. Review and adjust coverage dates in the `Transaction Data` tab.
+5. Review Forecast, Accounts, Income, Expenses, and Categories tabs.
+6. Tune categories and rules directly in the UI.
 
 ## Commands
 

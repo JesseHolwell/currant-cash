@@ -1,14 +1,18 @@
 import {
+  Area,
+  AreaChart,
   CartesianGrid,
+  Legend,
   Line,
   LineChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis
 } from "recharts";
 import { formatCurrency } from "../../../models";
-import type { GoalEntry } from "../../../models";
+import type { AccountEntry, AccountHistorySnapshot, GoalEntry } from "../../../models";
 
 type AccountSummary = {
   assets: number;
@@ -23,6 +27,19 @@ type ForecastPoint = {
   goal: number;
 };
 
+type AccountHistorySeries = {
+  accountId: string;
+  dataKey: string;
+  label: string;
+  color: string;
+};
+
+type AccountHistoryChartRow = {
+  month: string;
+  label: string;
+  [key: string]: string | number;
+};
+
 export function ForecastTab({
   currency,
   accountSummary,
@@ -34,6 +51,14 @@ export function ForecastTab({
   forecastPoints,
   maxGoalTarget,
   goals,
+  accountEntries,
+  accountHistorySnapshots,
+  accountHistorySeries,
+  accountHistoryChartData,
+  onAddAccountHistorySnapshot,
+  onUpdateAccountHistoryMonth,
+  onUpdateAccountHistoryBalance,
+  onRemoveAccountHistorySnapshot,
   onForecastStartNetWorthChange,
   onForecastMonthlyDeltaChange,
   onResetStartNetWorth,
@@ -52,6 +77,14 @@ export function ForecastTab({
   forecastPoints: ForecastPoint[];
   maxGoalTarget: number;
   goals: GoalEntry[];
+  accountEntries: AccountEntry[];
+  accountHistorySnapshots: AccountHistorySnapshot[];
+  accountHistorySeries: AccountHistorySeries[];
+  accountHistoryChartData: AccountHistoryChartRow[];
+  onAddAccountHistorySnapshot: () => void;
+  onUpdateAccountHistoryMonth: (snapshotId: string, month: string) => void;
+  onUpdateAccountHistoryBalance: (snapshotId: string, accountId: string, value: number) => void;
+  onRemoveAccountHistorySnapshot: (snapshotId: string) => void;
   onForecastStartNetWorthChange: (value: number | null) => void;
   onForecastMonthlyDeltaChange: (value: number | null) => void;
   onResetStartNetWorth: () => void;
@@ -79,6 +112,104 @@ export function ForecastTab({
           <h2>Liabilities</h2>
           <p>{formatCurrency(accountSummary.liabilities, currency)}</p>
         </article>
+      </section>
+
+      <section className="panel">
+        <div className="rules-header">
+          <h3>Account Balance History</h3>
+          <button type="button" className="mode-btn active" onClick={onAddAccountHistorySnapshot}>
+            Add Month Snapshot
+          </button>
+        </div>
+        <p className="mode-note">
+          Enter monthly balances for each account. Liabilities should be entered as positive balances; they are treated as
+          negative in the chart.
+        </p>
+        {accountHistorySnapshots.length === 0 ? (
+          <p className="mode-note">No monthly snapshots yet. Add your first month to start the trend chart.</p>
+        ) : (
+          <div className="history-wrap">
+            <table className="history-table">
+              <thead>
+                <tr>
+                  <th>Month</th>
+                  {accountEntries.map((account) => (
+                    <th key={account.id}>{account.name || "Untitled Account"}</th>
+                  ))}
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {accountHistorySnapshots.map((snapshot) => (
+                  <tr key={snapshot.id}>
+                    <td>
+                      <input
+                        type="month"
+                        value={snapshot.month}
+                        onChange={(event) => onUpdateAccountHistoryMonth(snapshot.id, event.target.value)}
+                      />
+                    </td>
+                    {accountEntries.map((account) => (
+                      <td key={`${snapshot.id}-${account.id}`}>
+                        <input
+                          type="number"
+                          value={snapshot.balances[account.id] ?? 0}
+                          onChange={(event) => onUpdateAccountHistoryBalance(
+                            snapshot.id,
+                            account.id,
+                            Number(event.target.value) || 0
+                          )}
+                        />
+                      </td>
+                    ))}
+                    <td>
+                      <button
+                        type="button"
+                        className="mode-btn"
+                        onClick={() => onRemoveAccountHistorySnapshot(snapshot.id)}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section className="panel">
+        <h3>Account Trend</h3>
+        <p className="mode-note">Stacked area view by account over time.</p>
+        <div className="line-chart-wrap account-area-wrap">
+          <ResponsiveContainer width="100%" height={360}>
+            <AreaChart data={accountHistoryChartData} margin={{ top: 12, right: 24, bottom: 8, left: 4 }}>
+              <CartesianGrid stroke="#e4dccf" strokeDasharray="3 3" />
+              <XAxis dataKey="label" stroke="#8f877a" />
+              <YAxis
+                stroke="#8f877a"
+                width={96}
+                tickFormatter={(value) => formatCurrency(Number(value), currency)}
+              />
+              <Tooltip formatter={(value: number) => formatCurrency(Number(value), currency)} />
+              <Legend />
+              <ReferenceLine y={0} stroke="#9ca9aa" strokeDasharray="4 4" />
+              {accountHistorySeries.map((series) => (
+                <Area
+                  key={series.accountId}
+                  type="monotone"
+                  dataKey={series.dataKey}
+                  name={series.label}
+                  stackId="balances"
+                  stroke={series.color}
+                  fill={series.color}
+                  fillOpacity={0.24}
+                />
+              ))}
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
       </section>
 
       <section className="panel controls-panel">

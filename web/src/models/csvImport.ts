@@ -19,15 +19,24 @@ type CsvImportResult = {
   warnings: string[];
 };
 
-function parseMoney(value: string | undefined): number {
+function canonicalMoneyToken(value: string | undefined): string {
   if (!value) {
-    return 0;
+    return "";
   }
   const cleaned = value.replace(/[$,\s]/g, "").trim();
   if (!cleaned) {
-    return 0;
+    return "";
   }
   const numeric = Number.parseFloat(cleaned);
+  return Number.isFinite(numeric) ? numeric.toFixed(2) : "";
+}
+
+function parseMoney(value: string | undefined): number {
+  const canonical = canonicalMoneyToken(value);
+  if (!canonical) {
+    return 0;
+  }
+  const numeric = Number.parseFloat(canonical);
   return Number.isFinite(numeric) ? numeric : 0;
 }
 
@@ -76,6 +85,24 @@ function hashString(input: string): string {
     hash = (hash * 31 + input.charCodeAt(i)) >>> 0;
   }
   return `tx_${hash.toString(16).padStart(8, "0")}`;
+}
+
+function buildTransactionFingerprint(row: CsvBankRow, normalizedDate: string, narrative: string): string {
+  const normalizedAccount = normalizeText((row["Bank Account"] ?? "").trim() || "uploaded-account");
+  const normalizedSerial = normalizeText((row.Serial ?? "").trim());
+  const normalizedBalance = canonicalMoneyToken(row.Balance);
+
+  // Use a canonical bank-line fingerprint so overlapping exports hash to the same id
+  // without relying on row order. Balance is the best disambiguator for same-day repeats.
+  return [
+    normalizedDate,
+    normalizedAccount,
+    normalizeText(narrative),
+    canonicalMoneyToken(row["Debit Amount"]),
+    canonicalMoneyToken(row["Credit Amount"]),
+    normalizedBalance ? `bal:${normalizedBalance}` : "",
+    !normalizedBalance && normalizedSerial ? `serial:${normalizedSerial}` : ""
+  ].join("|");
 }
 
 function buildSubcategoryLookup(categoryDefinitions: CategoryDefinition[]): Map<string, { group: string; subcategory: string }> {
@@ -165,6 +192,7 @@ export function parseBankCsvToTransactions(csvRaw: string, categoryDefinitions: 
   const warnings: string[] = [];
   const subcategoryLookup = buildSubcategoryLookup(categoryDefinitions);
   const transactions: RawTransaction[] = [];
+  const seenTransactionIds = new Set<string>();
 
   parsed.data.forEach((row, index) => {
     const dateValue = (row.Date ?? "").trim();
@@ -183,18 +211,16 @@ export function parseBankCsvToTransactions(csvRaw: string, categoryDefinitions: 
       const normalizedDate = parseDate(dateValue);
       const sourceCategory = (row.Categories ?? "").trim();
       const categorization = inferCategory(narrative, sourceCategory, direction, subcategoryLookup);
+      const transactionId = hashString(buildTransactionFingerprint(row, normalizedDate, narrative));
 
-      const idSignature = [
-        dateValue,
-        (row["Bank Account"] ?? "").trim(),
-        normalizeText(narrative),
-        debitAmount.toFixed(2),
-        creditAmount.toFixed(2),
-        row.Serial?.trim() || String(index)
-      ].join("|");
+      if (seenTransactionIds.has(transactionId)) {
+        warnings.push(`Skipped row ${index + 2}: duplicate bank line detected.`);
+        return;
+      }
+      seenTransactionIds.add(transactionId);
 
       transactions.push({
-        id: hashString(idSignature),
+        id: transactionId,
         date: normalizedDate,
         accountId: (row["Bank Account"] ?? "uploaded-account").trim() || "uploaded-account",
         merchant: inferMerchant(narrative),

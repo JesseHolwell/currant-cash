@@ -10,6 +10,8 @@ type TabMeta = Record<DashboardTab, { label: string; title: string; subtitle: st
 
 export function Sidebar({
   tabMeta,
+  outputTabs,
+  inputTabs,
   activeTab,
   onTabChange,
   accountSummary,
@@ -17,6 +19,8 @@ export function Sidebar({
   currency
 }: {
   tabMeta: TabMeta;
+  outputTabs: DashboardTab[];
+  inputTabs: DashboardTab[];
   activeTab: DashboardTab;
   onTabChange: (tab: DashboardTab) => void;
   accountSummary: AccountSummary;
@@ -31,16 +35,32 @@ export function Sidebar({
       </div>
 
       <nav className="nav-list">
-        {(Object.keys(tabMeta) as DashboardTab[]).map((tab) => (
-          <button
-            key={tab}
-            type="button"
-            className={activeTab === tab ? "nav-btn active" : "nav-btn"}
-            onClick={() => onTabChange(tab)}
-          >
-            {tabMeta[tab].label}
-          </button>
-        ))}
+        <div className="nav-section">
+          <p className="nav-section-title">Outputs</p>
+          {outputTabs.map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              className={activeTab === tab ? "nav-btn active" : "nav-btn"}
+              onClick={() => onTabChange(tab)}
+            >
+              {tabMeta[tab].label}
+            </button>
+          ))}
+        </div>
+        <div className="nav-section">
+          <p className="nav-section-title">Inputs</p>
+          {inputTabs.map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              className={activeTab === tab ? "nav-btn active" : "nav-btn"}
+              onClick={() => onTabChange(tab)}
+            >
+              {tabMeta[tab].label}
+            </button>
+          ))}
+        </div>
       </nav>
 
       <section className="sidebar-card">

@@ -54,6 +54,14 @@ Legend: `[x]` shipped, `[ ]` not shipped.
 - [x] Local browser persistence for category setup and rules.
 - [ ] Rule suggestion helper from uncategorized transactions.
 
+## Transaction Data tab
+
+- [x] Uploaded CSV batch list with local browser persistence.
+- [x] Editable coverage start/end dates per CSV.
+- [x] Coverage calendar showing which days are covered across uploaded files.
+- [x] Delete individual CSV batches or clear all CSV data.
+- [ ] Replace an existing CSV batch with a new file.
+
 ## Goals
 
 - [x] Goal list with editable name/current/target values.
@@ -63,9 +71,11 @@ Legend: `[x]` shipped, `[ ]` not shipped.
 ## Data ingestion
 
 - [x] Upload bank CSV directly from web UI.
-- [x] Persist uploaded transactions and metadata in browser storage.
+- [x] Persist uploaded CSV batches and merged transaction data in browser storage.
 - [x] Normalize source rows into deterministic transaction records with stable IDs.
 - [x] Support current CSV format (`Debit Amount`, `Credit Amount`, `Narrative`, and related fields).
+- [x] Infer observed CSV date range from parsed transactions.
+- [x] Allow manual coverage-date adjustments for historical period tracking.
 - [ ] CLI ingestion (`npm run ingest -- --input <csv-path>`) - deprecated, no active development.
 - [ ] Ingest additional bank CSV formats.
 - [ ] Add output JSON schema contracts.

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  ACCOUNT_HISTORY_STORAGE_KEY,
   ACCOUNT_ENTRIES_STORAGE_KEY,
   CATEGORY_TAXONOMY_STORAGE_KEY,
   DEFAULT_ACCOUNT_ENTRIES,
@@ -11,22 +12,29 @@ import {
   MANUAL_DRAFTS_STORAGE_KEY,
   MANUAL_RULES_STORAGE_KEY,
   PAYROLL_DRAFT_STORAGE_KEY,
+  TRANSACTION_BATCHES_STORAGE_KEY,
   UPLOADED_META_STORAGE_KEY,
   UPLOADED_TRANSACTIONS_STORAGE_KEY,
   applyManualRules,
   buildIncomeModelFromTransactions,
+  buildTransactionBatch,
   buildDefaultCategoryDefinitions,
   buildVisualization,
   canonicalizeCategoryGroup,
   categoryTaxonomyFromDefinitions,
   createLocalId,
+  deriveMetaFromBatches,
   isInTimeline,
+  mergeTransactionsFromBatches,
   monthKey,
+  normalizeCoverageRange,
   parseForecastSettings,
   parseStoredRawTransactions,
   parseStoredSankeyMeta,
   parseStoredAccountEntries,
+  parseStoredAccountHistory,
   parseBankCsvToTransactions,
+  parseStoredTransactionBatches,
   parseStoredCategoryDefinitions,
   parseStoredGoals,
   resolveCategoryGroupBucket,
@@ -37,6 +45,7 @@ import {
 } from "./models";
 import type {
   AccountEntry,
+  AccountHistorySnapshot,
   CategoryDefinition,
   DashboardTab,
   GoalEntry,
@@ -48,6 +57,7 @@ import type {
   RawTransaction,
   SankeyMeta,
   TimelinePeriod,
+  TransactionBatch,
   TransactionDraft
 } from "./models";
 import { AccountsTab } from "./components/dashboard/tabs/AccountsTab";
@@ -55,11 +65,29 @@ import { CategoriesTab } from "./components/dashboard/tabs/CategoriesTab";
 import { ExpensesTab } from "./components/dashboard/tabs/ExpensesTab";
 import { ForecastTab } from "./components/dashboard/tabs/ForecastTab";
 import { IncomeTab } from "./components/dashboard/tabs/IncomeTab";
+import { TransactionDataTab } from "./components/dashboard/tabs/TransactionDataTab";
 import { Sidebar } from "./components/dashboard/Sidebar";
 import { WorkspaceHeader } from "./components/dashboard/WorkspaceHeader";
+
+function currentMonthValue(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function nextMonthValue(month: string): string {
+  const [yearRaw, monthRaw] = month.split("-");
+  const year = Number(yearRaw);
+  const monthIndex = Number(monthRaw) - 1;
+  if (!Number.isFinite(year) || !Number.isFinite(monthIndex)) {
+    return currentMonthValue();
+  }
+  const nextDate = new Date(year, monthIndex + 1, 1);
+  return `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, "0")}`;
+}
+
 export default function App() {
-  const [activeTab, setActiveTab] = useState<DashboardTab>("forecast");
-  const [transactions, setTransactions] = useState<RawTransaction[]>([]);
+  const [activeTab, setActiveTab] = useState<DashboardTab>("transactionData");
+  const [transactionBatches, setTransactionBatches] = useState<TransactionBatch[]>([]);
   const [incomeMode, setIncomeMode] = useState<IncomeMode>("raw");
   const [merchantDetailMode, setMerchantDetailMode] = useState<MerchantDetailMode>("summary");
   const [timelinePeriod, setTimelinePeriod] = useState<TimelinePeriod>("all");
@@ -69,46 +97,63 @@ export default function App() {
   const [rulesFilter, setRulesFilter] = useState<"needs" | "all">("needs");
   const [hasHydratedLocalRules, setHasHydratedLocalRules] = useState(false);
   const [accountEntries, setAccountEntries] = useState<AccountEntry[]>(DEFAULT_ACCOUNT_ENTRIES);
+  const [accountHistory, setAccountHistory] = useState<AccountHistorySnapshot[]>([]);
   const [goals, setGoals] = useState<GoalEntry[]>(DEFAULT_GOALS);
   const [payrollDraft, setPayrollDraft] = useState<PayrollDraft>(EMPTY_PAYROLL_DRAFT);
   const [forecastStartNetWorth, setForecastStartNetWorth] = useState<number | null>(null);
   const [forecastMonthlyDelta, setForecastMonthlyDelta] = useState<number | null>(null);
   const [hasHydratedUiSettings, setHasHydratedUiSettings] = useState(false);
-  const [meta, setMeta] = useState<SankeyMeta>({ generatedAt: "", currency: "AUD" });
+  const [hasHydratedTransactionData, setHasHydratedTransactionData] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
+  const [transactionDataStatus, setTransactionDataStatus] = useState<string | null>(null);
 
   useEffect(() => {
     try {
-      const uploadedTransactionsRaw = localStorage.getItem(UPLOADED_TRANSACTIONS_STORAGE_KEY);
-      const uploadedMetaRaw = localStorage.getItem(UPLOADED_META_STORAGE_KEY);
+      const storedBatchesRaw = localStorage.getItem(TRANSACTION_BATCHES_STORAGE_KEY);
+      const storedBatches = parseStoredTransactionBatches(storedBatchesRaw ? JSON.parse(storedBatchesRaw) : null);
 
-      const uploadedTransactions = parseStoredRawTransactions(uploadedTransactionsRaw ? JSON.parse(uploadedTransactionsRaw) : null);
-      const uploadedMeta = parseStoredSankeyMeta(uploadedMetaRaw ? JSON.parse(uploadedMetaRaw) : null);
-
-      if (uploadedTransactions.length > 0) {
-        setTransactions(uploadedTransactions);
-        setMeta(uploadedMeta ?? {
-          generatedAt: new Date().toISOString(),
-          currency: "AUD"
-        });
-        setUploadStatus(`Loaded ${uploadedTransactions.length} transactions from browser storage.`);
+      if (storedBatches.length > 0) {
+        setTransactionBatches(storedBatches);
+        setTransactionDataStatus(`Loaded ${storedBatches.length} CSV file(s) from browser storage.`);
       } else {
-        setTransactions([]);
-        setMeta({ generatedAt: "", currency: "AUD" });
-        setUploadStatus("No CSV dataset loaded yet. Upload a bank CSV to begin.");
+        const uploadedTransactionsRaw = localStorage.getItem(UPLOADED_TRANSACTIONS_STORAGE_KEY);
+        const uploadedMetaRaw = localStorage.getItem(UPLOADED_META_STORAGE_KEY);
+        const uploadedTransactions = parseStoredRawTransactions(uploadedTransactionsRaw ? JSON.parse(uploadedTransactionsRaw) : null);
+        const uploadedMeta = parseStoredSankeyMeta(uploadedMetaRaw ? JSON.parse(uploadedMetaRaw) : null);
+
+        if (uploadedTransactions.length > 0) {
+          const migratedBatch = buildTransactionBatch({
+            fileName: "Legacy upload",
+            importedAt: uploadedMeta?.generatedAt,
+            transactions: uploadedTransactions
+          });
+          setTransactionBatches([migratedBatch]);
+          setTransactionDataStatus(`Migrated 1 legacy CSV dataset with ${uploadedTransactions.length} transactions.`);
+        } else {
+          setTransactionBatches([]);
+          setTransactionDataStatus("No CSV dataset loaded yet. Add a CSV to begin.");
+        }
       }
     } catch (loadError) {
       const message = loadError instanceof Error ? loadError.message : String(loadError);
       setError(message);
-      setTransactions([]);
-      setMeta({ generatedAt: "", currency: "AUD" });
-      setUploadStatus("Stored upload data is invalid. Upload a CSV to reset.");
+      setTransactionBatches([]);
+      setTransactionDataStatus("Stored transaction data is invalid. Add a CSV to reset.");
     } finally {
+      setHasHydratedTransactionData(true);
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (!hasHydratedTransactionData) {
+      return;
+    }
+    localStorage.setItem(TRANSACTION_BATCHES_STORAGE_KEY, JSON.stringify(transactionBatches));
+    localStorage.removeItem(UPLOADED_TRANSACTIONS_STORAGE_KEY);
+    localStorage.removeItem(UPLOADED_META_STORAGE_KEY);
+  }, [transactionBatches, hasHydratedTransactionData]);
 
   useEffect(() => {
     try {
@@ -197,6 +242,12 @@ export default function App() {
         }
       }
 
+      const rawAccountHistory = localStorage.getItem(ACCOUNT_HISTORY_STORAGE_KEY);
+      if (rawAccountHistory) {
+        const parsedHistory = parseStoredAccountHistory(JSON.parse(rawAccountHistory));
+        setAccountHistory(parsedHistory);
+      }
+
       const rawGoals = localStorage.getItem(GOALS_STORAGE_KEY);
       if (rawGoals) {
         const parsedGoals = parseStoredGoals(JSON.parse(rawGoals));
@@ -218,6 +269,7 @@ export default function App() {
       }
     } catch {
       setAccountEntries(DEFAULT_ACCOUNT_ENTRIES);
+      setAccountHistory([]);
       setGoals(DEFAULT_GOALS);
       setPayrollDraft(EMPTY_PAYROLL_DRAFT);
       setForecastStartNetWorth(null);
@@ -233,6 +285,13 @@ export default function App() {
     }
     localStorage.setItem(ACCOUNT_ENTRIES_STORAGE_KEY, JSON.stringify(accountEntries));
   }, [accountEntries, hasHydratedUiSettings]);
+
+  useEffect(() => {
+    if (!hasHydratedUiSettings) {
+      return;
+    }
+    localStorage.setItem(ACCOUNT_HISTORY_STORAGE_KEY, JSON.stringify(accountHistory));
+  }, [accountHistory, hasHydratedUiSettings]);
 
   useEffect(() => {
     if (!hasHydratedUiSettings) {
@@ -257,6 +316,16 @@ export default function App() {
       monthlyDelta: forecastMonthlyDelta
     }));
   }, [forecastStartNetWorth, forecastMonthlyDelta, hasHydratedUiSettings]);
+
+  const transactions = useMemo(
+    () => mergeTransactionsFromBatches(transactionBatches),
+    [transactionBatches]
+  );
+
+  const meta: SankeyMeta = useMemo(
+    () => deriveMetaFromBatches(transactionBatches),
+    [transactionBatches]
+  );
 
   const effectiveTransactions = useMemo(
     () => applyManualRules(transactions, manualRules),
@@ -375,11 +444,11 @@ export default function App() {
   }, [viz.maxColumnNodes]);
 
   const subtitle = useMemo(() => {
-    if (!meta.generatedAt) {
-      return "No CSV dataset loaded";
+    if (transactionBatches.length === 0) {
+      return "No CSV data loaded";
     }
-    return `Generated ${new Date(meta.generatedAt).toLocaleString("en-AU")}`;
-  }, [meta.generatedAt]);
+    return `${transactionBatches.length} CSV file(s) | ${transactions.length} unique transaction(s)`;
+  }, [transactionBatches.length, transactions.length]);
 
   const accountSummary = useMemo(() => {
     let assets = 0;
@@ -403,6 +472,52 @@ export default function App() {
       byBucket: [...buckets.entries()].map(([bucket, total]) => ({ bucket, total })).sort((a, b) => b.total - a.total)
     };
   }, [accountEntries]);
+
+  const accountHistorySorted = useMemo(
+    () => [...accountHistory].sort((a, b) => a.month.localeCompare(b.month)),
+    [accountHistory]
+  );
+
+  const accountHistorySeries = useMemo(
+    () => accountEntries.map((account, index) => ({
+      accountId: account.id,
+      dataKey: `acct_${account.id}`,
+      label: account.name || `Account ${index + 1}`,
+      color: [
+        "#2f9ef6",
+        "#36b8ac",
+        "#f48b2b",
+        "#8f45e8",
+        "#ef5e4a",
+        "#79c81d",
+        "#6b67f2",
+        "#d18f2f"
+      ][index % 8]
+    })),
+    [accountEntries]
+  );
+
+  const accountHistoryChartData = useMemo<Array<{ month: string; label: string; [key: string]: string | number }>>(() => {
+    return accountHistorySorted.map((snapshot) => {
+      const monthDate = new Date(`${snapshot.month}-01T00:00:00`);
+      const row: { month: string; label: string; [key: string]: number | string } = {
+        month: snapshot.month,
+        label: Number.isNaN(monthDate.getTime())
+          ? snapshot.month
+          : monthDate.toLocaleString("en-AU", { month: "short", year: "2-digit" }),
+        totalNetWorth: 0
+      };
+      let runningTotal = 0;
+      for (const account of accountEntries) {
+        const rawValue = snapshot.balances[account.id] ?? 0;
+        const signedValue = account.kind === "asset" ? rawValue : -rawValue;
+        row[`acct_${account.id}`] = Number(signedValue.toFixed(2));
+        runningTotal += signedValue;
+      }
+      row.totalNetWorth = Number(runningTotal.toFixed(2));
+      return row;
+    });
+  }, [accountHistorySorted, accountEntries]);
 
   const inferredMonthlyNetFlow = useMemo(() => {
     const byMonth = new Map<string, { credits: number; debits: number }>();
@@ -594,6 +709,14 @@ export default function App() {
 
   function removeAccount(id: string): void {
     setAccountEntries((prev) => prev.filter((account) => account.id !== id));
+    setAccountHistory((prev) => prev.map((snapshot) => {
+      const nextBalances = { ...snapshot.balances };
+      delete nextBalances[id];
+      return {
+        ...snapshot,
+        balances: nextBalances
+      };
+    }));
   }
 
   function addGoal(): void {
@@ -618,6 +741,51 @@ export default function App() {
     setGoals((prev) => prev.filter((goal) => goal.id !== id));
   }
 
+  function addAccountHistorySnapshot(): void {
+    setAccountHistory((prev) => {
+      const sorted = [...prev].sort((a, b) => a.month.localeCompare(b.month));
+      const seedMonth = sorted.length === 0 ? currentMonthValue() : nextMonthValue(sorted[sorted.length - 1].month);
+      const balances: Record<string, number> = {};
+      for (const account of accountEntries) {
+        balances[account.id] = Number(account.value.toFixed(2));
+      }
+      return [
+        ...prev,
+        {
+          id: createLocalId("acct_hist"),
+          month: seedMonth,
+          balances
+        }
+      ];
+    });
+  }
+
+  function updateAccountHistoryMonth(snapshotId: string, month: string): void {
+    setAccountHistory((prev) => prev.map((snapshot) => (
+      snapshot.id === snapshotId ? { ...snapshot, month } : snapshot
+    )));
+  }
+
+  function updateAccountHistoryBalance(snapshotId: string, accountId: string, value: number): void {
+    setAccountHistory((prev) => prev.map((snapshot) => {
+      if (snapshot.id !== snapshotId) {
+        return snapshot;
+      }
+      const normalizedValue = Number.isFinite(value) ? Number(value.toFixed(2)) : 0;
+      return {
+        ...snapshot,
+        balances: {
+          ...snapshot.balances,
+          [accountId]: normalizedValue
+        }
+      };
+    }));
+  }
+
+  function removeAccountHistorySnapshot(snapshotId: string): void {
+    setAccountHistory((prev) => prev.filter((snapshot) => snapshot.id !== snapshotId));
+  }
+
   async function handleCsvUpload(event: React.ChangeEvent<HTMLInputElement>): Promise<void> {
     const file = event.target.files?.[0];
     if (!file) {
@@ -628,49 +796,86 @@ export default function App() {
       const csvRaw = await file.text();
       const imported = parseBankCsvToTransactions(csvRaw, categoryDefinitions);
       if (imported.transactions.length === 0) {
-        setUploadStatus(`No transactions were parsed from ${file.name}. Check CSV columns and format.`);
+        setTransactionDataStatus(`No transactions were parsed from ${file.name}. Check CSV columns and format.`);
         return;
       }
 
-      setTransactions(imported.transactions);
-      const uploadedMeta: SankeyMeta = {
-        generatedAt: new Date().toISOString(),
-        currency: "AUD"
-      };
-      const uploadedIncomeModel = buildIncomeModelFromTransactions(imported.transactions, payrollDraft);
-      setMeta(uploadedMeta);
+      const nextBatch = buildTransactionBatch({
+        fileName: file.name,
+        transactions: imported.transactions,
+        warnings: imported.warnings
+      });
+      const mergedBefore = new Set(transactions.map((transaction) => transaction.id));
+      const duplicateCount = nextBatch.transactions.filter((transaction) => mergedBefore.has(transaction.id)).length;
+
+      setTransactionBatches((prev) => [nextBatch, ...prev]);
       setError(null);
       setTimelinePeriod("all");
-      localStorage.setItem(UPLOADED_TRANSACTIONS_STORAGE_KEY, JSON.stringify(imported.transactions));
-      localStorage.setItem(UPLOADED_META_STORAGE_KEY, JSON.stringify(uploadedMeta));
+      if (activeTab !== "transactionData") {
+        setActiveTab("transactionData");
+      }
+      const uploadedIncomeModel = buildIncomeModelFromTransactions(imported.transactions, payrollDraft);
       if (!uploadedIncomeModel.enabled && incomeMode === "modeled") {
         setIncomeMode("raw");
       }
 
-      if (imported.warnings.length > 0) {
-        setUploadStatus(`Loaded ${imported.transactions.length} transactions from ${file.name} with ${imported.warnings.length} skipped row(s).`);
+      if (imported.warnings.length > 0 || duplicateCount > 0) {
+        setTransactionDataStatus(
+          `Added ${file.name}: ${imported.transactions.length} transaction(s), ${duplicateCount} duplicate(s), ${imported.warnings.length} skipped row(s).`
+        );
       } else {
-        setUploadStatus(`Loaded ${imported.transactions.length} transactions from ${file.name}.`);
+        setTransactionDataStatus(`Added ${file.name} with ${imported.transactions.length} transaction(s).`);
       }
     } catch (uploadError) {
       const message = uploadError instanceof Error ? uploadError.message : String(uploadError);
-      setUploadStatus(`Upload failed: ${message}`);
+      setTransactionDataStatus(`Upload failed: ${message}`);
     } finally {
       event.target.value = "";
     }
   }
 
-  function clearUploadedData(): void {
-    setTransactions([]);
-    setMeta({ generatedAt: "", currency: "AUD" });
+  function updateBatchCoverage(batchId: string, patch: { coverageStart?: string; coverageEnd?: string }): void {
+    setTransactionBatches((prev) => prev.map((batch) => {
+      if (batch.id !== batchId) {
+        return batch;
+      }
+      const nextStart = patch.coverageStart && patch.coverageStart.trim() ? patch.coverageStart : batch.coverageStart;
+      const nextEnd = patch.coverageEnd && patch.coverageEnd.trim() ? patch.coverageEnd : batch.coverageEnd;
+      const normalized = normalizeCoverageRange(nextStart, nextEnd);
+      return {
+        ...batch,
+        coverageStart: normalized.start,
+        coverageEnd: normalized.end
+      };
+    }));
+    setTransactionDataStatus("Updated CSV coverage dates.");
+  }
+
+  function deleteBatch(batchId: string): void {
+    setTransactionBatches((prev) => {
+      const next = prev.filter((batch) => batch.id !== batchId);
+      if (next.length === 0) {
+        setActiveTab("transactionData");
+      }
+      return next;
+    });
     setError(null);
     setTimelinePeriod("all");
     if (incomeMode === "modeled") {
       setIncomeMode("raw");
     }
-    localStorage.removeItem(UPLOADED_TRANSACTIONS_STORAGE_KEY);
-    localStorage.removeItem(UPLOADED_META_STORAGE_KEY);
-    setUploadStatus("Cleared uploaded data. Upload a bank CSV to begin.");
+    setTransactionDataStatus("Deleted CSV batch.");
+  }
+
+  function clearUploadedData(): void {
+    setTransactionBatches([]);
+    setError(null);
+    setTimelinePeriod("all");
+    setActiveTab("transactionData");
+    if (incomeMode === "modeled") {
+      setIncomeMode("raw");
+    }
+    setTransactionDataStatus("Cleared all CSV data. Add a CSV to begin.");
   }
 
   if (loading) {
@@ -683,9 +888,9 @@ export default function App() {
 
   const tabMeta: Record<DashboardTab, { label: string; title: string; subtitle: string }> = {
     forecast: {
-      label: "Forecast",
-      title: "Net Worth Forecast",
-      subtitle: "Balance trajectory using your current net worth and monthly flow."
+      label: "Outlook",
+      title: "Outputs: Outlook",
+      subtitle: "Track account history and forecast your net worth trajectory."
     },
     accounts: {
       label: "Accounts",
@@ -706,8 +911,15 @@ export default function App() {
       label: "Categories",
       title: "Categories & Rules",
       subtitle: "Define taxonomy and classify transactions quickly."
+    },
+    transactionData: {
+      label: "Transaction Data",
+      title: "Transaction Data",
+      subtitle: "Manage uploaded CSV files, coverage ranges, and historical transaction periods."
     }
   };
+  const outputTabs: DashboardTab[] = ["forecast", "expenses"];
+  const inputTabs: DashboardTab[] = ["transactionData", "accounts", "income", "categories"];
 
   const activeTabMeta = tabMeta[activeTab];
 
@@ -715,6 +927,8 @@ export default function App() {
     <main className="dashboard-shell">
       <Sidebar
         tabMeta={tabMeta}
+        outputTabs={outputTabs}
+        inputTabs={inputTabs}
         activeTab={activeTab}
         onTabChange={setActiveTab}
         accountSummary={accountSummary}
@@ -728,31 +942,19 @@ export default function App() {
           subtitle={activeTabMeta.subtitle}
           generatedLabel={subtitle}
         />
-        <section className="panel controls-panel upload-panel">
-          <div>
-            <h3>Data Source</h3>
-            <p className="mode-note">
-              Upload your raw bank CSV directly in the browser. Imported data is stored locally on this device.
-            </p>
-            {error ? <p className="error">{error}</p> : null}
-            {uploadStatus ? <p className="mode-note">{uploadStatus}</p> : null}
-          </div>
-          <div className="mode-toggle">
-            <label className="mode-btn active upload-btn">
-              Upload CSV
-              <input
-                type="file"
-                accept=".csv,text/csv"
-                onChange={(event) => {
-                  void handleCsvUpload(event);
-                }}
-              />
-            </label>
-            <button type="button" className="mode-btn" onClick={clearUploadedData}>
-              Clear Data
-            </button>
-          </div>
-        </section>
+
+        {activeTab === "transactionData" ? (
+          <TransactionDataTab
+            batches={transactionBatches}
+            totalTransactionCount={transactions.length}
+            statusMessage={transactionDataStatus}
+            errorMessage={error}
+            onUpload={handleCsvUpload}
+            onUpdateBatchCoverage={updateBatchCoverage}
+            onDeleteBatch={deleteBatch}
+            onDeleteAllBatches={clearUploadedData}
+          />
+        ) : null}
 
         {activeTab === "forecast" ? (
           <ForecastTab
@@ -766,6 +968,14 @@ export default function App() {
             forecastPoints={forecastPoints}
             maxGoalTarget={maxGoalTarget}
             goals={goals}
+            accountEntries={accountEntries}
+            accountHistorySnapshots={accountHistorySorted}
+            accountHistorySeries={accountHistorySeries}
+            accountHistoryChartData={accountHistoryChartData}
+            onAddAccountHistorySnapshot={addAccountHistorySnapshot}
+            onUpdateAccountHistoryMonth={updateAccountHistoryMonth}
+            onUpdateAccountHistoryBalance={updateAccountHistoryBalance}
+            onRemoveAccountHistorySnapshot={removeAccountHistorySnapshot}
             onForecastStartNetWorthChange={setForecastStartNetWorth}
             onForecastMonthlyDeltaChange={setForecastMonthlyDelta}
             onResetStartNetWorth={() => setForecastStartNetWorth(null)}

@@ -27,9 +27,11 @@ export const MANUAL_RULES_STORAGE_KEY = "personal-spend-manual-rules-v1";
 export const MANUAL_DRAFTS_STORAGE_KEY = "personal-spend-manual-drafts-v1";
 export const CATEGORY_TAXONOMY_STORAGE_KEY = "personal-spend-category-taxonomy-v1";
 export const ACCOUNT_ENTRIES_STORAGE_KEY = "personal-spend-account-entries-v1";
+export const ACCOUNT_HISTORY_STORAGE_KEY = "personal-spend-account-history-v1";
 export const GOALS_STORAGE_KEY = "personal-spend-goals-v1";
 export const PAYROLL_DRAFT_STORAGE_KEY = "personal-spend-payroll-draft-v1";
 export const FORECAST_SETTINGS_STORAGE_KEY = "personal-spend-forecast-settings-v1";
+export const TRANSACTION_BATCHES_STORAGE_KEY = "personal-spend-transaction-batches-v1";
 export const UPLOADED_TRANSACTIONS_STORAGE_KEY = "personal-spend-uploaded-transactions-v1";
 export const UPLOADED_META_STORAGE_KEY = "personal-spend-uploaded-meta-v1";
 

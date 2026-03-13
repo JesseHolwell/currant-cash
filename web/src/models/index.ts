@@ -9,3 +9,4 @@ export * from "./formatting";
 export * from "./visualization";
 export * from "./csvImport";
 export * from "./incomeModel";
+export * from "./transactionData";

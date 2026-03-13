@@ -16,6 +16,20 @@ export type RawTransaction = {
   manualSource?: "id" | "similar";
 };
 
+export type TransactionBatch = {
+  id: string;
+  fileName: string;
+  importedAt: string;
+  observedStart: string;
+  observedEnd: string;
+  coverageStart: string;
+  coverageEnd: string;
+  transactionCount: number;
+  warningCount: number;
+  warnings: string[];
+  transactions: RawTransaction[];
+};
+
 export type ManualRule = {
   categoryGroup?: string;
   category?: string;
@@ -48,7 +62,7 @@ export type SankeyMeta = {
 export type IncomeMode = "raw" | "modeled" | "expenses";
 export type MerchantDetailMode = "summary" | "full";
 export type TimelinePeriod = "all" | `${number}-${number}`;
-export type DashboardTab = "forecast" | "accounts" | "income" | "expenses" | "categories";
+export type DashboardTab = "forecast" | "accounts" | "income" | "expenses" | "categories" | "transactionData";
 
 export type AccountKind = "asset" | "liability";
 
@@ -65,6 +79,12 @@ export type GoalEntry = {
   name: string;
   target: number;
   current: number;
+};
+
+export type AccountHistorySnapshot = {
+  id: string;
+  month: string;
+  balances: Record<string, number>;
 };
 
 export type PayrollDraft = {

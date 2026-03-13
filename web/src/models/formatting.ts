@@ -39,3 +39,29 @@ export function formatTimelineLabel(period: TimelinePeriod): string {
   }
   return new Date(year, month - 1, 1).toLocaleString("en-AU", { month: "long", year: "numeric" });
 }
+
+export function formatShortDate(dateIso: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateIso)) {
+    return dateIso;
+  }
+  const [yearStr, monthStr, dayStr] = dateIso.split("-");
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+  const day = Number(dayStr);
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
+    return dateIso;
+  }
+  return new Date(year, month - 1, day).toLocaleDateString("en-AU", {
+    day: "numeric",
+    month: "short",
+    year: "numeric"
+  });
+}
+
+export function formatDateTime(dateIso: string): string {
+  const date = new Date(dateIso);
+  if (Number.isNaN(date.getTime())) {
+    return dateIso;
+  }
+  return date.toLocaleString("en-AU");
+}

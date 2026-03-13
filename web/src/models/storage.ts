@@ -1,4 +1,12 @@
-import type { AccountEntry, AccountKind, GoalEntry, RawTransaction, SankeyMeta } from "./types";
+import type {
+  AccountEntry,
+  AccountHistorySnapshot,
+  AccountKind,
+  GoalEntry,
+  RawTransaction,
+  SankeyMeta,
+  TransactionBatch
+} from "./types";
 import { createLocalId } from "./utils";
 
 export function parseStoredAccountEntries(raw: unknown): AccountEntry[] {
@@ -66,6 +74,42 @@ export function parseStoredGoals(raw: unknown): GoalEntry[] {
   return next;
 }
 
+export function parseStoredAccountHistory(raw: unknown): AccountHistorySnapshot[] {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+  const next: AccountHistorySnapshot[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") {
+      continue;
+    }
+    const candidate = item as {
+      id?: unknown;
+      month?: unknown;
+      balances?: unknown;
+    };
+    if (typeof candidate.month !== "string" || !/^\d{4}-\d{2}$/.test(candidate.month)) {
+      continue;
+    }
+    const balances: Record<string, number> = {};
+    if (candidate.balances && typeof candidate.balances === "object") {
+      for (const [accountId, value] of Object.entries(candidate.balances as Record<string, unknown>)) {
+        const numericValue = typeof value === "number" ? value : Number(value);
+        if (!Number.isFinite(numericValue)) {
+          continue;
+        }
+        balances[accountId] = Number(numericValue.toFixed(2));
+      }
+    }
+    next.push({
+      id: typeof candidate.id === "string" && candidate.id.trim().length > 0 ? candidate.id : createLocalId("acct_hist"),
+      month: candidate.month,
+      balances
+    });
+  }
+  return next.sort((a, b) => a.month.localeCompare(b.month));
+}
+
 export function parseForecastSettings(raw: unknown): { startNetWorth: number | null; monthlyDelta: number | null } {
   if (!raw || typeof raw !== "object") {
     return { startNetWorth: null, monthlyDelta: null };
@@ -121,6 +165,54 @@ export function parseStoredRawTransactions(raw: unknown): RawTransaction[] {
     });
   }
   return next;
+}
+
+export function parseStoredTransactionBatches(raw: unknown): TransactionBatch[] {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+  const next: TransactionBatch[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") {
+      continue;
+    }
+    const candidate = item as Partial<TransactionBatch>;
+    const fileName = typeof candidate.fileName === "string" ? candidate.fileName.trim() : "";
+    const importedAt = typeof candidate.importedAt === "string" ? candidate.importedAt : "";
+    const observedStart = typeof candidate.observedStart === "string" ? candidate.observedStart : "";
+    const observedEnd = typeof candidate.observedEnd === "string" ? candidate.observedEnd : "";
+    const coverageStart = typeof candidate.coverageStart === "string" ? candidate.coverageStart : observedStart;
+    const coverageEnd = typeof candidate.coverageEnd === "string" ? candidate.coverageEnd : observedEnd;
+    const transactions = parseStoredRawTransactions(candidate.transactions);
+    if (!fileName || !importedAt || !observedStart || !observedEnd || !coverageStart || !coverageEnd || transactions.length === 0) {
+      continue;
+    }
+
+    const warnings = Array.isArray(candidate.warnings)
+      ? candidate.warnings.filter((warning): warning is string => typeof warning === "string")
+      : [];
+    const transactionCount = typeof candidate.transactionCount === "number"
+      ? candidate.transactionCount
+      : Number(candidate.transactionCount);
+    const warningCount = typeof candidate.warningCount === "number"
+      ? candidate.warningCount
+      : Number(candidate.warningCount);
+
+    next.push({
+      id: typeof candidate.id === "string" && candidate.id.trim().length > 0 ? candidate.id : createLocalId("batch"),
+      fileName,
+      importedAt,
+      observedStart,
+      observedEnd,
+      coverageStart,
+      coverageEnd,
+      transactionCount: Number.isFinite(transactionCount) ? transactionCount : transactions.length,
+      warningCount: Number.isFinite(warningCount) ? warningCount : warnings.length,
+      warnings,
+      transactions
+    });
+  }
+  return next.sort((a, b) => b.importedAt.localeCompare(a.importedAt));
 }
 
 export function parseStoredSankeyMeta(raw: unknown): SankeyMeta | null {
