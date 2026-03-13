@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Sankey, Tooltip } from "recharts";
 import { SUMMARY_TOP_MERCHANTS_PER_GROUP, formatCurrency, formatTimelineLabel } from "../../../models";
-import type { BuildVizResult, IncomeMode, MerchantDetailMode, TimelinePeriod } from "../../../models";
+import type {
+  BuildVizResult,
+  FlowStartMode,
+  IncomeBasisMode,
+  MerchantDetailMode,
+  TimelinePeriod
+} from "../../../models";
 import { FlowTooltip, LinkShape, NodeShape } from "../../../sankeyShapes";
 
 type ExpensePieDatum = {
@@ -12,8 +18,10 @@ type ExpensePieDatum = {
 
 export function ExpensesTab({
   currency,
-  incomeMode,
-  onIncomeModeChange,
+  flowStartMode,
+  onFlowStartModeChange,
+  incomeBasisMode,
+  onIncomeBasisModeChange,
   incomeModelEnabled,
   merchantDetailMode,
   onMerchantDetailModeChange,
@@ -30,8 +38,10 @@ export function ExpensesTab({
   expensePieData
 }: {
   currency: string;
-  incomeMode: IncomeMode;
-  onIncomeModeChange: (mode: IncomeMode) => void;
+  flowStartMode: FlowStartMode;
+  onFlowStartModeChange: (mode: FlowStartMode) => void;
+  incomeBasisMode: IncomeBasisMode;
+  onIncomeBasisModeChange: (mode: IncomeBasisMode) => void;
   incomeModelEnabled: boolean;
   merchantDetailMode: MerchantDetailMode;
   onMerchantDetailModeChange: (mode: MerchantDetailMode) => void;
@@ -48,6 +58,16 @@ export function ExpensesTab({
   expensePieData: ExpensePieDatum[];
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const incomeMode = flowStartMode === "expenses" ? "expenses" : incomeBasisMode;
+  const isIncomeFlow = flowStartMode === "income";
+  const controlsDescription = isIncomeFlow
+    ? incomeBasisMode === "modeled"
+      ? "Modeled salary adds estimated gross pay, tax, and super on top of recorded deposits."
+      : "Raw deposits uses recorded credit transactions only, without modeled salary, tax, or super."
+    : "Expenses only removes income entirely and starts the flow from debit categorization.";
+  const breakdownDescription = merchantDetailMode === "summary"
+    ? `Summary groups merchants to the top ${SUMMARY_TOP_MERCHANTS_PER_GROUP} per subcategory.`
+    : "Detailed shows each transaction as its own terminal node.";
 
   useEffect(() => {
     if (typeof document === "undefined") {
@@ -66,49 +86,71 @@ export function ExpensesTab({
 
   return (
     <>
-      <section className="panel controls-panel">
-        <div className="mode-toggle">
-          <button
-            type="button"
-            className={incomeMode === "raw" ? "mode-btn active" : "mode-btn"}
-            onClick={() => onIncomeModeChange("raw")}
-          >
-            Raw Deposits
-          </button>
-          <button
-            type="button"
-            className={incomeMode === "modeled" ? "mode-btn active" : "mode-btn"}
-            disabled={!incomeModelEnabled}
-            onClick={() => onIncomeModeChange("modeled")}
-          >
-            Modeled Salary
-          </button>
-          <button
-            type="button"
-            className={incomeMode === "expenses" ? "mode-btn active" : "mode-btn"}
-            onClick={() => onIncomeModeChange("expenses")}
-          >
-            Expense Overview
-          </button>
-        </div>
-        {incomeMode !== "expenses" ? (
-          <div className="mode-toggle">
-            <button
-              type="button"
-              className={merchantDetailMode === "summary" ? "mode-btn active" : "mode-btn"}
-              onClick={() => onMerchantDetailModeChange("summary")}
-            >
-              Summary
-            </button>
-            <button
-              type="button"
-              className={merchantDetailMode === "full" ? "mode-btn active" : "mode-btn"}
-              onClick={() => onMerchantDetailModeChange("full")}
-            >
-              Detailed
-            </button>
+      <section className="panel controls-panel expenses-controls">
+        <div className="control-groups">
+          <div className="control-block">
+            <p className="control-label">Start From</p>
+            <div className="mode-toggle">
+              <button
+                type="button"
+                className={isIncomeFlow ? "mode-btn active" : "mode-btn"}
+                onClick={() => onFlowStartModeChange("income")}
+              >
+                Income
+              </button>
+              <button
+                type="button"
+                className={!isIncomeFlow ? "mode-btn active" : "mode-btn"}
+                onClick={() => onFlowStartModeChange("expenses")}
+              >
+                Expenses Only
+              </button>
+            </div>
           </div>
-        ) : null}
+
+          {isIncomeFlow ? (
+            <div className="control-block">
+              <p className="control-label">Income Basis</p>
+              <div className="mode-toggle">
+                <button
+                  type="button"
+                  className={incomeBasisMode === "modeled" ? "mode-btn active" : "mode-btn"}
+                  disabled={!incomeModelEnabled}
+                  onClick={() => onIncomeBasisModeChange("modeled")}
+                >
+                  Modeled Salary
+                </button>
+                <button
+                  type="button"
+                  className={incomeBasisMode === "raw" ? "mode-btn active" : "mode-btn"}
+                  onClick={() => onIncomeBasisModeChange("raw")}
+                >
+                  Raw Deposits
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          <div className="control-block">
+            <p className="control-label">Breakdown</p>
+            <div className="mode-toggle">
+              <button
+                type="button"
+                className={merchantDetailMode === "summary" ? "mode-btn active" : "mode-btn"}
+                onClick={() => onMerchantDetailModeChange("summary")}
+              >
+                Summary
+              </button>
+              <button
+                type="button"
+                className={merchantDetailMode === "full" ? "mode-btn active" : "mode-btn"}
+                onClick={() => onMerchantDetailModeChange("full")}
+              >
+                Detailed
+              </button>
+            </div>
+          </div>
+        </div>
         <div className="timeline-control">
           <label htmlFor="timeline-period">Timeline</label>
           <select
@@ -123,6 +165,9 @@ export function ExpensesTab({
             ))}
           </select>
         </div>
+        <p className="controls-helper">
+          {controlsDescription} {breakdownDescription}
+        </p>
       </section>
 
       <section className="stats">
@@ -172,16 +217,12 @@ export function ExpensesTab({
           <div className="canvas-header">
             <div>
               <h3>{flowTitle}</h3>
-              {incomeMode !== "expenses" ? (
-                merchantDetailMode === "summary" ? (
-                  <p className="mode-note">
-                    Merchant view: top {SUMMARY_TOP_MERCHANTS_PER_GROUP} per subcategory, rest grouped as Other.
-                  </p>
-                ) : (
-                  <p className="mode-note">Detailed view: per-transaction nodes ({viz.merchantNodeCount}).</p>
-                )
+              {merchantDetailMode === "summary" ? (
+                <p className="mode-note">
+                  Summary view: top {SUMMARY_TOP_MERCHANTS_PER_GROUP} merchants per subcategory, rest grouped as Other.
+                </p>
               ) : (
-                <p className="mode-note">Expense-only flow view.</p>
+                <p className="mode-note">Detailed view: per-transaction nodes ({viz.merchantNodeCount}).</p>
               )}
             </div>
             <button type="button" className="mode-btn" onClick={() => setIsExpanded(true)}>

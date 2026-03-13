@@ -29,9 +29,8 @@ export function buildIncomeModelFromTransactions(
   const incomeTax = Number(payroll.incomeTax || 0);
   const superGross = Number(payroll.superGross || 0);
   const superTax = Number(payroll.superTax || 0);
-  const tolerance = Number(payroll.netTolerance || 2);
 
-  const isConfigEnabled = netPay > 0 && grossPay > 0;
+  const isConfigEnabled = keywords.length > 0 && netPay > 0 && grossPay > 0;
   if (!isConfigEnabled) {
     return {
       enabled: false,
@@ -61,17 +60,9 @@ export function buildIncomeModelFromTransactions(
   const creditTransactions = transactions.filter((transaction) => transaction.direction === "credit" && transaction.amount < 0);
 
   const salaryMatches = creditTransactions.filter((transaction) => {
-    const amount = Math.abs(transaction.amount);
-    const amountMatch = Math.abs(amount - netPay) <= tolerance;
-
-    if (keywords.length === 0) {
-      return amountMatch;
-    }
-
     const merchant = normalizeForMatch(transaction.merchant);
     const narrative = normalizeForMatch(transaction.narrative);
-    const keywordMatch = keywords.some((keyword) => merchant.includes(keyword) || narrative.includes(keyword));
-    return amountMatch || keywordMatch;
+    return keywords.some((keyword) => merchant.includes(keyword) || narrative.includes(keyword));
   }).sort((a, b) => a.date.localeCompare(b.date));
 
   const salaryMatchIds = new Set(salaryMatches.map((transaction) => transaction.id));

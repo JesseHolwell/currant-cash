@@ -1,4 +1,10 @@
-import type { AccountEntry, BuildVizResult, GoalEntry, ManualRulesState, PayrollDraft } from "./types";
+import type {
+  AccountEntry,
+  BuildVizResult,
+  GoalEntry,
+  ManualRulesState,
+  PayrollDraft,
+} from "./types";
 
 export const EXCLUDED_CATEGORIES = new Set(["Transfers", "Income"]);
 
@@ -16,7 +22,7 @@ export const CATEGORY_COLORS = [
   "#fc845b",
   "#8f9eb4",
   "#79c81d",
-  "#d18f2f"
+  "#d18f2f",
 ];
 
 export const ACCOUNT_COLORS = ["#2f9ef6", "#4db7ff", "#18c5d5"];
@@ -25,27 +31,34 @@ export const HIDDEN_FIXED_LEAF_TAIL_VALUE = 0.0001;
 
 export const MANUAL_RULES_STORAGE_KEY = "personal-spend-manual-rules-v1";
 export const MANUAL_DRAFTS_STORAGE_KEY = "personal-spend-manual-drafts-v1";
-export const CATEGORY_TAXONOMY_STORAGE_KEY = "personal-spend-category-taxonomy-v1";
+export const CATEGORY_TAXONOMY_STORAGE_KEY =
+  "personal-spend-category-taxonomy-v1";
 export const ACCOUNT_ENTRIES_STORAGE_KEY = "personal-spend-account-entries-v1";
 export const ACCOUNT_HISTORY_STORAGE_KEY = "personal-spend-account-history-v1";
 export const GOALS_STORAGE_KEY = "personal-spend-goals-v1";
 export const PAYROLL_DRAFT_STORAGE_KEY = "personal-spend-payroll-draft-v1";
-export const FORECAST_SETTINGS_STORAGE_KEY = "personal-spend-forecast-settings-v1";
-export const TRANSACTION_BATCHES_STORAGE_KEY = "personal-spend-transaction-batches-v1";
-export const UPLOADED_TRANSACTIONS_STORAGE_KEY = "personal-spend-uploaded-transactions-v1";
+export const FORECAST_SETTINGS_STORAGE_KEY =
+  "personal-spend-forecast-settings-v1";
+export const TRANSACTION_BATCHES_STORAGE_KEY =
+  "personal-spend-transaction-batches-v1";
+export const UPLOADED_TRANSACTIONS_STORAGE_KEY =
+  "personal-spend-uploaded-transactions-v1";
 export const UPLOADED_META_STORAGE_KEY = "personal-spend-uploaded-meta-v1";
 
-export const EMPTY_MANUAL_RULES: ManualRulesState = { byId: {}, bySimilarity: {} };
+export const EMPTY_MANUAL_RULES: ManualRulesState = {
+  byId: {},
+  bySimilarity: {},
+};
 
 export const CATEGORY_GROUP_ALIAS_MAP = new Map<string, string>([
   ["food", "Food & Drink"],
   ["mobility", "Transport"],
-  ["recurring payments", "Subscriptions"]
+  ["recurring payments", "Subscriptions"],
 ]);
 
 export const INCOME_SOURCE_ALIASES = [
   { label: "CAPE SPORTS Salary", needles: ["cape bionics", "cape sports"] },
-  { label: "Spotify Credits", needles: ["spotify"] }
+  { label: "Spotify Credits", needles: ["spotify"] },
 ];
 
 export const MERCHANT_ALIASES = [
@@ -54,27 +67,66 @@ export const MERCHANT_ALIASES = [
   { label: "Spotify", needles: ["spotify"] },
   { label: "Coles", needles: ["coles"] },
   { label: "Woolworths", needles: ["woolworths"] },
-  { label: "McDonald's", needles: ["mcdonald"] }
+  { label: "McDonald's", needles: ["mcdonald"] },
 ];
 
-export const DEFAULT_CATEGORY_SETUP: Array<{ category: string; subcategories: string[] }> = [
-  { category: "Food & Drink", subcategories: ["Groceries", "Deliveries", "Restaurants"] },
+export const DEFAULT_CATEGORY_SETUP: Array<{
+  category: string;
+  subcategories: string[];
+}> = [
+  {
+    category: "Food & Drink",
+    subcategories: ["Groceries", "Deliveries", "Restaurants"],
+  },
   { category: "Transport", subcategories: ["Transport"] },
   { category: "Lifestyle", subcategories: ["Shopping", "Gifts", "Hobbies"] },
-  { category: "Subscriptions", subcategories: ["Memberships", "Subscriptions", "Interest"] },
+  {
+    category: "Subscriptions",
+    subcategories: ["Memberships", "Subscriptions", "Interest"],
+  },
   { category: "Health", subcategories: ["Health"] },
   { category: "Life", subcategories: ["Rent", "Phone", "Internet"] },
   { category: "Transfers", subcategories: ["Transfers"] },
   { category: "Income", subcategories: ["Income"] },
-  { category: "Uncategorized", subcategories: ["Uncategorized"] }
+  { category: "Uncategorized", subcategories: ["Uncategorized"] },
 ];
 
 export const DEFAULT_ACCOUNT_ENTRIES: AccountEntry[] = [
-  { id: "acct_everyday", name: "Everyday Account", bucket: "Bank", kind: "asset", value: 4850 },
-  { id: "acct_savings", name: "High Interest Savings", bucket: "Bank", kind: "asset", value: 18200 },
-  { id: "acct_crypto", name: "Crypto", bucket: "Crypto", kind: "asset", value: 6000 },
-  { id: "acct_shares", name: "Shares", bucket: "Stocks", kind: "asset", value: 12100 },
-  { id: "acct_mortgage", name: "Mortgage", bucket: "Debt", kind: "liability", value: 42500 }
+  {
+    id: "acct_everyday",
+    name: "Everyday Account",
+    bucket: "Bank",
+    kind: "asset",
+    value: 4850,
+  },
+  {
+    id: "acct_savings",
+    name: "High Interest Savings",
+    bucket: "Bank",
+    kind: "asset",
+    value: 18200,
+  },
+  {
+    id: "acct_crypto",
+    name: "Crypto",
+    bucket: "Crypto",
+    kind: "asset",
+    value: 6000,
+  },
+  {
+    id: "acct_shares",
+    name: "Shares",
+    bucket: "Stocks",
+    kind: "asset",
+    value: 12100,
+  },
+  {
+    id: "acct_mortgage",
+    name: "Credit",
+    bucket: "Debt",
+    kind: "liability",
+    value: 3000,
+  },
 ];
 
 export const DEFAULT_GOALS: GoalEntry[] = [
@@ -84,7 +136,7 @@ export const DEFAULT_GOALS: GoalEntry[] = [
     target: 15000,
     current: 0,
     trackingMode: "accounts",
-    accountIds: ["acct_savings"]
+    accountIds: ["acct_savings"],
   },
   {
     id: "goal_home_deposit",
@@ -92,18 +144,18 @@ export const DEFAULT_GOALS: GoalEntry[] = [
     target: 100000,
     current: 0,
     trackingMode: "netWorth",
-    accountIds: []
-  }
+    accountIds: [],
+  },
 ];
 
 export const EMPTY_PAYROLL_DRAFT: PayrollDraft = {
   employerKeywords: "",
+  payFrequency: "fortnightly",
   netPay: 0,
   grossPay: 0,
   incomeTax: 0,
   superGross: 0,
   superTax: 0,
-  netTolerance: 2
 };
 
 export const EMPTY_VIZ: BuildVizResult = {
@@ -117,5 +169,5 @@ export const EMPTY_VIZ: BuildVizResult = {
   subcategoryCount: 0,
   merchantNodeCount: 0,
   modeledPayEventCount: 0,
-  maxColumnNodes: 1
+  maxColumnNodes: 1,
 };

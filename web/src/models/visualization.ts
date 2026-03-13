@@ -270,8 +270,47 @@ export function buildVisualization(
 
       for (const subcategory of subcategoryStats) {
         const subcategoryNodeIndex = nodeIndex.get(`subcategory:${group.category}:${subcategory.subcategory}`);
-        const merchantTotals = merchantTotalsBySubcategory.get(groupSubcategoryKey(group.category, subcategory.subcategory));
-        if (subcategoryNodeIndex === undefined || !merchantTotals) {
+        const subcategoryKey = groupSubcategoryKey(group.category, subcategory.subcategory);
+        const merchantTotals = merchantTotalsBySubcategory.get(subcategoryKey);
+        const detailedTransactions = transactionsBySubcategory.get(subcategoryKey) ?? [];
+        if (subcategoryNodeIndex === undefined) {
+          continue;
+        }
+
+        if (merchantDetailMode === "full") {
+          const sortedDetailedTransactions = [...detailedTransactions].sort((a, b) => (
+            b.amount - a.amount || b.date.localeCompare(a.date)
+          ));
+          for (const transaction of sortedDetailedTransactions) {
+            const detailName = resolveMerchantBucket(transaction);
+            const merchantKey = `merchant:${group.category}:${subcategory.subcategory}:${transaction.id}`;
+            nodeIndex.set(merchantKey, nodes.length);
+            nodes.push({
+              name: detailName,
+              kind: "merchant",
+              color: group.color,
+              value: transaction.amount,
+              labelMain: detailName,
+              labelSub: `${formatCurrency(transaction.amount, currency)} | ${transaction.date}`
+            });
+
+            const merchantNodeIndex = nodeIndex.get(merchantKey);
+            if (merchantNodeIndex === undefined) {
+              continue;
+            }
+            links.push({
+              source: subcategoryNodeIndex,
+              target: merchantNodeIndex,
+              value: Number(transaction.amount.toFixed(2)),
+              color: group.color,
+              kind: "merchant"
+            });
+            merchantNodeCount += 1;
+          }
+          continue;
+        }
+
+        if (!merchantTotals) {
           continue;
         }
 

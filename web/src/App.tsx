@@ -49,7 +49,9 @@ import type {
   AccountHistorySnapshot,
   CategoryDefinition,
   DashboardTab,
+  FlowStartMode,
   GoalEntry,
+  IncomeBasisMode,
   IncomeMode,
   ManualRule,
   ManualRulesState,
@@ -67,6 +69,7 @@ import { CategoriesTab } from "./components/dashboard/tabs/CategoriesTab";
 import { ExpensesTab } from "./components/dashboard/tabs/ExpensesTab";
 import { ForecastTab } from "./components/dashboard/tabs/ForecastTab";
 import { IncomeTab } from "./components/dashboard/tabs/IncomeTab";
+import { SettingsTab } from "./components/dashboard/tabs/SettingsTab";
 import { TransactionDataTab } from "./components/dashboard/tabs/TransactionDataTab";
 import { Sidebar } from "./components/dashboard/Sidebar";
 import { WorkspaceHeader } from "./components/dashboard/WorkspaceHeader";
@@ -87,10 +90,69 @@ function nextMonthValue(month: string): string {
   return `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, "0")}`;
 }
 
+const APP_BACKUP_VERSION = 1;
+
+const APP_STORAGE_KEYS = [
+  TRANSACTION_BATCHES_STORAGE_KEY,
+  UPLOADED_TRANSACTIONS_STORAGE_KEY,
+  UPLOADED_META_STORAGE_KEY,
+  MANUAL_RULES_STORAGE_KEY,
+  MANUAL_DRAFTS_STORAGE_KEY,
+  CATEGORY_TAXONOMY_STORAGE_KEY,
+  ACCOUNT_ENTRIES_STORAGE_KEY,
+  ACCOUNT_HISTORY_STORAGE_KEY,
+  GOALS_STORAGE_KEY,
+  PAYROLL_DRAFT_STORAGE_KEY,
+  FORECAST_SETTINGS_STORAGE_KEY
+] as const;
+
+function sanitizeStoredManualRules(raw: unknown): ManualRulesState {
+  if (!raw || typeof raw !== "object") {
+    return EMPTY_MANUAL_RULES;
+  }
+  const parsed = raw as Partial<ManualRulesState>;
+  const byId: Record<string, ManualRule> = {};
+  const bySimilarity: Record<string, ManualRule> = {};
+
+  for (const [id, rule] of Object.entries(parsed.byId ?? {})) {
+    const cleaned = sanitizeManualRule(rule ?? {});
+    if (cleaned) {
+      byId[id] = cleaned;
+    }
+  }
+
+  for (const [similarity, rule] of Object.entries(parsed.bySimilarity ?? {})) {
+    const cleaned = sanitizeManualRule(rule ?? {});
+    if (cleaned) {
+      bySimilarity[similarity] = cleaned;
+    }
+  }
+
+  return { byId, bySimilarity };
+}
+
+function sanitizeStoredDrafts(raw: unknown): Record<string, TransactionDraft> {
+  if (!raw || typeof raw !== "object") {
+    return {};
+  }
+  const parsedDrafts = raw as Record<string, TransactionDraft>;
+  const normalizedDrafts: Record<string, TransactionDraft> = {};
+  for (const [transactionId, draft] of Object.entries(parsedDrafts)) {
+    normalizedDrafts[transactionId] = {
+      categoryGroup: canonicalizeCategoryGroup(draft.categoryGroup),
+      category: (draft.category ?? "").trim(),
+      nickname: draft.nickname ?? "",
+      applySimilar: draft.applySimilar !== false
+    };
+  }
+  return normalizedDrafts;
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<DashboardTab>("transactionData");
   const [transactionBatches, setTransactionBatches] = useState<TransactionBatch[]>([]);
-  const [incomeMode, setIncomeMode] = useState<IncomeMode>("raw");
+  const [flowStartMode, setFlowStartMode] = useState<FlowStartMode>("income");
+  const [incomeBasisMode, setIncomeBasisMode] = useState<IncomeBasisMode>("raw");
   const [merchantDetailMode, setMerchantDetailMode] = useState<MerchantDetailMode>("summary");
   const [timelinePeriod, setTimelinePeriod] = useState<TimelinePeriod>("all");
   const [manualRules, setManualRules] = useState<ManualRulesState>(EMPTY_MANUAL_RULES);
@@ -109,6 +171,8 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [transactionDataStatus, setTransactionDataStatus] = useState<string | null>(null);
+  const [settingsStatus, setSettingsStatus] = useState<string | null>(null);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -161,40 +225,12 @@ export default function App() {
     try {
       const rawRules = localStorage.getItem(MANUAL_RULES_STORAGE_KEY);
       if (rawRules) {
-        const parsed = JSON.parse(rawRules) as Partial<ManualRulesState>;
-        const byId: Record<string, ManualRule> = {};
-        const bySimilarity: Record<string, ManualRule> = {};
-        for (const [id, rule] of Object.entries(parsed.byId ?? {})) {
-          const cleaned = sanitizeManualRule(rule ?? {});
-          if (cleaned) {
-            byId[id] = cleaned;
-          }
-        }
-        for (const [similarity, rule] of Object.entries(parsed.bySimilarity ?? {})) {
-          const cleaned = sanitizeManualRule(rule ?? {});
-          if (cleaned) {
-            bySimilarity[similarity] = cleaned;
-          }
-        }
-        setManualRules({
-          byId,
-          bySimilarity
-        });
+        setManualRules(sanitizeStoredManualRules(JSON.parse(rawRules)));
       }
 
       const rawDrafts = localStorage.getItem(MANUAL_DRAFTS_STORAGE_KEY);
       if (rawDrafts) {
-        const parsedDrafts = JSON.parse(rawDrafts) as Record<string, TransactionDraft>;
-        const normalizedDrafts: Record<string, TransactionDraft> = {};
-        for (const [transactionId, draft] of Object.entries(parsedDrafts)) {
-          normalizedDrafts[transactionId] = {
-            categoryGroup: canonicalizeCategoryGroup(draft.categoryGroup),
-            category: (draft.category ?? "").trim(),
-            nickname: draft.nickname ?? "",
-            applySimilar: draft.applySimilar !== false
-          };
-        }
-        setDrafts(normalizedDrafts);
+        setDrafts(sanitizeStoredDrafts(JSON.parse(rawDrafts)));
       }
 
       const rawCategoryTaxonomy = localStorage.getItem(CATEGORY_TAXONOMY_STORAGE_KEY);
@@ -340,6 +376,7 @@ export default function App() {
   );
 
   const incomeModel = webIncomeModel;
+  const incomeMode: IncomeMode = flowStartMode === "expenses" ? "expenses" : incomeBasisMode;
 
   const timelineOptions = useMemo(() => {
     const options = Array.from(new Set(effectiveTransactions.map((transaction) => monthKey(transaction.date)))).sort();
@@ -421,16 +458,22 @@ export default function App() {
     return uncategorizedInPeriod;
   }, [rulesFilter, editableTransactions, uncategorizedInPeriod]);
   const flowTitle = incomeMode === "modeled"
-    ? "Flow: Income/Super/Credits -> Gross Income -> Net/Tax/Super Out -> Category + Tax Leaves -> Subcategory -> Detailed Transactions"
+    ? merchantDetailMode === "summary"
+      ? "Flow: Income/Super/Credits -> Gross Income -> Net/Tax/Super Out -> Category -> Subcategory -> Merchant Summary"
+      : "Flow: Income/Super/Credits -> Gross Income -> Net/Tax/Super Out -> Category -> Subcategory -> Detailed Transactions"
     : incomeMode === "expenses"
-      ? "Flow: Total Spend -> Category -> Subcategory -> Transactions"
-      : "Flow: Income -> Category -> Subcategory -> Merchant + Savings";
+      ? merchantDetailMode === "summary"
+        ? "Flow: Total Spend -> Category -> Subcategory -> Merchant Summary"
+        : "Flow: Total Spend -> Category -> Subcategory -> Detailed Transactions"
+      : merchantDetailMode === "summary"
+        ? "Flow: Income -> Category -> Subcategory -> Merchant Summary + Savings"
+        : "Flow: Income -> Category -> Subcategory -> Detailed Transactions + Savings";
   const chartHeight = useMemo(() => {
     const dynamicHeight = 360 + viz.maxColumnNodes * 34;
     return Math.max(460, Math.min(980, dynamicHeight));
   }, [viz.maxColumnNodes]);
   const chartLeftMargin = incomeMode === "modeled" ? 230 : 240;
-  const chartRightMargin = incomeMode === "expenses" ? 390 : merchantDetailMode === "summary" ? 360 : 420;
+  const chartRightMargin = merchantDetailMode === "summary" ? 360 : 420;
   const nodePadding = useMemo(() => {
     const branchCount = viz.maxColumnNodes;
     if (branchCount >= 24) {
@@ -828,8 +871,8 @@ export default function App() {
         setActiveTab("transactionData");
       }
       const uploadedIncomeModel = buildIncomeModelFromTransactions(imported.transactions, payrollDraft);
-      if (!uploadedIncomeModel.enabled && incomeMode === "modeled") {
-        setIncomeMode("raw");
+      if (!uploadedIncomeModel.enabled && incomeBasisMode === "modeled") {
+        setIncomeBasisMode("raw");
       }
 
       if (imported.warnings.length > 0 || duplicateCount > 0) {
@@ -874,8 +917,8 @@ export default function App() {
     });
     setError(null);
     setTimelinePeriod("all");
-    if (incomeMode === "modeled") {
-      setIncomeMode("raw");
+    if (incomeBasisMode === "modeled") {
+      setIncomeBasisMode("raw");
     }
     setTransactionDataStatus("Deleted CSV batch.");
   }
@@ -885,10 +928,140 @@ export default function App() {
     setError(null);
     setTimelinePeriod("all");
     setActiveTab("transactionData");
-    if (incomeMode === "modeled") {
-      setIncomeMode("raw");
+    if (incomeBasisMode === "modeled") {
+      setIncomeBasisMode("raw");
     }
     setTransactionDataStatus("Cleared all CSV data. Add a CSV to begin.");
+  }
+
+  function resetAllData(): void {
+    const confirmed = window.confirm(
+      "Clear all Spendboard data in this browser and restore the built-in defaults?"
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    for (const key of APP_STORAGE_KEYS) {
+      localStorage.removeItem(key);
+    }
+
+    setTransactionBatches([]);
+    setManualRules(EMPTY_MANUAL_RULES);
+    setDrafts({});
+    setCategoryDefinitions(buildDefaultCategoryDefinitions());
+    setAccountEntries(DEFAULT_ACCOUNT_ENTRIES);
+    setAccountHistory([]);
+    setGoals(DEFAULT_GOALS);
+    setPayrollDraft(EMPTY_PAYROLL_DRAFT);
+    setForecastStartNetWorth(null);
+    setForecastMonthlyDelta(null);
+    setFlowStartMode("income");
+    setIncomeBasisMode("raw");
+    setMerchantDetailMode("summary");
+    setTimelinePeriod("all");
+    setRulesFilter("needs");
+    setError(null);
+    setTransactionDataStatus("Reset to built-in defaults. Add a CSV to begin.");
+    setSettingsError(null);
+    setSettingsStatus("Restored built-in defaults and cleared all browser-stored data.");
+  }
+
+  function exportAllData(): void {
+    try {
+      const backup = {
+        version: APP_BACKUP_VERSION,
+        exportedAt: new Date().toISOString(),
+        data: {
+          transactionBatches,
+          manualRules,
+          drafts,
+          categoryDefinitions,
+          accountEntries,
+          accountHistory,
+          goals,
+          payrollDraft,
+          forecastSettings: {
+            startNetWorth: forecastStartNetWorth,
+            monthlyDelta: forecastMonthlyDelta
+          }
+        }
+      };
+
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `personal-spend-backup-${timestamp}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      setSettingsError(null);
+      setSettingsStatus("Exported a JSON backup of your browser data.");
+    } catch (exportError) {
+      const message = exportError instanceof Error ? exportError.message : String(exportError);
+      setSettingsStatus(null);
+      setSettingsError(`Export failed: ${message}`);
+    }
+  }
+
+  async function importAllData(file: File): Promise<void> {
+    try {
+      const rawText = await file.text();
+      const parsed = JSON.parse(rawText) as unknown;
+      const payload = parsed && typeof parsed === "object" && "data" in parsed
+        ? (parsed as { data: unknown }).data
+        : parsed;
+
+      if (!payload || typeof payload !== "object") {
+        throw new Error("Backup format is invalid.");
+      }
+
+      const candidate = payload as Record<string, unknown>;
+      const nextTransactionBatches = parseStoredTransactionBatches(candidate.transactionBatches);
+      const nextManualRules = sanitizeStoredManualRules(candidate.manualRules);
+      const nextDrafts = sanitizeStoredDrafts(candidate.drafts);
+      const nextCategoryDefinitions = parseStoredCategoryDefinitions(candidate.categoryDefinitions);
+      const nextAccountEntries = parseStoredAccountEntries(candidate.accountEntries);
+      const nextAccountHistory = parseStoredAccountHistory(candidate.accountHistory);
+      const nextGoals = parseStoredGoals(candidate.goals);
+      const nextPayrollDraft = sanitizePayrollDraft(candidate.payrollDraft);
+      const nextForecast = parseForecastSettings(candidate.forecastSettings);
+
+      for (const key of APP_STORAGE_KEYS) {
+        localStorage.removeItem(key);
+      }
+
+      setTransactionBatches(nextTransactionBatches);
+      setManualRules(nextManualRules);
+      setDrafts(nextDrafts);
+      setCategoryDefinitions(nextCategoryDefinitions.length > 0 ? nextCategoryDefinitions : buildDefaultCategoryDefinitions());
+      setAccountEntries(nextAccountEntries.length > 0 ? nextAccountEntries : DEFAULT_ACCOUNT_ENTRIES);
+      setAccountHistory(nextAccountHistory);
+      setGoals(nextGoals.length > 0 ? nextGoals : DEFAULT_GOALS);
+      setPayrollDraft(nextPayrollDraft);
+      setForecastStartNetWorth(nextForecast.startNetWorth);
+      setForecastMonthlyDelta(nextForecast.monthlyDelta);
+      setFlowStartMode("income");
+      setIncomeBasisMode("raw");
+      setMerchantDetailMode("summary");
+      setTimelinePeriod("all");
+      setRulesFilter("needs");
+      setError(null);
+      setTransactionDataStatus(
+        nextTransactionBatches.length > 0
+          ? `Imported ${nextTransactionBatches.length} CSV file(s) from backup.`
+          : "No CSV dataset loaded yet. Add a CSV to begin."
+      );
+      setSettingsError(null);
+      setSettingsStatus(`Imported backup from ${file.name}.`);
+    } catch (importError) {
+      const message = importError instanceof Error ? importError.message : String(importError);
+      setSettingsStatus(null);
+      setSettingsError(`Import failed: ${message}`);
+    }
   }
 
   if (loading) {
@@ -925,6 +1098,11 @@ export default function App() {
       title: "Categories & Rules",
       subtitle: "Define taxonomy and classify transactions quickly."
     },
+    settings: {
+      label: "Settings",
+      title: "Settings & Backups",
+      subtitle: "Manage browser storage, backups, and full-app resets."
+    },
     transactionData: {
       label: "Transaction Data",
       title: "Transaction Data",
@@ -932,7 +1110,7 @@ export default function App() {
     }
   };
   const outputTabs: DashboardTab[] = ["forecast", "expenses"];
-  const inputTabs: DashboardTab[] = ["transactionData", "accounts", "income", "categories"];
+  const inputTabs: DashboardTab[] = ["transactionData", "accounts", "income", "categories", "settings"];
 
   const activeTabMeta = tabMeta[activeTab];
 
@@ -980,7 +1158,6 @@ export default function App() {
             inferredMonthlyNetFlow={inferredMonthlyNetFlow}
             forecastPoints={forecastPoints}
             maxGoalTarget={maxGoalTarget}
-            goals={resolvedGoals}
             accountEntries={accountEntries}
             accountHistorySnapshots={accountHistorySorted}
             accountHistorySeries={accountHistorySeries}
@@ -993,9 +1170,6 @@ export default function App() {
             onForecastMonthlyDeltaChange={setForecastMonthlyDelta}
             onResetStartNetWorth={() => setForecastStartNetWorth(null)}
             onResetMonthlyDelta={() => setForecastMonthlyDelta(null)}
-            onAddGoal={addGoal}
-            onUpdateGoal={updateGoal}
-            onRemoveGoal={removeGoal}
           />
         ) : null}
 
@@ -1004,9 +1178,13 @@ export default function App() {
             currency={meta.currency}
             accountSummary={accountSummary}
             accountEntries={accountEntries}
+            goals={resolvedGoals}
             onAddAccount={addAccount}
             onUpdateAccount={updateAccount}
             onRemoveAccount={removeAccount}
+            onAddGoal={addGoal}
+            onUpdateGoal={updateGoal}
+            onRemoveGoal={removeGoal}
           />
         ) : null}
 
@@ -1014,15 +1192,28 @@ export default function App() {
           <IncomeTab
             currency={meta.currency}
             payrollDraft={payrollDraft}
+            matchedPayCount={incomeModel.payEventCount}
             onPayrollDraftChange={(patch) => setPayrollDraft((prev) => ({ ...prev, ...patch }))}
+          />
+        ) : null}
+
+        {activeTab === "settings" ? (
+          <SettingsTab
+            statusMessage={settingsStatus}
+            errorMessage={settingsError}
+            onResetAllData={resetAllData}
+            onExportAllData={exportAllData}
+            onImportData={importAllData}
           />
         ) : null}
 
         {activeTab === "expenses" ? (
           <ExpensesTab
             currency={meta.currency}
-            incomeMode={incomeMode}
-            onIncomeModeChange={setIncomeMode}
+            flowStartMode={flowStartMode}
+            onFlowStartModeChange={setFlowStartMode}
+            incomeBasisMode={incomeBasisMode}
+            onIncomeBasisModeChange={setIncomeBasisMode}
             incomeModelEnabled={Boolean(incomeModel?.enabled)}
             merchantDetailMode={merchantDetailMode}
             onMerchantDetailModeChange={setMerchantDetailMode}

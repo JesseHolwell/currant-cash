@@ -12,7 +12,7 @@ import {
   YAxis
 } from "recharts";
 import { formatCurrency } from "../../../models";
-import type { AccountEntry, AccountHistorySnapshot, GoalEntry, ResolvedGoalEntry } from "../../../models";
+import type { AccountEntry, AccountHistorySnapshot } from "../../../models";
 
 type AccountSummary = {
   assets: number;
@@ -50,7 +50,6 @@ export function ForecastTab({
   inferredMonthlyNetFlow,
   forecastPoints,
   maxGoalTarget,
-  goals,
   accountEntries,
   accountHistorySnapshots,
   accountHistorySeries,
@@ -62,10 +61,7 @@ export function ForecastTab({
   onForecastStartNetWorthChange,
   onForecastMonthlyDeltaChange,
   onResetStartNetWorth,
-  onResetMonthlyDelta,
-  onAddGoal,
-  onUpdateGoal,
-  onRemoveGoal
+  onResetMonthlyDelta
 }: {
   currency: string;
   accountSummary: AccountSummary;
@@ -76,7 +72,6 @@ export function ForecastTab({
   inferredMonthlyNetFlow: number;
   forecastPoints: ForecastPoint[];
   maxGoalTarget: number;
-  goals: ResolvedGoalEntry[];
   accountEntries: AccountEntry[];
   accountHistorySnapshots: AccountHistorySnapshot[];
   accountHistorySeries: AccountHistorySeries[];
@@ -89,9 +84,6 @@ export function ForecastTab({
   onForecastMonthlyDeltaChange: (value: number | null) => void;
   onResetStartNetWorth: () => void;
   onResetMonthlyDelta: () => void;
-  onAddGoal: () => void;
-  onUpdateGoal: (id: string, patch: Partial<Omit<GoalEntry, "id">>) => void;
-  onRemoveGoal: (id: string) => void;
 }) {
   return (
     <>
@@ -268,100 +260,6 @@ export function ForecastTab({
               <Line type="monotone" dataKey="netWorth" stroke="#b67934" strokeWidth={3} dot={{ r: 3 }} name="Net Worth" />
             </LineChart>
           </ResponsiveContainer>
-        </div>
-      </section>
-
-      <section className="panel">
-        <h3>Goals</h3>
-        <div className="goal-grid">
-          {goals.map((goal) => {
-            return (
-              <article key={goal.id} className="goal-card">
-                <div className="goal-card-row">
-                  <input
-                    type="text"
-                    value={goal.name}
-                    placeholder="Goal name"
-                    onChange={(event) => onUpdateGoal(goal.id, { name: event.target.value })}
-                  />
-                  <button type="button" className="mode-btn" onClick={() => onRemoveGoal(goal.id)}>Delete</button>
-                </div>
-                <div className="goal-card-row compact">
-                  <label>
-                    Tracking
-                    <select
-                      value={goal.trackingMode}
-                      onChange={(event) => onUpdateGoal(goal.id, { trackingMode: event.target.value as GoalEntry["trackingMode"] })}
-                    >
-                      <option value="manual">Manual</option>
-                      <option value="accounts">Selected Accounts</option>
-                      <option value="netWorth">Net Worth</option>
-                    </select>
-                  </label>
-                  <label>
-                    Target
-                    <input
-                      type="number"
-                      value={goal.target}
-                      onChange={(event) => onUpdateGoal(goal.id, { target: Number(event.target.value) || 0 })}
-                    />
-                  </label>
-                </div>
-                {goal.trackingMode === "manual" ? (
-                  <div className="goal-card-row compact">
-                    <label>
-                      Current
-                      <input
-                        type="number"
-                        value={goal.current}
-                        onChange={(event) => onUpdateGoal(goal.id, { current: Number(event.target.value) || 0 })}
-                      />
-                    </label>
-                  </div>
-                ) : null}
-                {goal.trackingMode === "accounts" ? (
-                  <div className="goal-account-picker">
-                    {accountEntries.map((account) => (
-                      <label key={`${goal.id}-${account.id}`} className="goal-account-option">
-                        <input
-                          type="checkbox"
-                          checked={goal.accountIds.includes(account.id)}
-                          onChange={(event) => {
-                            const nextIds = event.target.checked
-                              ? [...goal.accountIds, account.id]
-                              : goal.accountIds.filter((accountId) => accountId !== account.id);
-                            onUpdateGoal(goal.id, { accountIds: [...new Set(nextIds)] });
-                          }}
-                        />
-                        <span>{account.name || "Untitled Account"}</span>
-                      </label>
-                    ))}
-                  </div>
-                ) : null}
-                {goal.trackingMode === "netWorth" ? (
-                  <p className="mode-note">This goal tracks total net worth across all accounts.</p>
-                ) : null}
-                {goal.trackingMode !== "manual" ? (
-                  <p className="mode-note">Current value updates from linked balances automatically.</p>
-                ) : null}
-                {goal.trackingMode !== "manual" ? (
-                  <div className="goal-card-row compact">
-                    <label>
-                      Current Value
-                      <input type="text" value={formatCurrency(goal.currentValue, currency)} readOnly />
-                    </label>
-                  </div>
-                ) : null}
-                <div className="goal-track">
-                  <div className="goal-fill" style={{ width: `${Math.round(goal.progress * 100)}%` }} />
-                </div>
-                <p className="mode-note">{goal.sourceLabel} | {Math.round(goal.progress * 100)}% complete</p>
-              </article>
-            );
-          })}
-        </div>
-        <div className="mode-toggle">
-          <button type="button" className="mode-btn active" onClick={onAddGoal}>Add Goal</button>
         </div>
       </section>
     </>

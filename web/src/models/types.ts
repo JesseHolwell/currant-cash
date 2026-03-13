@@ -59,10 +59,12 @@ export type SankeyMeta = {
   currency: string;
 };
 
-export type IncomeMode = "raw" | "modeled" | "expenses";
+export type IncomeBasisMode = "raw" | "modeled";
+export type FlowStartMode = "income" | "expenses";
+export type IncomeMode = IncomeBasisMode | "expenses";
 export type MerchantDetailMode = "summary" | "full";
 export type TimelinePeriod = "all" | `${number}-${number}`;
-export type DashboardTab = "forecast" | "accounts" | "income" | "expenses" | "categories" | "transactionData";
+export type DashboardTab = "forecast" | "accounts" | "income" | "expenses" | "categories" | "transactionData" | "settings";
 
 export type AccountKind = "asset" | "liability";
 
@@ -98,14 +100,16 @@ export type AccountHistorySnapshot = {
   balances: Record<string, number>;
 };
 
+export type PayFrequency = "weekly" | "fortnightly" | "monthly";
+
 export type PayrollDraft = {
   employerKeywords: string;
+  payFrequency: PayFrequency;
   netPay: number;
   grossPay: number;
   incomeTax: number;
   superGross: number;
   superTax: number;
-  netTolerance: number;
 };
 
 export type ModelComponent = {
