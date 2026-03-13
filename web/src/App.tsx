@@ -16,6 +16,7 @@ import {
   UPLOADED_META_STORAGE_KEY,
   UPLOADED_TRANSACTIONS_STORAGE_KEY,
   applyManualRules,
+  buildResolvedGoals,
   buildIncomeModelFromTransactions,
   buildTransactionBatch,
   buildDefaultCategoryDefinitions,
@@ -55,6 +56,7 @@ import type {
   MerchantDetailMode,
   PayrollDraft,
   RawTransaction,
+  ResolvedGoalEntry,
   SankeyMeta,
   TimelinePeriod,
   TransactionBatch,
@@ -473,6 +475,11 @@ export default function App() {
     };
   }, [accountEntries]);
 
+  const resolvedGoals: ResolvedGoalEntry[] = useMemo(
+    () => buildResolvedGoals(goals, accountEntries, accountSummary.netWorth),
+    [goals, accountEntries, accountSummary.netWorth]
+  );
+
   const accountHistorySorted = useMemo(
     () => [...accountHistory].sort((a, b) => a.month.localeCompare(b.month)),
     [accountHistory]
@@ -547,7 +554,7 @@ export default function App() {
 
   const startNetWorth = forecastStartNetWorth ?? accountSummary.netWorth;
   const monthlyForecastDelta = forecastMonthlyDelta ?? inferredMonthlyNetFlow;
-  const maxGoalTarget = goals.reduce((max, goal) => Math.max(max, goal.target), 0);
+  const maxGoalTarget = resolvedGoals.reduce((max, goal) => Math.max(max, goal.target), 0);
 
   const forecastPoints = useMemo(() => {
     const base = new Date();
@@ -717,6 +724,10 @@ export default function App() {
         balances: nextBalances
       };
     }));
+    setGoals((prev) => prev.map((goal) => ({
+      ...goal,
+      accountIds: goal.accountIds.filter((accountId) => accountId !== id)
+    })));
   }
 
   function addGoal(): void {
@@ -726,7 +737,9 @@ export default function App() {
         id: createLocalId("goal"),
         name: "",
         target: 0,
-        current: 0
+        current: 0,
+        trackingMode: "manual",
+        accountIds: []
       }
     ]);
   }
@@ -932,7 +945,7 @@ export default function App() {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         accountSummary={accountSummary}
-        goals={goals}
+        goals={resolvedGoals}
         currency={meta.currency}
       />
 
@@ -967,7 +980,7 @@ export default function App() {
             inferredMonthlyNetFlow={inferredMonthlyNetFlow}
             forecastPoints={forecastPoints}
             maxGoalTarget={maxGoalTarget}
-            goals={goals}
+            goals={resolvedGoals}
             accountEntries={accountEntries}
             accountHistorySnapshots={accountHistorySorted}
             accountHistorySeries={accountHistorySeries}

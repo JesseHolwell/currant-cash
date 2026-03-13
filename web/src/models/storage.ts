@@ -57,6 +57,8 @@ export function parseStoredGoals(raw: unknown): GoalEntry[] {
       name?: unknown;
       target?: unknown;
       current?: unknown;
+      trackingMode?: unknown;
+      accountIds?: unknown;
     };
     const name = typeof candidate.name === "string" ? candidate.name.trim() : "";
     if (!name) {
@@ -64,11 +66,21 @@ export function parseStoredGoals(raw: unknown): GoalEntry[] {
     }
     const target = typeof candidate.target === "number" ? candidate.target : Number(candidate.target);
     const current = typeof candidate.current === "number" ? candidate.current : Number(candidate.current);
+    const trackingMode = candidate.trackingMode === "accounts"
+      || candidate.trackingMode === "netWorth"
+      || candidate.trackingMode === "manual"
+      ? candidate.trackingMode
+      : "manual";
+    const accountIds = Array.isArray(candidate.accountIds)
+      ? candidate.accountIds.filter((accountId): accountId is string => typeof accountId === "string" && accountId.trim().length > 0)
+      : [];
     next.push({
       id: typeof candidate.id === "string" && candidate.id.trim().length > 0 ? candidate.id : createLocalId("goal"),
       name,
       target: Number.isFinite(target) ? Number(target.toFixed(2)) : 0,
-      current: Number.isFinite(current) ? Number(current.toFixed(2)) : 0
+      current: Number.isFinite(current) ? Number(current.toFixed(2)) : 0,
+      trackingMode,
+      accountIds
     });
   }
   return next;

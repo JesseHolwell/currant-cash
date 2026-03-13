@@ -74,11 +74,22 @@ export type AccountEntry = {
   value: number;
 };
 
+export type GoalTrackingMode = "manual" | "accounts" | "netWorth";
+
 export type GoalEntry = {
   id: string;
   name: string;
   target: number;
   current: number;
+  trackingMode: GoalTrackingMode;
+  accountIds: string[];
+};
+
+export type ResolvedGoalEntry = GoalEntry & {
+  currentValue: number;
+  progress: number;
+  sourceLabel: string;
+  linkedAccountNames: string[];
 };
 
 export type AccountHistorySnapshot = {

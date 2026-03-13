@@ -12,7 +12,7 @@ import {
   YAxis
 } from "recharts";
 import { formatCurrency } from "../../../models";
-import type { AccountEntry, AccountHistorySnapshot, GoalEntry } from "../../../models";
+import type { AccountEntry, AccountHistorySnapshot, GoalEntry, ResolvedGoalEntry } from "../../../models";
 
 type AccountSummary = {
   assets: number;
@@ -76,7 +76,7 @@ export function ForecastTab({
   inferredMonthlyNetFlow: number;
   forecastPoints: ForecastPoint[];
   maxGoalTarget: number;
-  goals: GoalEntry[];
+  goals: ResolvedGoalEntry[];
   accountEntries: AccountEntry[];
   accountHistorySnapshots: AccountHistorySnapshot[];
   accountHistorySeries: AccountHistorySeries[];
@@ -275,7 +275,6 @@ export function ForecastTab({
         <h3>Goals</h3>
         <div className="goal-grid">
           {goals.map((goal) => {
-            const progress = goal.target > 0 ? Math.max(0, Math.min(1, goal.current / goal.target)) : 0;
             return (
               <article key={goal.id} className="goal-card">
                 <div className="goal-card-row">
@@ -289,12 +288,15 @@ export function ForecastTab({
                 </div>
                 <div className="goal-card-row compact">
                   <label>
-                    Current
-                    <input
-                      type="number"
-                      value={goal.current}
-                      onChange={(event) => onUpdateGoal(goal.id, { current: Number(event.target.value) || 0 })}
-                    />
+                    Tracking
+                    <select
+                      value={goal.trackingMode}
+                      onChange={(event) => onUpdateGoal(goal.id, { trackingMode: event.target.value as GoalEntry["trackingMode"] })}
+                    >
+                      <option value="manual">Manual</option>
+                      <option value="accounts">Selected Accounts</option>
+                      <option value="netWorth">Net Worth</option>
+                    </select>
                   </label>
                   <label>
                     Target
@@ -305,10 +307,55 @@ export function ForecastTab({
                     />
                   </label>
                 </div>
+                {goal.trackingMode === "manual" ? (
+                  <div className="goal-card-row compact">
+                    <label>
+                      Current
+                      <input
+                        type="number"
+                        value={goal.current}
+                        onChange={(event) => onUpdateGoal(goal.id, { current: Number(event.target.value) || 0 })}
+                      />
+                    </label>
+                  </div>
+                ) : null}
+                {goal.trackingMode === "accounts" ? (
+                  <div className="goal-account-picker">
+                    {accountEntries.map((account) => (
+                      <label key={`${goal.id}-${account.id}`} className="goal-account-option">
+                        <input
+                          type="checkbox"
+                          checked={goal.accountIds.includes(account.id)}
+                          onChange={(event) => {
+                            const nextIds = event.target.checked
+                              ? [...goal.accountIds, account.id]
+                              : goal.accountIds.filter((accountId) => accountId !== account.id);
+                            onUpdateGoal(goal.id, { accountIds: [...new Set(nextIds)] });
+                          }}
+                        />
+                        <span>{account.name || "Untitled Account"}</span>
+                      </label>
+                    ))}
+                  </div>
+                ) : null}
+                {goal.trackingMode === "netWorth" ? (
+                  <p className="mode-note">This goal tracks total net worth across all accounts.</p>
+                ) : null}
+                {goal.trackingMode !== "manual" ? (
+                  <p className="mode-note">Current value updates from linked balances automatically.</p>
+                ) : null}
+                {goal.trackingMode !== "manual" ? (
+                  <div className="goal-card-row compact">
+                    <label>
+                      Current Value
+                      <input type="text" value={formatCurrency(goal.currentValue, currency)} readOnly />
+                    </label>
+                  </div>
+                ) : null}
                 <div className="goal-track">
-                  <div className="goal-fill" style={{ width: `${Math.round(progress * 100)}%` }} />
+                  <div className="goal-fill" style={{ width: `${Math.round(goal.progress * 100)}%` }} />
                 </div>
-                <p className="mode-note">{Math.round(progress * 100)}% complete</p>
+                <p className="mode-note">{goal.sourceLabel} | {Math.round(goal.progress * 100)}% complete</p>
               </article>
             );
           })}

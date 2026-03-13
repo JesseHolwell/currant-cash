@@ -1,5 +1,5 @@
 import { formatCurrency } from "../../models";
-import type { DashboardTab, GoalEntry } from "../../models";
+import type { DashboardTab, ResolvedGoalEntry } from "../../models";
 
 type AccountSummary = {
   netWorth: number;
@@ -24,7 +24,7 @@ export function Sidebar({
   activeTab: DashboardTab;
   onTabChange: (tab: DashboardTab) => void;
   accountSummary: AccountSummary;
-  goals: GoalEntry[];
+  goals: ResolvedGoalEntry[];
   currency: string;
 }) {
   return (
@@ -83,15 +83,14 @@ export function Sidebar({
         <p className="sidebar-label">Goals</p>
         <ul className="goal-mini-list">
           {goals.slice(0, 4).map((goal) => {
-            const progress = goal.target > 0 ? Math.min(1, goal.current / goal.target) : 0;
             return (
               <li key={goal.id}>
                 <div>
                   <span>{goal.name || "Untitled Goal"}</span>
-                  <small>{formatCurrency(goal.current, currency)} / {formatCurrency(goal.target, currency)}</small>
+                  <small>{formatCurrency(goal.currentValue, currency)} / {formatCurrency(goal.target, currency)} · {goal.sourceLabel}</small>
                 </div>
                 <div className="goal-mini-track">
-                  <div className="goal-mini-fill" style={{ width: `${Math.round(progress * 100)}%` }} />
+                  <div className="goal-mini-fill" style={{ width: `${Math.round(goal.progress * 100)}%` }} />
                 </div>
               </li>
             );

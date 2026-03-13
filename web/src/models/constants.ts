@@ -78,8 +78,22 @@ export const DEFAULT_ACCOUNT_ENTRIES: AccountEntry[] = [
 ];
 
 export const DEFAULT_GOALS: GoalEntry[] = [
-  { id: "goal_emergency", name: "Emergency Fund", target: 15000, current: 9800 },
-  { id: "goal_investing", name: "Investing Balance", target: 25000, current: 12100 }
+  {
+    id: "goal_emergency",
+    name: "Emergency Fund",
+    target: 15000,
+    current: 0,
+    trackingMode: "accounts",
+    accountIds: ["acct_savings"]
+  },
+  {
+    id: "goal_home_deposit",
+    name: "Home Loan Deposit",
+    target: 100000,
+    current: 0,
+    trackingMode: "netWorth",
+    accountIds: []
+  }
 ];
 
 export const EMPTY_PAYROLL_DRAFT: PayrollDraft = {
