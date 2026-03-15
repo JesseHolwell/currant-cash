@@ -167,7 +167,7 @@ export function IncomeTab({
                       innerRadius={78}
                       outerRadius={118}
                       paddingAngle={2}
-                      stroke="rgba(242, 247, 243, 0.98)"
+                      stroke="rgba(11, 14, 18, 0.6)"
                       strokeWidth={3}
                     >
                       {breakdownData.map((entry) => (

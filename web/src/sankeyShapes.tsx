@@ -127,7 +127,7 @@ export function NodeShape(props: {
 
   return (
     <g>
-      <rect x={x} y={y} width={width} height={height} rx={3} fill="#bcc4cc" fillOpacity={0.9} />
+      <rect x={x} y={y} width={width} height={height} rx={3} fill="rgba(255,255,255,0.1)" fillOpacity={1} />
       <rect
         x={accentOnLeft ? x : x + width - 3}
         y={y}

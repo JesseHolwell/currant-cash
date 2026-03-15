@@ -177,16 +177,17 @@ export function ForecastTab({
         <div className="line-chart-wrap account-area-wrap">
           <ResponsiveContainer width="100%" height={360}>
             <AreaChart data={accountHistoryChartData} margin={{ top: 12, right: 24, bottom: 8, left: 4 }}>
-              <CartesianGrid stroke="#e4dccf" strokeDasharray="3 3" />
-              <XAxis dataKey="label" stroke="#8f877a" />
+              <CartesianGrid stroke="rgba(255,255,255,0.07)" strokeDasharray="3 3" />
+              <XAxis dataKey="label" stroke="#445563" tick={{ fill: "#7a95a5" }} />
               <YAxis
-                stroke="#8f877a"
+                stroke="#445563"
+                tick={{ fill: "#7a95a5" }}
                 width={96}
                 tickFormatter={(value) => formatCurrency(Number(value), currency)}
               />
-              <Tooltip formatter={(value: number) => formatCurrency(Number(value), currency)} />
+              <Tooltip formatter={(value: number) => formatCurrency(Number(value), currency)} contentStyle={{ background: "#0f141b", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px", color: "#e4edf3" }} />
               <Legend />
-              <ReferenceLine y={0} stroke="#9ca9aa" strokeDasharray="4 4" />
+              <ReferenceLine y={0} stroke="rgba(255,255,255,0.15)" strokeDasharray="4 4" />
               {accountHistorySeries.map((series) => (
                 <Area
                   key={series.accountId}
@@ -246,18 +247,19 @@ export function ForecastTab({
         <div className="line-chart-wrap">
           <ResponsiveContainer width="100%" height={360}>
             <LineChart data={forecastPoints} margin={{ top: 12, right: 24, bottom: 8, left: 4 }}>
-              <CartesianGrid stroke="#e4dccf" strokeDasharray="3 3" />
-              <XAxis dataKey="label" stroke="#8f877a" />
+              <CartesianGrid stroke="rgba(255,255,255,0.07)" strokeDasharray="3 3" />
+              <XAxis dataKey="label" stroke="#445563" tick={{ fill: "#7a95a5" }} />
               <YAxis
-                stroke="#8f877a"
+                stroke="#445563"
+                tick={{ fill: "#7a95a5" }}
                 width={96}
                 tickFormatter={(value) => formatCurrency(Number(value), currency)}
               />
-              <Tooltip formatter={(value: number) => formatCurrency(Number(value), currency)} />
+              <Tooltip formatter={(value: number) => formatCurrency(Number(value), currency)} contentStyle={{ background: "#0f141b", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px", color: "#e4edf3" }} />
               {maxGoalTarget > 0 ? (
-                <Line type="monotone" dataKey="goal" stroke="#8db58d" strokeDasharray="6 5" dot={false} name="Goal" />
+                <Line type="monotone" dataKey="goal" stroke="#10dbb6" strokeDasharray="6 5" dot={false} name="Goal" />
               ) : null}
-              <Line type="monotone" dataKey="netWorth" stroke="#b67934" strokeWidth={3} dot={{ r: 3 }} name="Net Worth" />
+              <Line type="monotone" dataKey="netWorth" stroke="#f59e0b" strokeWidth={3} dot={{ r: 3, fill: "#f59e0b" }} name="Net Worth" />
             </LineChart>
           </ResponsiveContainer>
         </div>

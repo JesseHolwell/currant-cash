@@ -286,7 +286,7 @@ export function ExpensesTab({
                     <Cell key={entry.name} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value: number) => formatCurrency(Number(value), currency)} />
+                <Tooltip formatter={(value: number) => formatCurrency(Number(value), currency)} contentStyle={{ background: "#0f141b", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px", color: "#e4edf3" }} />
                 <Legend />
               </PieChart>
             </ResponsiveContainer>
