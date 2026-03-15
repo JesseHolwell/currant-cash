@@ -2,6 +2,8 @@
 
 Turn bank CSV exports into a clear, local-first money dashboard with minimal friction.
 
+`https://personal-spend.vercel.app`
+
 ## Privacy model
 
 - All transaction data stays in the browser on the user's device.
@@ -45,6 +47,7 @@ npm run web
 ```
 
 Legacy (deprecated) CLI command:
+
 - `npm run ingest -- --input ./Data_export_23022026.csv`
 
 ## Project structure
