@@ -986,7 +986,7 @@ export default function App() {
 
   function resetAllData(): void {
     const confirmed = window.confirm(
-      "Clear all Spendboard data in this browser and restore the built-in defaults?"
+      "Clear all Currant data in this browser and restore the built-in defaults?"
     );
     if (!confirmed) {
       return;
@@ -1043,7 +1043,7 @@ export default function App() {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `personal-spend-backup-${timestamp}.json`;
+      link.download = `currant-backup-${timestamp}.json`;
       document.body.appendChild(link);
       link.click();
       link.remove();

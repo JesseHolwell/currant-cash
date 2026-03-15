@@ -29,7 +29,7 @@ export function SettingsTab({
       <section className="settings-note">
         <h3>Browser Storage</h3>
         <p>
-          Everything in Spendboard lives in this browser only. No data is sent to a server. If you clear browser storage,
+          Everything in Currant lives in this browser only. No data is sent to a server. If you clear browser storage,
           switch browsers, or use a fresh profile, your data will be lost unless you export a backup first.
         </p>
       </section>

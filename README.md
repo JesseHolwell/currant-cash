@@ -1,6 +1,6 @@
-# personal-spend
+# Currant
 
-Turn bank CSV exports into a clear expense and net-worth dashboard with minimal friction.
+Turn bank CSV exports into a clear, local-first money dashboard with minimal friction.
 
 ## Privacy model
 

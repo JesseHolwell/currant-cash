@@ -9,7 +9,7 @@ export function WorkspaceHeader({
 }) {
   return (
     <header className="workspace-header">
-      <p className="eyebrow">Personal Spend</p>
+      <p className="eyebrow">Currant</p>
       <h2>{title}</h2>
       <p className="subtitle">{subtitle}</p>
       <p className="mode-note">{generatedLabel}</p>

@@ -30,8 +30,19 @@ export function Sidebar({
   return (
     <aside className="sidebar">
       <div className="brand">
-        <p className="brand-eyebrow">Personal</p>
-        <h1>Spendboard</h1>
+        <div className="brand-lockup">
+          <div className="brand-mark" aria-hidden="true">
+            <span className="brand-leaf" />
+            <span className="brand-berry brand-berry-top" />
+            <span className="brand-berry brand-berry-left" />
+            <span className="brand-berry brand-berry-right" />
+          </div>
+          <div className="brand-copy">
+            <p className="brand-eyebrow">Private money planner</p>
+            <h1>Currant</h1>
+          </div>
+        </div>
+        <p className="brand-tagline">Get ahead with your money.</p>
       </div>
 
       <nav className="nav-list">
