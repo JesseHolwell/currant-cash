@@ -19,6 +19,13 @@ type CsvImportResult = {
   warnings: string[];
 };
 
+type CategoryMatcher = {
+  group: string;
+  subcategory: string;
+  needle: string;
+  source: "group" | "label" | "keyword";
+};
+
 function canonicalMoneyToken(value: string | undefined): string {
   if (!value) {
     return "";
@@ -119,11 +126,76 @@ function buildSubcategoryLookup(categoryDefinitions: CategoryDefinition[]): Map<
   return lookup;
 }
 
+function buildCategoryMatchers(categoryDefinitions: CategoryDefinition[]): CategoryMatcher[] {
+  const matchers: CategoryMatcher[] = [];
+
+  for (const definition of categoryDefinitions) {
+    const group = definition.category.trim();
+    if (!group) {
+      continue;
+    }
+
+    matchers.push({
+      group,
+      subcategory: group,
+      needle: normalizeForMatch(group),
+      source: "group"
+    });
+
+    for (const subcategory of definition.subcategories) {
+      const name = subcategory.name.trim();
+      if (!name) {
+        continue;
+      }
+
+      matchers.push({
+        group,
+        subcategory: name,
+        needle: normalizeForMatch(name),
+        source: "label"
+      });
+
+      for (const keyword of subcategory.keywords) {
+        const normalizedKeyword = normalizeForMatch(keyword);
+        if (!normalizedKeyword) {
+          continue;
+        }
+        matchers.push({
+          group,
+          subcategory: name,
+          needle: normalizedKeyword,
+          source: "keyword"
+        });
+      }
+    }
+  }
+
+  return matchers.sort((left, right) => {
+    if (right.needle.length !== left.needle.length) {
+      return right.needle.length - left.needle.length;
+    }
+    if (left.source === right.source) {
+      return 0;
+    }
+    if (left.source === "keyword") {
+      return -1;
+    }
+    if (right.source === "keyword") {
+      return 1;
+    }
+    if (left.source === "label") {
+      return -1;
+    }
+    return 1;
+  });
+}
+
 function inferCategory(
   narrative: string,
   sourceCategory: string,
   direction: RawTransaction["direction"],
-  lookup: Map<string, { group: string; subcategory: string }>
+  lookup: Map<string, { group: string; subcategory: string }>,
+  matchers: CategoryMatcher[]
 ): { category: string; categoryGroup: string; categoryReason: string } {
   if (direction === "credit") {
     return { category: "Income", categoryGroup: "Income", categoryReason: "fallback:credit" };
@@ -158,15 +230,18 @@ function inferCategory(
   }
 
   const narrativeNormalized = normalizeText(narrative);
-  for (const [needle, mapped] of lookup.entries()) {
-    if (!needle || needle.length < 4) {
+  for (const matcher of matchers) {
+    const minLength = matcher.source === "keyword" ? 2 : 4;
+    if (!matcher.needle || matcher.needle.length < minLength) {
       continue;
     }
-    if (narrativeNormalized.includes(needle)) {
+    if (narrativeNormalized.includes(matcher.needle)) {
       return {
-        category: mapped.subcategory,
-        categoryGroup: mapped.group,
-        categoryReason: `fallback:narrative:${needle}`
+        category: matcher.subcategory,
+        categoryGroup: matcher.group,
+        categoryReason: matcher.source === "keyword"
+          ? `fallback:keyword:${matcher.needle}`
+          : `fallback:narrative:${matcher.needle}`
       };
     }
   }
@@ -191,6 +266,7 @@ export function parseBankCsvToTransactions(csvRaw: string, categoryDefinitions: 
 
   const warnings: string[] = [];
   const subcategoryLookup = buildSubcategoryLookup(categoryDefinitions);
+  const categoryMatchers = buildCategoryMatchers(categoryDefinitions);
   const transactions: RawTransaction[] = [];
   const seenTransactionIds = new Set<string>();
 
@@ -210,7 +286,7 @@ export function parseBankCsvToTransactions(csvRaw: string, categoryDefinitions: 
 
       const normalizedDate = parseDate(dateValue);
       const sourceCategory = (row.Categories ?? "").trim();
-      const categorization = inferCategory(narrative, sourceCategory, direction, subcategoryLookup);
+      const categorization = inferCategory(narrative, sourceCategory, direction, subcategoryLookup, categoryMatchers);
       const transactionId = hashString(buildTransactionFingerprint(row, normalizedDate, narrative));
 
       if (seenTransactionIds.has(transactionId)) {

@@ -48,6 +48,7 @@ import type {
   AccountEntry,
   AccountHistorySnapshot,
   CategoryDefinition,
+  CategorySubcategoryDefinition,
   DashboardTab,
   FlowStartMode,
   GoalEntry,
@@ -663,7 +664,7 @@ export default function App() {
     });
   }
 
-  function updateCategoryDefinition(id: string, patch: Partial<Omit<CategoryDefinition, "id">>): void {
+  function updateCategoryDefinition(id: string, patch: Partial<Pick<CategoryDefinition, "category">>): void {
     setCategoryDefinitions((prev) => prev.map((definition) => (
       definition.id === id ? { ...definition, ...patch } : definition
     )));
@@ -672,12 +673,61 @@ export default function App() {
   function addCategoryDefinition(): void {
     setCategoryDefinitions((prev) => [
       ...prev,
-      { id: createLocalId("cat"), category: "", subcategories: "" }
+      {
+        id: createLocalId("cat"),
+        category: "",
+        subcategories: [{ id: createLocalId("subcat"), name: "", keywords: [] }]
+      }
     ]);
   }
 
   function removeCategoryDefinition(id: string): void {
     setCategoryDefinitions((prev) => prev.filter((definition) => definition.id !== id));
+  }
+
+  function addCategorySubcategory(categoryId: string): void {
+    setCategoryDefinitions((prev) => prev.map((definition) => {
+      if (definition.id !== categoryId) {
+        return definition;
+      }
+      return {
+        ...definition,
+        subcategories: [
+          ...definition.subcategories,
+          { id: createLocalId("subcat"), name: "", keywords: [] }
+        ]
+      };
+    }));
+  }
+
+  function updateCategorySubcategory(
+    categoryId: string,
+    subcategoryId: string,
+    patch: Partial<Omit<CategorySubcategoryDefinition, "id">>
+  ): void {
+    setCategoryDefinitions((prev) => prev.map((definition) => {
+      if (definition.id !== categoryId) {
+        return definition;
+      }
+      return {
+        ...definition,
+        subcategories: definition.subcategories.map((subcategory) => (
+          subcategory.id === subcategoryId ? { ...subcategory, ...patch } : subcategory
+        ))
+      };
+    }));
+  }
+
+  function removeCategorySubcategory(categoryId: string, subcategoryId: string): void {
+    setCategoryDefinitions((prev) => prev.map((definition) => {
+      if (definition.id !== categoryId) {
+        return definition;
+      }
+      return {
+        ...definition,
+        subcategories: definition.subcategories.filter((subcategory) => subcategory.id !== subcategoryId)
+      };
+    }));
   }
 
   function resetCategoryDefinitions(): void {
@@ -1243,6 +1293,9 @@ export default function App() {
             onResetCategoryDefinitions={resetCategoryDefinitions}
             onUpdateCategoryDefinition={updateCategoryDefinition}
             onRemoveCategoryDefinition={removeCategoryDefinition}
+            onAddCategorySubcategory={addCategorySubcategory}
+            onUpdateCategorySubcategory={updateCategorySubcategory}
+            onRemoveCategorySubcategory={removeCategorySubcategory}
             rulesFilter={rulesFilter}
             onRulesFilterChange={setRulesFilter}
             onClearAllRules={clearAllRules}

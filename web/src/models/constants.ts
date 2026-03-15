@@ -72,23 +72,45 @@ export const MERCHANT_ALIASES = [
 
 export const DEFAULT_CATEGORY_SETUP: Array<{
   category: string;
-  subcategories: string[];
+  subcategories: Array<{ name: string; keywords: string[] }>;
 }> = [
   {
     category: "Food & Drink",
-    subcategories: ["Groceries", "Deliveries", "Restaurants"],
+    subcategories: [
+      { name: "Groceries", keywords: [] },
+      { name: "Deliveries", keywords: [] },
+      { name: "Restaurants", keywords: [] },
+    ],
   },
-  { category: "Transport", subcategories: ["Transport"] },
-  { category: "Lifestyle", subcategories: ["Shopping", "Gifts", "Hobbies"] },
+  { category: "Transport", subcategories: [{ name: "Transport", keywords: [] }] },
+  {
+    category: "Lifestyle",
+    subcategories: [
+      { name: "Shopping", keywords: [] },
+      { name: "Gifts", keywords: [] },
+      { name: "Hobbies", keywords: [] },
+    ],
+  },
   {
     category: "Subscriptions",
-    subcategories: ["Memberships", "Subscriptions", "Interest"],
+    subcategories: [
+      { name: "Memberships", keywords: [] },
+      { name: "Subscriptions", keywords: [] },
+      { name: "Interest", keywords: [] },
+    ],
   },
-  { category: "Health", subcategories: ["Health"] },
-  { category: "Life", subcategories: ["Rent", "Phone", "Internet"] },
-  { category: "Transfers", subcategories: ["Transfers"] },
-  { category: "Income", subcategories: ["Income"] },
-  { category: "Uncategorized", subcategories: ["Uncategorized"] },
+  { category: "Health", subcategories: [{ name: "Health", keywords: [] }] },
+  {
+    category: "Life",
+    subcategories: [
+      { name: "Rent", keywords: [] },
+      { name: "Phone", keywords: [] },
+      { name: "Internet", keywords: [] },
+    ],
+  },
+  { category: "Transfers", subcategories: [{ name: "Transfers", keywords: [] }] },
+  { category: "Income", subcategories: [{ name: "Income", keywords: [] }] },
+  { category: "Uncategorized", subcategories: [{ name: "Uncategorized", keywords: [] }] },
 ];
 
 export const DEFAULT_ACCOUNT_ENTRIES: AccountEntry[] = [

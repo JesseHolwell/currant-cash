@@ -1,11 +1,13 @@
 import {
   formatCurrency,
   formatTimelineLabel,
+  parseKeywordText,
   resolveCategoryGroupBucket,
   resolveSubcategoryBucket
 } from "../../../models";
 import type {
   CategoryDefinition,
+  CategorySubcategoryDefinition,
   RawTransaction,
   TimelinePeriod,
   TransactionDraft
@@ -22,6 +24,9 @@ export function CategoriesTab({
   onResetCategoryDefinitions,
   onUpdateCategoryDefinition,
   onRemoveCategoryDefinition,
+  onAddCategorySubcategory,
+  onUpdateCategorySubcategory,
+  onRemoveCategorySubcategory,
   rulesFilter,
   onRulesFilterChange,
   onClearAllRules,
@@ -41,8 +46,15 @@ export function CategoriesTab({
   categoryDefinitions: CategoryDefinition[];
   onAddCategoryDefinition: () => void;
   onResetCategoryDefinitions: () => void;
-  onUpdateCategoryDefinition: (id: string, patch: Partial<Omit<CategoryDefinition, "id">>) => void;
+  onUpdateCategoryDefinition: (id: string, patch: Partial<Pick<CategoryDefinition, "category">>) => void;
   onRemoveCategoryDefinition: (id: string) => void;
+  onAddCategorySubcategory: (categoryId: string) => void;
+  onUpdateCategorySubcategory: (
+    categoryId: string,
+    subcategoryId: string,
+    patch: Partial<Omit<CategorySubcategoryDefinition, "id">>
+  ) => void;
+  onRemoveCategorySubcategory: (categoryId: string, subcategoryId: string) => void;
   rulesFilter: "needs" | "all";
   onRulesFilterChange: (filter: "needs" | "all") => void;
   onClearAllRules: () => void;
@@ -83,27 +95,87 @@ export function CategoriesTab({
           </div>
         </div>
         <p className="mode-note">
-          Customize categories and comma-separated subcategories. Saved in this browser only.
+          Set the parent taxonomy here, then add child keywords for import matching. Uploads use the bank category first,
+          then child keywords, then category labels found in the narrative. Saved in this browser only.
         </p>
-        <ul className="taxonomy-list">
-          {categoryDefinitions.map((definition) => (
-            <li key={definition.id} className="taxonomy-item">
-              <input
-                type="text"
-                value={definition.category}
-                placeholder="Category name"
-                onChange={(event) => onUpdateCategoryDefinition(definition.id, { category: event.target.value })}
-              />
-              <input
-                type="text"
-                value={definition.subcategories}
-                placeholder="Subcategories (comma separated)"
-                onChange={(event) => onUpdateCategoryDefinition(definition.id, { subcategories: event.target.value })}
-              />
-              <button type="button" className="mode-btn" onClick={() => onRemoveCategoryDefinition(definition.id)}>Delete</button>
-            </li>
-          ))}
-        </ul>
+        <div className="taxonomy-list">
+          {categoryDefinitions.map((definition) => {
+            const keywordCount = definition.subcategories.reduce((sum, subcategory) => sum + subcategory.keywords.length, 0);
+            return (
+              <article key={definition.id} className="taxonomy-item">
+                <div className="category-card-head">
+                  <div className="category-card-title">
+                    <span className="category-card-label">Parent category</span>
+                    <input
+                      type="text"
+                      value={definition.category}
+                      placeholder="Category name"
+                      onChange={(event) => onUpdateCategoryDefinition(definition.id, { category: event.target.value })}
+                    />
+                  </div>
+                  <div className="category-card-meta">
+                    <span className="category-card-stats">
+                      {definition.subcategories.length} child{definition.subcategories.length === 1 ? "" : "ren"} | {keywordCount} keyword
+                      {keywordCount === 1 ? "" : "s"}
+                    </span>
+                    <button type="button" className="mode-btn" onClick={() => onRemoveCategoryDefinition(definition.id)}>Delete</button>
+                  </div>
+                </div>
+
+                <div className="category-child-list">
+                  {definition.subcategories.length === 0 ? (
+                    <div className="category-child-empty">
+                      <p className="hint">No child categories yet. Add one so uploads have somewhere specific to land.</p>
+                    </div>
+                  ) : (
+                    definition.subcategories.map((subcategory) => (
+                      <div key={subcategory.id} className="category-child-row">
+                        <div className="category-child-field category-child-name">
+                          <label htmlFor={`${definition.id}-${subcategory.id}-name`}>Child category</label>
+                          <input
+                            id={`${definition.id}-${subcategory.id}-name`}
+                            type="text"
+                            value={subcategory.name}
+                            placeholder="Groceries"
+                            onChange={(event) => onUpdateCategorySubcategory(definition.id, subcategory.id, { name: event.target.value })}
+                          />
+                        </div>
+                        <div className="category-child-field category-child-keywords">
+                          <label htmlFor={`${definition.id}-${subcategory.id}-keywords`}>Keywords</label>
+                          <input
+                            id={`${definition.id}-${subcategory.id}-keywords`}
+                            type="text"
+                            value={subcategory.keywords.join(", ")}
+                            placeholder="coles, woolworths, uber eats"
+                            onChange={(event) => onUpdateCategorySubcategory(
+                              definition.id,
+                              subcategory.id,
+                              { keywords: parseKeywordText(event.target.value) }
+                            )}
+                          />
+                          <span className="category-child-hint">Comma separated merchant or narrative matches.</span>
+                        </div>
+                        <button
+                          type="button"
+                          className="mode-btn"
+                          onClick={() => onRemoveCategorySubcategory(definition.id, subcategory.id)}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <div className="category-card-footer">
+                  <button type="button" className="mode-btn active" onClick={() => onAddCategorySubcategory(definition.id)}>
+                    Add Child Category
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
       </section>
 
       <section className="uncategorized">

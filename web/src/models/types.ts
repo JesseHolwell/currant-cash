@@ -48,10 +48,16 @@ export type TransactionDraft = {
   applySimilar: boolean;
 };
 
+export type CategorySubcategoryDefinition = {
+  id: string;
+  name: string;
+  keywords: string[];
+};
+
 export type CategoryDefinition = {
   id: string;
   category: string;
-  subcategories: string;
+  subcategories: CategorySubcategoryDefinition[];
 };
 
 export type SankeyMeta = {
