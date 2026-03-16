@@ -4,7 +4,7 @@ export function formatCurrency(value: number, currency: string): string {
   return new Intl.NumberFormat("en-AU", {
     style: "currency",
     currency,
-    maximumFractionDigits: 2
+    maximumFractionDigits: 0
   }).format(value);
 }
 
