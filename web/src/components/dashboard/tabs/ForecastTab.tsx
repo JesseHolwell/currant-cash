@@ -12,7 +12,7 @@ import {
   ResponsiveContainer,
   Tooltip,
   XAxis,
-  YAxis
+  YAxis,
 } from "recharts";
 import { formatCurrency } from "../../../models";
 
@@ -59,7 +59,7 @@ export function ForecastTab({
   maxGoalTarget,
   accountHistorySeries,
   accountHistoryChartData,
-  expensePieData
+  expensePieData,
 }: {
   currency: string;
   accountSummary: AccountSummary;
@@ -83,13 +83,6 @@ export function ForecastTab({
         <article>
           <h2>Monthly Delta</h2>
           <p>{formatCurrency(monthlyForecastDelta, currency)}</p>
-          <p className="stat-source">
-            {isMonthlyDeltaOverridden
-              ? "Manual override"
-              : inferredMonthCount > 0
-                ? `Inferred from ${inferredMonthCount} month${inferredMonthCount === 1 ? "" : "s"} of data`
-                : "No data yet"}
-          </p>
         </article>
         <article>
           <h2>Assets</h2>
@@ -106,18 +99,44 @@ export function ForecastTab({
         <p className="mode-note">Stacked area view by account over time.</p>
         <div className="line-chart-wrap account-area-wrap">
           <ResponsiveContainer width="100%" height={360}>
-            <AreaChart data={accountHistoryChartData} margin={{ top: 12, right: 24, bottom: 8, left: 4 }}>
-              <CartesianGrid stroke="rgba(61,36,56,0.08)" strokeDasharray="3 3" />
-              <XAxis dataKey="label" stroke="rgba(61,36,56,0.25)" tick={{ fill: "#9E7088" }} />
+            <AreaChart
+              data={accountHistoryChartData}
+              margin={{ top: 12, right: 24, bottom: 8, left: 4 }}
+            >
+              <CartesianGrid
+                stroke="rgba(61,36,56,0.08)"
+                strokeDasharray="3 3"
+              />
+              <XAxis
+                dataKey="label"
+                stroke="rgba(61,36,56,0.25)"
+                tick={{ fill: "#9E7088" }}
+              />
               <YAxis
                 stroke="rgba(61,36,56,0.25)"
                 tick={{ fill: "#9E7088" }}
                 width={96}
-                tickFormatter={(value) => formatCurrency(Number(value), currency)}
+                tickFormatter={(value) =>
+                  formatCurrency(Number(value), currency)
+                }
               />
-              <Tooltip formatter={(value: number) => formatCurrency(Number(value), currency)} contentStyle={{ background: "#3D2438", border: "1px solid rgba(61,36,56,0.2)", borderRadius: "6px", color: "#F7F3E8" }} />
+              <Tooltip
+                formatter={(value: number) =>
+                  formatCurrency(Number(value), currency)
+                }
+                contentStyle={{
+                  background: "#3D2438",
+                  border: "1px solid rgba(61,36,56,0.2)",
+                  borderRadius: "6px",
+                  color: "#F7F3E8",
+                }}
+              />
               <Legend />
-              <ReferenceLine y={0} stroke="rgba(61,36,56,0.15)" strokeDasharray="4 4" />
+              <ReferenceLine
+                y={0}
+                stroke="rgba(61,36,56,0.15)"
+                strokeDasharray="4 4"
+              />
               {accountHistorySeries.map((series) => (
                 <Area
                   key={series.accountId}
@@ -139,20 +158,56 @@ export function ForecastTab({
         <h3>Forecast</h3>
         <div className="line-chart-wrap">
           <ResponsiveContainer width="100%" height={360}>
-            <LineChart data={forecastPoints} margin={{ top: 12, right: 24, bottom: 8, left: 4 }}>
-              <CartesianGrid stroke="rgba(61,36,56,0.08)" strokeDasharray="3 3" />
-              <XAxis dataKey="label" stroke="rgba(61,36,56,0.25)" tick={{ fill: "#9E7088" }} />
+            <LineChart
+              data={forecastPoints}
+              margin={{ top: 12, right: 24, bottom: 8, left: 4 }}
+            >
+              <CartesianGrid
+                stroke="rgba(61,36,56,0.08)"
+                strokeDasharray="3 3"
+              />
+              <XAxis
+                dataKey="label"
+                stroke="rgba(61,36,56,0.25)"
+                tick={{ fill: "#9E7088" }}
+              />
               <YAxis
                 stroke="rgba(61,36,56,0.25)"
                 tick={{ fill: "#9E7088" }}
                 width={96}
-                tickFormatter={(value) => formatCurrency(Number(value), currency)}
+                tickFormatter={(value) =>
+                  formatCurrency(Number(value), currency)
+                }
               />
-              <Tooltip formatter={(value: number) => formatCurrency(Number(value), currency)} contentStyle={{ background: "#3D2438", border: "1px solid rgba(61,36,56,0.2)", borderRadius: "6px", color: "#F7F3E8" }} />
+              <Tooltip
+                formatter={(value: number) =>
+                  formatCurrency(Number(value), currency)
+                }
+                contentStyle={{
+                  background: "#3D2438",
+                  border: "1px solid rgba(61,36,56,0.2)",
+                  borderRadius: "6px",
+                  color: "#F7F3E8",
+                }}
+              />
               {maxGoalTarget > 0 ? (
-                <Line type="monotone" dataKey="goal" stroke="#C4843E" strokeDasharray="6 5" dot={false} name="Goal" />
+                <Line
+                  type="monotone"
+                  dataKey="goal"
+                  stroke="#C4843E"
+                  strokeDasharray="6 5"
+                  dot={false}
+                  name="Goal"
+                />
               ) : null}
-              <Line type="monotone" dataKey="netWorth" stroke="#8B2942" strokeWidth={3} dot={{ r: 3, fill: "#8B2942" }} name="Net Worth" />
+              <Line
+                type="monotone"
+                dataKey="netWorth"
+                stroke="#8B2942"
+                strokeWidth={3}
+                dot={{ r: 3, fill: "#8B2942" }}
+                name="Net Worth"
+              />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -178,7 +233,17 @@ export function ForecastTab({
                     <Cell key={entry.name} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value: number) => formatCurrency(Number(value), currency)} contentStyle={{ background: "#3D2438", border: "1px solid rgba(61,36,56,0.2)", borderRadius: "6px", color: "#F7F3E8" }} />
+                <Tooltip
+                  formatter={(value: number) =>
+                    formatCurrency(Number(value), currency)
+                  }
+                  contentStyle={{
+                    background: "#3D2438",
+                    border: "1px solid rgba(61,36,56,0.2)",
+                    borderRadius: "6px",
+                    color: "#F7F3E8",
+                  }}
+                />
                 <Legend />
               </PieChart>
             </ResponsiveContainer>
