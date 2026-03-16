@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Sankey, Tooltip } from "recharts";
+import { useEffect, useRef, useState } from "react";
+import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Sankey, Tooltip, XAxis, YAxis } from "recharts";
 import { SUMMARY_TOP_MERCHANTS_PER_GROUP, formatCurrency, formatTimelineLabel } from "../../../models";
 import type {
   BuildVizResult,
@@ -10,10 +10,14 @@ import type {
 } from "../../../models";
 import { FlowTooltip, LinkShape, NodeShape } from "../../../sankeyShapes";
 
-type ExpensePieDatum = {
-  name: string;
-  value: number;
+type MonthlyCategoryConfig = {
+  category: string;
   color: string;
+};
+
+type MonthlyExpenseData = {
+  rows: Array<{ month: string; label: string; [key: string]: string | number }>;
+  categories: MonthlyCategoryConfig[];
 };
 
 export function ExpensesTab({
@@ -35,7 +39,7 @@ export function ExpensesTab({
   chartLeftMargin,
   chartRightMargin,
   nodePadding,
-  expensePieData
+  monthlyExpenseData
 }: {
   currency: string;
   flowStartMode: FlowStartMode;
@@ -55,9 +59,11 @@ export function ExpensesTab({
   chartLeftMargin: number;
   chartRightMargin: number;
   nodePadding: number;
-  expensePieData: ExpensePieDatum[];
+  monthlyExpenseData: MonthlyExpenseData;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [stageWidth, setStageWidth] = useState(0);
+  const stageRef = useRef<HTMLDivElement>(null);
   const incomeMode = flowStartMode === "expenses" ? "expenses" : incomeBasisMode;
   const isIncomeFlow = flowStartMode === "income";
   const controlsDescription = isIncomeFlow
@@ -82,6 +88,23 @@ export function ExpensesTab({
     };
   }, [isExpanded]);
 
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) {
+      return;
+    }
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) {
+        setStageWidth(entry.contentRect.width);
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const effectiveLeftMargin = stageWidth > 0 ? Math.max(180, Math.round(stageWidth * 0.20)) : chartLeftMargin;
+  const effectiveRightMargin = stageWidth > 0 ? Math.max(220, Math.round(stageWidth * 0.27)) : chartRightMargin;
   const effectiveChartHeight: number | string = isExpanded ? "calc(100vh - 180px)" : chartHeight;
 
   return (
@@ -230,69 +253,81 @@ export function ExpensesTab({
             </button>
           </div>
 
-          {isExpanded ? (
-            <button
-              type="button"
-              aria-label="Close expanded chart"
-              className="sankey-backdrop"
-              onClick={() => setIsExpanded(false)}
-            />
-          ) : null}
-
-          <div className={isExpanded ? "sankey-stage is-expanded" : "sankey-stage"}>
-            {isExpanded ? (
-              <div className="sankey-stage-toolbar">
-                <button type="button" className="mode-btn" onClick={() => setIsExpanded(false)}>
-                  Close Expanded View
-                </button>
-              </div>
-            ) : null}
-            <div className="chart" style={{ height: effectiveChartHeight }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <Sankey
-                  data={viz.sankey}
-                  nodePadding={nodePadding}
-                  nodeWidth={14}
-                  linkCurvature={0.3}
-                  iterations={64}
-                  sort={false}
-                  margin={{ top: 42, right: chartRightMargin, bottom: 28, left: chartLeftMargin }}
-                  node={NodeShape}
-                  link={LinkShape}
-                >
-                  <Tooltip content={<FlowTooltip currency={currency} />} />
-                </Sankey>
-              </ResponsiveContainer>
+          {viz.spendCount === 0 && viz.totalIncome === 0 ? (
+            <div className="sankey-empty">
+              <p>No transaction data to display. Upload a CSV on the Transaction Data tab to get started.</p>
             </div>
-          </div>
+          ) : (
+            <>
+              {isExpanded ? (
+                <button
+                  type="button"
+                  aria-label="Close expanded chart"
+                  className="sankey-backdrop"
+                  onClick={() => setIsExpanded(false)}
+                />
+              ) : null}
+
+              <div ref={stageRef} className={isExpanded ? "sankey-stage is-expanded" : "sankey-stage"}>
+                {isExpanded ? (
+                  <div className="sankey-stage-toolbar">
+                    <button type="button" className="mode-btn" onClick={() => setIsExpanded(false)}>
+                      Close Expanded View
+                    </button>
+                  </div>
+                ) : null}
+                <div className="chart" style={{ height: effectiveChartHeight }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <Sankey
+                      data={viz.sankey}
+                      nodePadding={nodePadding}
+                      nodeWidth={14}
+                      linkCurvature={0.3}
+                      iterations={64}
+                      sort={false}
+                      margin={{ top: 42, right: effectiveRightMargin, bottom: 28, left: effectiveLeftMargin }}
+                      node={NodeShape}
+                      link={LinkShape}
+                    >
+                      <Tooltip content={<FlowTooltip currency={currency} />} />
+                    </Sankey>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
-        <aside className="panel pie-panel">
-          <h3>Expense Breakdown</h3>
-          <div className="pie-wrap">
+      </section>
+
+      {monthlyExpenseData.rows.length > 1 ? (
+        <section className="panel">
+          <h3>Month-over-Month Spend</h3>
+          <p className="mode-note">Stacked spend by category across all months.</p>
+          <div className="line-chart-wrap">
             <ResponsiveContainer width="100%" height={320}>
-              <PieChart>
-                <Pie
-                  data={expensePieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={68}
-                  outerRadius={114}
-                  paddingAngle={2}
-                  dataKey="value"
-                  nameKey="name"
-                >
-                  {expensePieData.map((entry) => (
-                    <Cell key={entry.name} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value: number) => formatCurrency(Number(value), currency)} contentStyle={{ background: "#0f141b", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px", color: "#e4edf3" }} />
+              <BarChart data={monthlyExpenseData.rows} margin={{ top: 12, right: 24, bottom: 8, left: 4 }}>
+                <CartesianGrid stroke="rgba(61,36,56,0.08)" strokeDasharray="3 3" />
+                <XAxis dataKey="label" stroke="rgba(61,36,56,0.25)" tick={{ fill: "#9E7088" }} />
+                <YAxis
+                  stroke="rgba(61,36,56,0.25)"
+                  tick={{ fill: "#9E7088" }}
+                  width={96}
+                  tickFormatter={(value) => formatCurrency(Number(value), currency)}
+                />
+                <Tooltip
+                  formatter={(value: number) => formatCurrency(Number(value), currency)}
+                  contentStyle={{ background: "#3D2438", border: "1px solid rgba(61,36,56,0.2)", borderRadius: "6px", color: "#F7F3E8" }}
+                />
                 <Legend />
-              </PieChart>
+                {monthlyExpenseData.categories.map((cat) => (
+                  <Bar key={cat.category} dataKey={cat.category} stackId="spend" fill={cat.color} name={cat.category} />
+                ))}
+              </BarChart>
             </ResponsiveContainer>
           </div>
-        </aside>
-      </section>
+        </section>
+      ) : null}
     </>
   );
 }

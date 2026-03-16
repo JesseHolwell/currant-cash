@@ -128,22 +128,20 @@ export function CategoriesTab({
                       <p className="hint">No child categories yet. Add one so uploads have somewhere specific to land.</p>
                     </div>
                   ) : (
-                    definition.subcategories.map((subcategory) => (
-                      <div key={subcategory.id} className="category-child-row">
-                        <div className="category-child-field category-child-name">
-                          <label htmlFor={`${definition.id}-${subcategory.id}-name`}>Child category</label>
+                    <>
+                      <div className="category-child-header">
+                        <span>Name</span>
+                        <span>Keywords (comma separated)</span>
+                      </div>
+                      {definition.subcategories.map((subcategory) => (
+                        <div key={subcategory.id} className="category-child-row">
                           <input
-                            id={`${definition.id}-${subcategory.id}-name`}
                             type="text"
                             value={subcategory.name}
                             placeholder="Groceries"
                             onChange={(event) => onUpdateCategorySubcategory(definition.id, subcategory.id, { name: event.target.value })}
                           />
-                        </div>
-                        <div className="category-child-field category-child-keywords">
-                          <label htmlFor={`${definition.id}-${subcategory.id}-keywords`}>Keywords</label>
                           <input
-                            id={`${definition.id}-${subcategory.id}-keywords`}
                             type="text"
                             value={subcategory.keywords.join(", ")}
                             placeholder="coles, woolworths, uber eats"
@@ -153,17 +151,16 @@ export function CategoriesTab({
                               { keywords: parseKeywordText(event.target.value) }
                             )}
                           />
-                          <span className="category-child-hint">Comma separated merchant or narrative matches.</span>
+                          <button
+                            type="button"
+                            className="mode-btn"
+                            onClick={() => onRemoveCategorySubcategory(definition.id, subcategory.id)}
+                          >
+                            Remove
+                          </button>
                         </div>
-                        <button
-                          type="button"
-                          className="mode-btn"
-                          onClick={() => onRemoveCategorySubcategory(definition.id, subcategory.id)}
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ))
+                      ))}
+                    </>
                   )}
                 </div>
 

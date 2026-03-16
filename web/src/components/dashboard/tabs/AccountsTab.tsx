@@ -1,5 +1,5 @@
 import { formatCurrency } from "../../../models";
-import type { AccountEntry, GoalEntry, ResolvedGoalEntry } from "../../../models";
+import type { AccountEntry, AccountHistorySnapshot, GoalEntry, ResolvedGoalEntry } from "../../../models";
 
 type AccountKind = "asset" | "liability";
 
@@ -14,23 +14,47 @@ export function AccountsTab({
   accountSummary,
   accountEntries,
   goals,
+  accountHistorySnapshots,
+  inferredMonthlyNetFlow,
+  forecastStartNetWorth,
+  forecastMonthlyDelta,
   onAddAccount,
   onUpdateAccount,
   onRemoveAccount,
   onAddGoal,
   onUpdateGoal,
-  onRemoveGoal
+  onRemoveGoal,
+  onAddAccountHistorySnapshot,
+  onUpdateAccountHistoryMonth,
+  onUpdateAccountHistoryBalance,
+  onRemoveAccountHistorySnapshot,
+  onForecastStartNetWorthChange,
+  onForecastMonthlyDeltaChange,
+  onResetStartNetWorth,
+  onResetMonthlyDelta
 }: {
   currency: string;
   accountSummary: AccountSummary;
   accountEntries: AccountEntry[];
   goals: ResolvedGoalEntry[];
+  accountHistorySnapshots: AccountHistorySnapshot[];
+  inferredMonthlyNetFlow: number;
+  forecastStartNetWorth: number | null;
+  forecastMonthlyDelta: number | null;
   onAddAccount: () => void;
   onUpdateAccount: (id: string, patch: Partial<Omit<AccountEntry, "id">>) => void;
   onRemoveAccount: (id: string) => void;
   onAddGoal: () => void;
   onUpdateGoal: (id: string, patch: Partial<Omit<GoalEntry, "id">>) => void;
   onRemoveGoal: (id: string) => void;
+  onAddAccountHistorySnapshot: () => void;
+  onUpdateAccountHistoryMonth: (snapshotId: string, month: string) => void;
+  onUpdateAccountHistoryBalance: (snapshotId: string, accountId: string, value: number) => void;
+  onRemoveAccountHistorySnapshot: (snapshotId: string) => void;
+  onForecastStartNetWorthChange: (value: number | null) => void;
+  onForecastMonthlyDeltaChange: (value: number | null) => void;
+  onResetStartNetWorth: () => void;
+  onResetMonthlyDelta: () => void;
 }) {
   return (
     <>
@@ -188,6 +212,109 @@ export function AccountsTab({
               </article>
             );
           })}
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="rules-header">
+          <h3>Account Balance History</h3>
+          <button type="button" className="mode-btn active" onClick={onAddAccountHistorySnapshot}>
+            Add Month Snapshot
+          </button>
+        </div>
+        <p className="mode-note">
+          Enter monthly balances for each account. Liabilities should be entered as positive balances; they are treated as
+          negative in the chart.
+        </p>
+        {accountHistorySnapshots.length === 0 ? (
+          <p className="mode-note">No monthly snapshots yet. Add your first month to start the trend chart.</p>
+        ) : (
+          <div className="history-wrap">
+            <table className="history-table">
+              <thead>
+                <tr>
+                  <th>Month</th>
+                  {accountEntries.map((account) => (
+                    <th key={account.id}>{account.name || "Untitled Account"}</th>
+                  ))}
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {accountHistorySnapshots.map((snapshot) => (
+                  <tr key={snapshot.id}>
+                    <td>
+                      <input
+                        type="month"
+                        value={snapshot.month}
+                        onChange={(event) => onUpdateAccountHistoryMonth(snapshot.id, event.target.value)}
+                      />
+                    </td>
+                    {accountEntries.map((account) => (
+                      <td key={`${snapshot.id}-${account.id}`}>
+                        <input
+                          type="number"
+                          value={snapshot.balances[account.id] ?? 0}
+                          onChange={(event) => onUpdateAccountHistoryBalance(
+                            snapshot.id,
+                            account.id,
+                            Number(event.target.value) || 0
+                          )}
+                        />
+                      </td>
+                    ))}
+                    <td>
+                      <button
+                        type="button"
+                        className="mode-btn"
+                        onClick={() => onRemoveAccountHistorySnapshot(snapshot.id)}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section className="panel controls-panel">
+        <h3>Forecast Inputs</h3>
+        <div className="control-grid">
+          <label>
+            Start net worth
+            <input
+              type="number"
+              value={forecastStartNetWorth ?? ""}
+              placeholder={`${accountSummary.netWorth}`}
+              onChange={(event) => {
+                const next = event.target.value.trim();
+                onForecastStartNetWorthChange(next ? Number(next) : null);
+              }}
+            />
+          </label>
+          <label>
+            Monthly forecast delta
+            <input
+              type="number"
+              value={forecastMonthlyDelta ?? ""}
+              placeholder={`${inferredMonthlyNetFlow}`}
+              onChange={(event) => {
+                const next = event.target.value.trim();
+                onForecastMonthlyDeltaChange(next ? Number(next) : null);
+              }}
+            />
+          </label>
+        </div>
+        <div className="mode-toggle">
+          <button type="button" className="mode-btn" onClick={onResetStartNetWorth}>
+            Use account total
+          </button>
+          <button type="button" className="mode-btn" onClick={onResetMonthlyDelta}>
+            Use inferred delta
+          </button>
         </div>
       </section>
     </>

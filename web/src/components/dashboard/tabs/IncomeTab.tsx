@@ -40,9 +40,9 @@ export function IncomeTab({
   const effectiveTaxRate = annualGross > 0 ? annualTax / annualGross : 0;
   const breakdownTotal = annualNet + annualTax + annualSuper;
   const breakdownData = [
-    { name: "Take-home pay", value: annualNet, color: "#6f9335" },
-    { name: "Income tax", value: annualTax, color: "#eba321" },
-    { name: "Superannuation", value: annualSuper, color: "#46abd2" }
+    { name: "Take-home pay", value: annualNet, color: "#3D8B4F" },
+    { name: "Income tax", value: annualTax, color: "#C4843E" },
+    { name: "Superannuation", value: annualSuper, color: "#5C6FA8" }
   ].filter((entry) => entry.value > 0);
 
   return (
@@ -167,8 +167,8 @@ export function IncomeTab({
                       innerRadius={78}
                       outerRadius={118}
                       paddingAngle={2}
-                      stroke="rgba(11, 14, 18, 0.6)"
-                      strokeWidth={3}
+                      stroke="rgba(247, 243, 232, 0.8)"
+                      strokeWidth={2}
                     >
                       {breakdownData.map((entry) => (
                         <Cell key={entry.name} fill={entry.color} />

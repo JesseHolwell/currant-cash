@@ -187,7 +187,7 @@ export function buildVisualization(
     nodes.push({
       name: "Total Spend",
       kind: "total",
-      color: "#7f8b98",
+      color: "#6B445C",
       value: totalSpend,
       percent: 1,
       labelMain: "Total Spend",
@@ -392,7 +392,7 @@ export function buildVisualization(
       (incomeModel.salary?.taxComponents ?? []).map((component, index) => ({
         name: component.name,
         total: Number((component.perPay * modeledPayEventCount).toFixed(2)),
-        color: index % 2 === 0 ? "#f4b44b" : "#ef9322"
+        color: index % 2 === 0 ? "#C4843E" : "#A06040"
       })) ?? [];
 
     const otherCredits = creditTransactions
@@ -428,7 +428,7 @@ export function buildVisualization(
     modeledTaxBreakdown = (
       taxComponents.length > 0
         ? taxComponents
-        : [{ name: "Income Tax", total: modeledTaxOutTotal, color: "#f4b44b" }]
+        : [{ name: "Income Tax", total: modeledTaxOutTotal, color: "#C4843E" }]
     ).filter((component) => component.total > 0);
   }
 
@@ -446,7 +446,7 @@ export function buildVisualization(
         total: savings,
         count: 0,
         percent: totalIncome > 0 ? savings / totalIncome : 0,
-        color: "#49d3a2"
+        color: "#3D8B4F"
       }
     : null;
 
@@ -473,7 +473,7 @@ export function buildVisualization(
   nodes.push({
     name: useModeled ? "Gross Income" : "Total Income",
     kind: "total",
-    color: "#7f8b98",
+    color: "#6B445C",
     value: totalIncome,
     percent: 1,
     labelMain: useModeled ? "Gross Income" : "Total Income",
@@ -495,9 +495,9 @@ export function buildVisualization(
 
   if (useModeled) {
     const modeledOutflows = [
-      { key: "Net Income", total: Number(cashAvailable.toFixed(2)), color: "#34b76f" },
-      { key: "Tax Out", total: modeledTaxOutTotal, color: "#f0a52f" },
-      { key: "Super Out", total: modeledSuperOutTotal, color: "#38abd8" }
+      { key: "Net Income", total: Number(cashAvailable.toFixed(2)), color: "#3D8B4F" },
+      { key: "Tax Out", total: modeledTaxOutTotal, color: "#C4843E" },
+      { key: "Super Out", total: modeledSuperOutTotal, color: "#5C6FA8" }
     ].filter((outflow) => outflow.total > 0);
 
     for (const outflow of modeledOutflows) {
@@ -589,7 +589,7 @@ export function buildVisualization(
       nodes.push({
         name: "Super Fund Tax",
         kind: "fixedLeaf",
-        color: "#2a7ea3",
+        color: "#5C6FA8",
         value: modeledSuperFundTaxTotal,
         labelMain: "Super Fund Tax",
         labelSub: `${formatCurrency(modeledSuperFundTaxTotal, currency)}`
@@ -600,7 +600,7 @@ export function buildVisualization(
           source: superOutNodeIndex,
           target: superFundTaxNodeIndex,
           value: Number(modeledSuperFundTaxTotal.toFixed(2)),
-          color: "#2a7ea3",
+          color: "#5C6FA8",
           kind: "fixedLeaf"
         });
         addHiddenFixedLeafTail(key, superFundTaxNodeIndex);
@@ -652,9 +652,9 @@ export function buildVisualization(
   let categoryParentNodeIndex = totalNodeIndex;
   if (useModeled) {
     const modeledOutflows = [
-      { key: "Net Income", total: Number(cashAvailable.toFixed(2)), color: "#34b76f" },
-      { key: "Tax Out", total: modeledTaxOutTotal, color: "#f0a52f" },
-      { key: "Super Out", total: modeledSuperOutTotal, color: "#38abd8" }
+      { key: "Net Income", total: Number(cashAvailable.toFixed(2)), color: "#3D8B4F" },
+      { key: "Tax Out", total: modeledTaxOutTotal, color: "#C4843E" },
+      { key: "Super Out", total: modeledSuperOutTotal, color: "#5C6FA8" }
     ].filter((outflow) => outflow.total > 0);
 
     for (const outflow of modeledOutflows) {

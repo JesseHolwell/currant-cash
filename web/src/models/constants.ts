@@ -9,23 +9,23 @@ import type {
 export const EXCLUDED_CATEGORIES = new Set(["Transfers", "Income"]);
 
 export const CATEGORY_COLORS = [
-  "#b63b5d",
-  "#7c4d99",
-  "#cb7d6b",
-  "#6d8b58",
-  "#d86f8d",
-  "#d9a15d",
-  "#5876aa",
-  "#9b4b72",
-  "#b86b42",
-  "#6e647f",
-  "#d89f8a",
-  "#7d9197",
-  "#9f7f46",
-  "#52726b",
+  "#8B2942", // Currant Red
+  "#3D8B4F", // Currant Leaf
+  "#C4843E", // Warm gold
+  "#5C6FA8", // Muted blue
+  "#9B6BA0", // Soft purple
+  "#B05C40", // Terra cotta
+  "#4A7A6B", // Teal green
+  "#C4638A", // Rose pink
+  "#7B9E5C", // Olive green
+  "#5B7A9B", // Steel blue
+  "#A06040", // Copper
+  "#5C4A7A", // Deep purple
+  "#8B6B3D", // Warm brown
+  "#3D6B5C", // Forest green
 ];
 
-export const ACCOUNT_COLORS = ["#b63b5d", "#d98aa0", "#7c4d99"];
+export const ACCOUNT_COLORS = ["#8B2942", "#3D8B4F", "#C4843E", "#5C6FA8", "#9B6BA0"];
 export const SUMMARY_TOP_MERCHANTS_PER_GROUP = 4;
 export const HIDDEN_FIXED_LEAF_TAIL_VALUE = 0.0001;
 

@@ -95,7 +95,7 @@ export function LinkShape(props: {
     <path
       d={pathWithShoulders}
       fill="none"
-      stroke={payload.color ?? "#8ea0b2"}
+      stroke={payload.color ?? "#C4638A"}
       strokeOpacity={strokeOpacity}
       strokeWidth={Math.max(linkWidth, 1)}
       strokeLinecap="butt"
@@ -127,17 +127,17 @@ export function NodeShape(props: {
 
   return (
     <g>
-      <rect x={x} y={y} width={width} height={height} rx={3} fill="rgba(255,255,255,0.1)" fillOpacity={1} />
+      <rect x={x} y={y} width={width} height={height} rx={3} fill="rgba(61,36,56,0.08)" fillOpacity={1} />
       <rect
         x={accentOnLeft ? x : x + width - 3}
         y={y}
         width={3}
         height={height}
-        fill={payload.color ?? "#5f6b79"}
+        fill={payload.color ?? "#6B445C"}
         opacity={0.95}
       />
       {kind === "total" ? (
-        <rect x={x + width / 2 - 1} y={y} width={2} height={height} fill="#6e7b8a" opacity={0.42} />
+        <rect x={x + width / 2 - 1} y={y} width={2} height={height} fill="rgba(61,36,56,0.3)" opacity={0.6} />
       ) : null}
 
       {RIGHT_LABEL_KINDS.has(kind) && showPrimaryLabel ? (
@@ -145,7 +145,7 @@ export function NodeShape(props: {
           {height >= 18 ? (
             <>
               <rect x={x + width + 10} y={y + height / 2 - 10} width={20} height={20} rx={7} className="sankey-chip" />
-              <rect x={x + width + 17} y={y + height / 2 - 3} width={6} height={6} rx={2} fill={payload.color ?? "#5f6b79"} />
+              <rect x={x + width + 17} y={y + height / 2 - 3} width={6} height={6} rx={2} fill={payload.color ?? "#6B445C"} />
             </>
           ) : null}
           <text x={x + width + (height >= 18 ? 38 : 12)} y={y + height / 2 + rightLabelYOffset} textAnchor="start" className="sankey-label-main">

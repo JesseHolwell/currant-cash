@@ -38,11 +38,10 @@ export function Sidebar({
             <span className="brand-berry brand-berry-right" />
           </div>
           <div className="brand-copy">
-            <p className="brand-eyebrow">Private money planner</p>
             <h1>Currant</h1>
+            <p className="brand-tagline">Financial Dashboard</p>
           </div>
         </div>
-        <p className="brand-tagline">Get ahead with your money.</p>
       </div>
 
       <nav className="nav-list">
@@ -98,7 +97,7 @@ export function Sidebar({
               <li key={goal.id}>
                 <div>
                   <span>{goal.name || "Untitled Goal"}</span>
-                  <small>{formatCurrency(goal.currentValue, currency)} / {formatCurrency(goal.target, currency)} · {goal.sourceLabel}</small>
+                  <small>{Math.round(goal.progress * 100)}% · {formatCurrency(Math.round(goal.currentValue), currency)} / {formatCurrency(Math.round(goal.target), currency)}</small>
                 </div>
                 <div className="goal-mini-track">
                   <div className="goal-mini-fill" style={{ width: `${Math.round(goal.progress * 100)}%` }} />

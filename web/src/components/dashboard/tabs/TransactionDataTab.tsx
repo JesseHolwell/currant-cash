@@ -23,23 +23,16 @@ type CalendarMonth = {
   days: CalendarDay[];
 };
 
-function buildCoverageMonths(batches: TransactionBatch[]): CalendarMonth[] {
-  if (batches.length === 0) {
-    return [];
-  }
+const CALENDAR_MONTHS = 12;
 
+function buildCoverageMonths(batches: TransactionBatch[]): CalendarMonth[] {
   const coveredDays = buildCoveredDaySet(batches);
-  const coverageStarts = batches.map((batch) => batch.coverageStart).sort((a, b) => a.localeCompare(b));
-  const coverageEnds = batches.map((batch) => batch.coverageEnd).sort((a, b) => a.localeCompare(b));
-  const startDate = new Date(`${coverageStarts[0]}T00:00:00`);
-  const endDate = new Date(`${coverageEnds[coverageEnds.length - 1]}T00:00:00`);
-  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
-    return [];
-  }
+
+  const now = new Date();
+  const cursor = new Date(now.getFullYear(), now.getMonth() - (CALENDAR_MONTHS - 1), 1);
+  const endMarker = new Date(now.getFullYear(), now.getMonth(), 1);
 
   const months: CalendarMonth[] = [];
-  const cursor = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
-  const endMarker = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
 
   while (cursor.getTime() <= endMarker.getTime()) {
     const currentMonth = cursor.getMonth();
@@ -138,40 +131,63 @@ export function TransactionDataTab({
         </div>
       </section>
 
-      <section className="stats">
-        <article>
-          <h2>CSV Files</h2>
-          <p>{batches.length}</p>
-        </article>
-        <article>
-          <h2>Unique Transactions</h2>
-          <p>{totalTransactionCount}</p>
-        </article>
-        <article>
-          <h2>Covered Days</h2>
-          <p>{coveredDayCount}</p>
-        </article>
-        <article>
-          <h2>Covered Months</h2>
-          <p>{coverageMonths.length}</p>
-        </article>
-      </section>
+      {batches.length === 0 ? (
+        <section className="panel empty-state">
+          <div className="empty-state-icon" aria-hidden="true">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+              <rect x="8" y="12" width="32" height="28" rx="3" stroke="currentColor" strokeWidth="2" fill="none" opacity="0.3"/>
+              <path d="M16 20h16M16 26h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              <circle cx="36" cy="12" r="8" fill="var(--primary)" opacity="0.15"/>
+              <path d="M36 9v6M33 12h6" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </div>
+          <h3>No transaction data yet</h3>
+          <p className="mode-note">Upload a bank CSV export to get started. Your data stays in this browser — nothing is sent anywhere.</p>
+          <ol className="empty-state-steps">
+            <li>Export a CSV from your bank (look for "Export transactions" or similar)</li>
+            <li>Click <strong>Add CSV</strong> above to upload it</li>
+            <li>Head to <strong>Expenses</strong> or <strong>Dashboard</strong> to see your spending</li>
+          </ol>
+        </section>
+      ) : (
+        <section className="stats">
+          <article>
+            <h2>CSV Files</h2>
+            <p>{batches.length}</p>
+          </article>
+          <article>
+            <h2>Unique Transactions</h2>
+            <p>{totalTransactionCount}</p>
+          </article>
+          <article>
+            <h2>Covered Days</h2>
+            <p>{coveredDayCount}</p>
+          </article>
+          <article>
+            <h2>Covered Months</h2>
+            <p>{coverageMonths.length}</p>
+          </article>
+        </section>
+      )}
 
       <section className="panel">
         <div className="rules-header">
           <h3>Coverage Calendar</h3>
           <p className="mode-note">Days inside a batch coverage range are highlighted, even if there were no transactions.</p>
         </div>
-        {coverageMonths.length === 0 ? (
-          <p className="mode-note">No CSV coverage yet. Add your first file to see the calendar.</p>
-        ) : (
-          <div className="coverage-calendar">
+        <div className="coverage-calendar">
             {coverageMonths.map((month) => (
               <article key={month.monthKey} className="coverage-month-card">
                 <div className="coverage-month-header">
-                  <div>
+                  <div className="coverage-month-title">
                     <h4>{month.label}</h4>
-                    <p>{month.coveredDays} / {month.totalDays} days covered</p>
+                    <span className="coverage-month-stat">{month.coveredDays}/{month.totalDays}</span>
+                  </div>
+                  <div className="coverage-month-bar">
+                    <div
+                      className="coverage-month-bar-fill"
+                      style={{ width: `${Math.round((month.coveredDays / month.totalDays) * 100)}%` }}
+                    />
                   </div>
                 </div>
                 <div className="coverage-weekdays" aria-hidden="true">
@@ -191,15 +207,12 @@ export function TransactionDataTab({
                             : "coverage-day"
                       }
                       title={day.isPlaceholder ? undefined : day.key}
-                    >
-                      {day.dayLabel}
-                    </span>
+                    />
                   ))}
                 </div>
               </article>
             ))}
           </div>
-        )}
       </section>
 
       <section className="panel">
