@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Sankey, Tooltip, XAxis, YAxis } from "recharts";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Bar, BarChart, ResponsiveContainer, Sankey, Tooltip, XAxis, YAxis } from "recharts";
 import { SUMMARY_TOP_MERCHANTS_PER_GROUP, formatCurrency, formatTimelineLabel } from "../../../models";
 import type {
   BuildVizResult,
@@ -9,6 +9,19 @@ import type {
   TimelinePeriod
 } from "../../../models";
 import { FlowTooltip, LinkShape, NodeShape } from "../../../sankeyShapes";
+
+const SPEND_PALETTE = [
+  "#5C1A2A",
+  "#8B2942",
+  "#A63355",
+  "#C04168",
+  "#D06080",
+  "#DC8095",
+  "#E8A5B5",
+  "#F0C4CF",
+  "#F7DDE4",
+  "#FAE8ED",
+];
 
 type MonthlyCategoryConfig = {
   category: string;
@@ -102,6 +115,20 @@ export function ExpensesTab({
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
+
+  const momChange = useMemo(() => {
+    if (monthlyExpenseData.rows.length < 2) return null;
+    const sumRow = (row: { [key: string]: string | number }) =>
+      monthlyExpenseData.categories.reduce((sum, cat) => {
+        const val = row[cat.category];
+        return sum + (typeof val === "number" ? val : 0);
+      }, 0);
+    const prev = sumRow(monthlyExpenseData.rows[monthlyExpenseData.rows.length - 2]);
+    const curr = sumRow(monthlyExpenseData.rows[monthlyExpenseData.rows.length - 1]);
+    if (prev === 0) return null;
+    const pct = ((curr - prev) / prev) * 100;
+    return { pct: Math.abs(Number(pct.toFixed(1))), up: pct >= 0 };
+  }, [monthlyExpenseData]);
 
   const effectiveLeftMargin = stageWidth > 0 ? Math.max(180, Math.round(stageWidth * 0.20)) : chartLeftMargin;
   const effectiveRightMargin = stageWidth > 0 ? Math.max(220, Math.round(stageWidth * 0.27)) : chartRightMargin;
@@ -199,6 +226,11 @@ export function ExpensesTab({
             <article>
               <h2>Total Spend</h2>
               <p>{formatCurrency(viz.totalSpend, currency)}</p>
+              {momChange && (
+                <span className={`stat-trend ${momChange.up ? "stat-trend--up" : "stat-trend--down"}`}>
+                  {momChange.up ? "↑" : "↓"} {momChange.pct}% from last month
+                </span>
+              )}
             </article>
             <article>
               <h2>Categories</h2>
@@ -222,6 +254,11 @@ export function ExpensesTab({
             <article>
               <h2>Total Spend</h2>
               <p>{formatCurrency(viz.totalSpend, currency)}</p>
+              {momChange && (
+                <span className={`stat-trend ${momChange.up ? "stat-trend--up" : "stat-trend--down"}`}>
+                  {momChange.up ? "↑" : "↓"} {momChange.pct}% from last month
+                </span>
+              )}
             </article>
             <article>
               <h2>Savings</h2>
@@ -306,22 +343,23 @@ export function ExpensesTab({
           <p className="mode-note">Stacked spend by category across all months.</p>
           <div className="line-chart-wrap">
             <ResponsiveContainer width="100%" height={320}>
-              <BarChart data={monthlyExpenseData.rows} margin={{ top: 12, right: 24, bottom: 8, left: 4 }}>
-                <CartesianGrid stroke="rgba(61,36,56,0.08)" strokeDasharray="3 3" />
-                <XAxis dataKey="label" stroke="rgba(61,36,56,0.25)" tick={{ fill: "#9E7088" }} />
-                <YAxis
-                  stroke="rgba(61,36,56,0.25)"
-                  tick={{ fill: "#9E7088" }}
-                  width={96}
-                  tickFormatter={(value) => formatCurrency(Number(value), currency)}
-                />
+              <BarChart data={monthlyExpenseData.rows} margin={{ top: 12, right: 16, bottom: 8, left: 4 }} barCategoryGap="28%">
+                <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: "#9E7088", fontSize: 12 }} />
+                <YAxis hide />
                 <Tooltip
-                  formatter={(value: number) => formatCurrency(Number(value), currency)}
-                  contentStyle={{ background: "#3D2438", border: "1px solid rgba(61,36,56,0.2)", borderRadius: "6px", color: "#F7F3E8" }}
+                  formatter={(value: number, name: string) => [formatCurrency(Number(value), currency), name]}
+                  contentStyle={{ background: "#3D2438", border: "none", borderRadius: "8px", color: "#F7F3E8", fontSize: "13px" }}
+                  cursor={{ fill: "rgba(139,41,66,0.06)" }}
                 />
-                <Legend />
-                {monthlyExpenseData.categories.map((cat) => (
-                  <Bar key={cat.category} dataKey={cat.category} stackId="spend" fill={cat.color} name={cat.category} />
+                {monthlyExpenseData.categories.map((cat, index) => (
+                  <Bar
+                    key={cat.category}
+                    dataKey={cat.category}
+                    stackId="spend"
+                    fill={SPEND_PALETTE[index % SPEND_PALETTE.length]}
+                    name={cat.category}
+                    radius={index === monthlyExpenseData.categories.length - 1 ? [4, 4, 0, 0] : undefined}
+                  />
                 ))}
               </BarChart>
             </ResponsiveContainer>

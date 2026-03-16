@@ -436,6 +436,26 @@ textarea {
   font-weight: 400;
 }
 
+.stat-trend {
+  display: inline-block;
+  margin: 0.3rem 0 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+}
+
+.stat-trend--up {
+  color: #9B3040;
+  background: rgba(139, 41, 66, 0.1);
+}
+
+.stat-trend--down {
+  color: #3D7A52;
+  background: rgba(61, 138, 79, 0.1);
+}
+
 /* ─── Panels ──────────────────────────────────────────────────────────── */
 
 .panel,
