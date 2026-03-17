@@ -48,6 +48,7 @@ import {
   useAccountsGoals,
   usePayrollForecast
 } from "./hooks";
+import { useDarkMode } from "./hooks/useDarkMode";
 import type {
   AccountEntry,
   AccountHistorySnapshot,
@@ -154,6 +155,7 @@ function sanitizeStoredDrafts(raw: unknown): Record<string, TransactionDraft> {
 }
 
 export default function App() {
+  const { isDark, toggle: toggleTheme } = useDarkMode();
   const [activeTab, setActiveTab] = useState<DashboardTab>("transactionData");
   const [flowStartMode, setFlowStartMode] = useState<FlowStartMode>("income");
   const [incomeBasisMode, setIncomeBasisMode] = useState<IncomeBasisMode>("raw");
@@ -1071,6 +1073,8 @@ export default function App() {
         accountSummary={accountSummary}
         goals={resolvedGoals}
         currency={meta.currency}
+        isDark={isDark}
+        onToggleTheme={toggleTheme}
       />
 
       <section className="workspace">

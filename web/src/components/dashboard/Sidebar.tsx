@@ -16,7 +16,9 @@ export function Sidebar({
   onTabChange,
   accountSummary,
   goals,
-  currency
+  currency,
+  isDark,
+  onToggleTheme
 }: {
   tabMeta: TabMeta;
   outputTabs: DashboardTab[];
@@ -26,6 +28,8 @@ export function Sidebar({
   accountSummary: AccountSummary;
   goals: ResolvedGoalEntry[];
   currency: string;
+  isDark: boolean;
+  onToggleTheme: () => void;
 }) {
   return (
     <aside className="sidebar">
@@ -88,6 +92,11 @@ export function Sidebar({
           <strong>{formatCurrency(accountSummary.netWorth, currency)}</strong>
         </div>
       </section>
+
+      <button type="button" className="theme-toggle" onClick={onToggleTheme}>
+        <span className="theme-toggle-icon">{isDark ? "☀" : "☾"}</span>
+        {isDark ? "Light mode" : "Dark mode"}
+      </button>
 
       <section className="sidebar-card">
         <p className="sidebar-label">Goals</p>
