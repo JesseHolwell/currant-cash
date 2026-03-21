@@ -152,3 +152,4 @@ Legend: `[x]` shipped, `[ ]` not shipped.
 - [ ] Ingest additional bank CSV formats.
 - [ ] Add output JSON schema contracts.
 - [ ] Add regression tests for classification and artifact stability.
+- [ ] Provide sample dataset to preview app before onboarding
