@@ -384,16 +384,30 @@ export function buildVisualization(
 
     const salaryGrossTotal = payEvents.reduce((sum, event) => sum + event.grossPay, 0);
     const salaryNetTotal = payEvents.reduce((sum, event) => sum + event.netPay, 0);
-    const fallbackTaxTotal = payEvents.reduce((sum, event) => sum + event.incomeTax, 0);
-    const fallbackSuperTotal = payEvents.reduce((sum, event) => sum + event.superGross, 0);
-    const fallbackSuperTaxTotal = payEvents.reduce((sum, event) => sum + event.superTax, 0);
 
-    const taxComponents =
-      (incomeModel.salary?.taxComponents ?? []).map((component, index) => ({
-        name: component.name,
-        total: Number((component.perPay * modeledPayEventCount).toFixed(2)),
-        color: index % 2 === 0 ? "#C4843E" : "#A06040"
-      })) ?? [];
+    // Aggregate per-event fields by kind using the first event's field definitions (all events share the same fields)
+    const firstEventFields = payEvents[0]?.fields ?? [];
+    const totalByFieldId = new Map<string, number>();
+    for (const event of payEvents) {
+      for (const field of event.fields) {
+        totalByFieldId.set(field.id, (totalByFieldId.get(field.id) ?? 0) + field.amount);
+      }
+    }
+    const totalSuperFromEvents = firstEventFields
+      .filter((f) => f.kind === "employer_contribution")
+      .reduce((sum, f) => sum + (totalByFieldId.get(f.id) ?? 0), 0);
+    const totalSuperTaxFromEvents = firstEventFields
+      .filter((f) => f.kind === "contribution_tax")
+      .reduce((sum, f) => sum + (totalByFieldId.get(f.id) ?? 0), 0);
+    const totalTaxFromEvents = firstEventFields
+      .filter((f) => f.kind === "pre_tax_deduction")
+      .reduce((sum, f) => sum + (totalByFieldId.get(f.id) ?? 0), 0);
+
+    const taxComponents = (incomeModel.salary?.taxComponents ?? []).map((component, index) => ({
+      name: component.name,
+      total: Number((component.perPay * modeledPayEventCount).toFixed(2)),
+      color: index % 2 === 0 ? "#C4843E" : "#A06040"
+    }));
 
     const otherCredits = creditTransactions
       .filter((transaction) => !salaryMatchIds.has(transaction.id))
@@ -401,8 +415,8 @@ export function buildVisualization(
 
     const totalTax = taxComponents.length > 0
       ? taxComponents.reduce((sum, component) => sum + component.total, 0)
-      : fallbackTaxTotal;
-    const totalSuper = fallbackSuperTotal;
+      : totalTaxFromEvents;
+    const totalSuper = totalSuperFromEvents;
 
     const modeledIncomeStats: AccountStat[] = [];
     if (salaryGrossTotal > 0) {
@@ -424,11 +438,11 @@ export function buildVisualization(
 
     modeledTaxOutTotal = Number(totalTax.toFixed(2));
     modeledSuperOutTotal = Number(totalSuper.toFixed(2));
-    modeledSuperFundTaxTotal = Number(fallbackSuperTaxTotal.toFixed(2));
+    modeledSuperFundTaxTotal = Number(totalSuperTaxFromEvents.toFixed(2));
     modeledTaxBreakdown = (
       taxComponents.length > 0
         ? taxComponents
-        : [{ name: "Income Tax", total: modeledTaxOutTotal, color: "#C4843E" }]
+        : [{ name: "Tax", total: modeledTaxOutTotal, color: "#C4843E" }]
     ).filter((component) => component.total > 0);
   }
 

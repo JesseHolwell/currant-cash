@@ -122,14 +122,27 @@ export type AccountHistorySnapshot = {
 
 export type PayFrequency = "weekly" | "fortnightly" | "monthly";
 
+/**
+ * pre_tax_deduction  — reduces gross, doesn't hit bank (income tax, HELP, 401k pre-tax)
+ * employer_contribution — on top of gross, goes to external fund (super guarantee, 401k match)
+ * contribution_tax  — tax taken from employer contribution before it reaches the fund (super contributions tax)
+ */
+export type PayrollFieldKind = "pre_tax_deduction" | "employer_contribution" | "contribution_tax";
+
+export type PayrollField = {
+  id: string;
+  label: string;
+  amount: number;
+  kind: PayrollFieldKind;
+};
+
 export type PayrollDraft = {
   employerKeywords: string;
   payFrequency: PayFrequency;
   netPay: number;
   grossPay: number;
-  incomeTax: number;
-  superGross: number;
-  superTax: number;
+  /** Additional deduction/contribution fields beyond net/gross. */
+  fields: PayrollField[];
 };
 
 export type ModelComponent = {
@@ -144,9 +157,7 @@ export type PayEvent = {
   depositAmount: number;
   grossPay: number;
   netPay: number;
-  incomeTax: number;
-  superGross: number;
-  superTax: number;
+  fields: Array<{ id: string; label: string; kind: PayrollFieldKind; amount: number }>;
 };
 
 export type IncomeModel = {
@@ -156,8 +167,12 @@ export type IncomeModel = {
   payEvents?: PayEvent[];
   totals: {
     salaryGross: number;
+    /** Sum of pre_tax_deduction fields */
     tax: number;
+    /** Sum of employer_contribution fields */
     super: number;
+    /** Sum of contribution_tax fields */
+    superTax: number;
     otherCredits: number;
     grossPlusOtherCredits: number;
     netPlusOtherCredits: number;
@@ -165,11 +180,13 @@ export type IncomeModel = {
   salary?: {
     netPay: number;
     grossPay: number;
-    incomeTax: number;
-    superGross: number;
-    superTax: number;
-    taxComponents?: ModelComponent[];
-    superComponents?: ModelComponent[];
+    fields: PayrollField[];
+    /** pre_tax_deduction fields as named components */
+    taxComponents: ModelComponent[];
+    /** employer_contribution fields as named components */
+    superComponents: ModelComponent[];
+    /** contribution_tax fields as named components */
+    contributionTaxComponents: ModelComponent[];
   };
 };
 

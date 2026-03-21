@@ -4,20 +4,34 @@ import {
   formatCurrency,
   getPayFrequencyMeta
 } from "../../domain";
-import type { PayrollDraft } from "../../domain";
+import type { PayrollDraft, PayrollField, PayrollFieldKind } from "../../domain";
 
-const PAYROLL_FIELDS: Array<{
-  key: keyof Omit<PayrollDraft, "employerKeywords" | "payFrequency">;
-  label: string;
-  hint: string;
-  step?: string;
-}> = [
-  { key: "netPay", label: "Net pay", hint: "Amount deposited to your account each pay.", step: "0.01" },
-  { key: "grossPay", label: "Gross pay", hint: "Salary before tax and super deductions.", step: "0.01" },
-  { key: "incomeTax", label: "Income tax", hint: "PAYG withholding for the pay period.", step: "0.01" },
-  { key: "superGross", label: "Super gross", hint: "Employer super contribution before super tax.", step: "0.01" },
-  { key: "superTax", label: "Super tax", hint: "Contributions tax withheld from super.", step: "0.01" }
-];
+const FIELD_KIND_META: Record<PayrollFieldKind, { label: string; hint: string; addLabel: string; colors: string[] }> = {
+  pre_tax_deduction: {
+    label: "Tax & Deductions",
+    hint: "Reduces your gross pay, but doesn't appear in your bank account (e.g. income tax, HELP, federal tax, 401k pre-tax).",
+    addLabel: "Add deduction",
+    colors: ["#C4843E", "#A06040", "#B05C40"]
+  },
+  employer_contribution: {
+    label: "Employer Contributions",
+    hint: "On top of your gross, goes to an external fund — not your bank account (e.g. superannuation, 401k match).",
+    addLabel: "Add contribution",
+    colors: ["#5C6FA8", "#4A7A6B", "#5B7A9B"]
+  },
+  contribution_tax: {
+    label: "Contribution Taxes",
+    hint: "Tax taken from employer contributions before they reach the fund (e.g. super contributions tax).",
+    addLabel: "Add contribution tax",
+    colors: ["#9B6BA0", "#8B2942", "#C4638A"]
+  }
+};
+
+const KIND_ORDER: PayrollFieldKind[] = ["pre_tax_deduction", "employer_contribution", "contribution_tax"];
+
+function generateId(): string {
+  return `field_${Math.random().toString(36).slice(2, 9)}`;
+}
 
 export function IncomeTab({
   currency,
@@ -32,18 +46,63 @@ export function IncomeTab({
 }) {
   const payFrequency = getPayFrequencyMeta(payrollDraft.payFrequency);
   const annualNet = Number((payrollDraft.netPay * payFrequency.periodsPerYear).toFixed(2));
-  const annualTax = Number((payrollDraft.incomeTax * payFrequency.periodsPerYear).toFixed(2));
-  const annualSuper = Number((payrollDraft.superGross * payFrequency.periodsPerYear).toFixed(2));
   const annualGross = Number((payrollDraft.grossPay * payFrequency.periodsPerYear).toFixed(2));
-  const annualPackage = Number((annualGross + annualSuper).toFixed(2));
+
+  const annualEmployerContributions = payrollDraft.fields
+    .filter((f) => f.kind === "employer_contribution")
+    .reduce((sum, f) => sum + f.amount * payFrequency.periodsPerYear, 0);
+  const annualPreTaxDeductions = payrollDraft.fields
+    .filter((f) => f.kind === "pre_tax_deduction")
+    .reduce((sum, f) => sum + f.amount * payFrequency.periodsPerYear, 0);
+
+  const annualPackage = Number((annualGross + annualEmployerContributions).toFixed(2));
   const monthlyTakeHome = Number((annualNet / 12).toFixed(2));
-  const effectiveTaxRate = annualGross > 0 ? annualTax / annualGross : 0;
-  const breakdownTotal = annualNet + annualTax + annualSuper;
-  const breakdownData = [
-    { name: "Take-home pay", value: annualNet, color: "#3D8B4F" },
-    { name: "Income tax", value: annualTax, color: "#C4843E" },
-    { name: "Superannuation", value: annualSuper, color: "#5C6FA8" }
-  ].filter((entry) => entry.value > 0);
+  const effectiveTaxRate = annualGross > 0 ? annualPreTaxDeductions / annualGross : 0;
+
+  // Pie chart: take-home + all fields with positive amounts
+  const TAKE_HOME_COLOR = "#3D8B4F";
+  const breakdownData: Array<{ name: string; value: number; color: string }> = [];
+  if (annualNet > 0) {
+    breakdownData.push({ name: "Take-home pay", value: annualNet, color: TAKE_HOME_COLOR });
+  }
+  for (const kind of KIND_ORDER) {
+    const meta = FIELD_KIND_META[kind];
+    const fields = payrollDraft.fields.filter((f) => f.kind === kind);
+    fields.forEach((field, idx) => {
+      const annualValue = Number((field.amount * payFrequency.periodsPerYear).toFixed(2));
+      if (annualValue > 0) {
+        breakdownData.push({
+          name: field.label,
+          value: annualValue,
+          color: meta.colors[idx % meta.colors.length]
+        });
+      }
+    });
+  }
+  const breakdownTotal = breakdownData.reduce((sum, entry) => sum + entry.value, 0);
+
+  function updateField(id: string, patch: Partial<PayrollField>) {
+    onPayrollDraftChange({
+      fields: payrollDraft.fields.map((f) => f.id === id ? { ...f, ...patch } : f)
+    });
+  }
+
+  function removeField(id: string) {
+    onPayrollDraftChange({
+      fields: payrollDraft.fields.filter((f) => f.id !== id)
+    });
+  }
+
+  function addField(kind: PayrollFieldKind) {
+    const meta = FIELD_KIND_META[kind];
+    const newField: PayrollField = {
+      id: generateId(),
+      label: meta.addLabel.replace("Add ", ""),
+      amount: 0,
+      kind
+    };
+    onPayrollDraftChange({ fields: [...payrollDraft.fields, newField] });
+  }
 
   return (
     <>
@@ -61,7 +120,7 @@ export function IncomeTab({
         <article>
           <h2>Annual Package</h2>
           <p>{formatCurrency(annualPackage, currency)}</p>
-          <small>Gross salary plus employer super</small>
+          <small>Gross salary plus employer contributions</small>
         </article>
         <article>
           <h2>Matched Salary Credits</h2>
@@ -76,14 +135,6 @@ export function IncomeTab({
             <h3>Payroll Configuration</h3>
             <p className="mode-note">Enter the per-pay values used to recognise and model salary transactions.</p>
           </div>
-          <a
-            className="income-link"
-            href="https://paycalculator.com.au/"
-            target="_blank"
-            rel="noreferrer"
-          >
-            To calculate this, use paycalculator.com.au
-          </a>
         </div>
 
         <section className="income-section">
@@ -131,22 +182,86 @@ export function IncomeTab({
             <p>These should reflect a normal pay run, not a yearly total.</p>
           </div>
           <div className="income-field-grid">
-            {PAYROLL_FIELDS.map((field) => (
-              <label key={field.key} className="income-field-card">
-                <span className="income-field-label">{field.label}</span>
-                <span className="income-field-hint">{field.hint}</span>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min="0"
-                  step={field.step}
-                  value={payrollDraft[field.key]}
-                  onChange={(event) => onPayrollDraftChange({ [field.key]: Number(event.target.value) || 0 })}
-                />
-              </label>
-            ))}
+            <label className="income-field-card">
+              <span className="income-field-label">Net pay</span>
+              <span className="income-field-hint">Amount deposited to your account each pay.</span>
+              <input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="0.01"
+                value={payrollDraft.netPay}
+                onChange={(event) => onPayrollDraftChange({ netPay: Number(event.target.value) || 0 })}
+              />
+            </label>
+            <label className="income-field-card">
+              <span className="income-field-label">Gross pay</span>
+              <span className="income-field-hint">Salary before deductions.</span>
+              <input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="0.01"
+                value={payrollDraft.grossPay}
+                onChange={(event) => onPayrollDraftChange({ grossPay: Number(event.target.value) || 0 })}
+              />
+            </label>
           </div>
         </section>
+
+        {KIND_ORDER.map((kind) => {
+          const meta = FIELD_KIND_META[kind];
+          const fields = payrollDraft.fields.filter((f) => f.kind === kind);
+          return (
+            <section key={kind} className="income-section">
+              <div className="income-section-heading">
+                <h4>{meta.label}</h4>
+                <p>{meta.hint}</p>
+              </div>
+              {fields.length > 0 && (
+                <div className="income-field-grid">
+                  {fields.map((field) => (
+                    <div key={field.id} className="income-field-card income-field-editable">
+                      <div className="income-field-label-row">
+                        <input
+                          className="income-field-label-input"
+                          type="text"
+                          value={field.label}
+                          onChange={(event) => updateField(field.id, { label: event.target.value })}
+                          placeholder="Field name"
+                        />
+                        <button
+                          type="button"
+                          className="income-field-remove"
+                          onClick={() => removeField(field.id)}
+                          aria-label={`Remove ${field.label}`}
+                        >
+                          ×
+                        </button>
+                      </div>
+                      <span className="income-field-hint">Per-pay amount</span>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        min="0"
+                        step="0.01"
+                        value={field.amount}
+                        onChange={(event) => updateField(field.id, { amount: Number(event.target.value) || 0 })}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+              <button
+                type="button"
+                className="income-add-field-btn"
+                onClick={() => addField(kind)}
+              >
+                + {meta.addLabel}
+              </button>
+            </section>
+          );
+        })}
 
         <section className="income-section">
           <div className="income-section-heading">

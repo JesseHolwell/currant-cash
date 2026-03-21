@@ -44,8 +44,8 @@ Legend: `[x]` shipped, `[ ]` not shipped.
 - [x] Generated YAML snippet preview for `payroll.private.yml`.
 - [x] Local browser persistence for income settings.
 - [ ] Write payroll config directly to filesystem from the UI.
-- [ ] Make income configuration country-agnostic: user can add, remove, and rename arbitrary income/deduction fields (e.g. replace `super` with `401k`, remove tax fields entirely, etc.).
-- [ ] Remove hard-coded Australian payroll field assumptions from the data model and UI labels.
+- [x] Make income configuration country-agnostic: user can add, remove, and rename arbitrary income/deduction fields (e.g. replace `super` with `401k`, remove tax fields entirely, etc.).
+- [x] Remove hard-coded Australian payroll field assumptions from the data model and UI labels.
 
 ## Expenses tab
 

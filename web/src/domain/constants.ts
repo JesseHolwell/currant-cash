@@ -172,14 +172,18 @@ export const DEFAULT_GOALS: GoalEntry[] = [
   },
 ];
 
+export const DEFAULT_PAYROLL_FIELDS: PayrollDraft["fields"] = [
+  { id: "income_tax", label: "Income tax", amount: 0, kind: "pre_tax_deduction" },
+  { id: "super_gross", label: "Super", amount: 0, kind: "employer_contribution" },
+  { id: "super_tax", label: "Super tax", amount: 0, kind: "contribution_tax" },
+];
+
 export const EMPTY_PAYROLL_DRAFT: PayrollDraft = {
   employerKeywords: "",
   payFrequency: "fortnightly",
   netPay: 0,
   grossPay: 0,
-  incomeTax: 0,
-  superGross: 0,
-  superTax: 0,
+  fields: DEFAULT_PAYROLL_FIELDS,
 };
 
 export const EMPTY_VIZ: BuildVizResult = {
