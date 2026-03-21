@@ -1224,6 +1224,7 @@ export default function App() {
             accountHistorySeries={accountHistorySeries}
             accountHistoryChartData={accountHistoryChartData}
             expensePieData={expensePieData}
+            accountEntries={accountEntries}
           />
         ) : null}
 

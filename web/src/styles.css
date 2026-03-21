@@ -1365,6 +1365,16 @@ textarea {
   gap: 1rem;
 }
 
+.pie-row-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.pie-chart-block h3 {
+  margin-bottom: 0.5rem;
+}
+
 .canvas-panel {
   padding: 0.95rem;
 }

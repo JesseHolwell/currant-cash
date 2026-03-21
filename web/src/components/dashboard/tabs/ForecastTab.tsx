@@ -16,10 +16,22 @@ import {
 } from "recharts";
 import { formatCurrency } from "../../../models";
 
+const ALLOCATION_COLORS = [
+  "#C4856A", "#7BA3A8", "#8B7BAD", "#A8B87B", "#AD7B8B",
+  "#7BA88B", "#B8A87B", "#7B8BAD", "#A87B7B", "#7BADB8",
+];
+
 type ExpensePieDatum = {
   name: string;
   value: number;
   color: string;
+};
+
+type AccountEntry = {
+  id: string;
+  name: string;
+  value: number;
+  kind: "asset" | "liability";
 };
 
 type AccountSummary = {
@@ -60,6 +72,7 @@ export function ForecastTab({
   accountHistorySeries,
   accountHistoryChartData,
   expensePieData,
+  accountEntries,
 }: {
   currency: string;
   accountSummary: AccountSummary;
@@ -72,6 +85,7 @@ export function ForecastTab({
   accountHistorySeries: AccountHistorySeries[];
   accountHistoryChartData: AccountHistoryChartRow[];
   expensePieData: ExpensePieDatum[];
+  accountEntries: AccountEntry[];
 }) {
   return (
     <>
@@ -213,41 +227,82 @@ export function ForecastTab({
         </div>
       </section>
 
-      {expensePieData.length > 0 ? (
-        <section className="panel pie-panel">
-          <h3>Expense Breakdown</h3>
-          <div className="pie-wrap">
-            <ResponsiveContainer width="100%" height={320}>
-              <PieChart>
-                <Pie
-                  data={expensePieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={68}
-                  outerRadius={114}
-                  paddingAngle={2}
-                  dataKey="value"
-                  nameKey="name"
-                >
-                  {expensePieData.map((entry) => (
-                    <Cell key={entry.name} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(value: number) =>
-                    formatCurrency(Number(value), currency)
-                  }
-                  contentStyle={{
-                    background: "#3D2438",
-                    border: "1px solid rgba(61,36,56,0.2)",
-                    borderRadius: "6px",
-                    color: "#F7F3E8",
-                  }}
-                />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
+      {(expensePieData.length > 0 || accountEntries.length > 0) ? (
+        <section className="panel pie-row-panel">
+          {accountEntries.length > 0 ? (
+            <div className="pie-chart-block">
+              <h3>Asset Allocation</h3>
+              <div className="pie-wrap">
+                <ResponsiveContainer width="100%" height={320}>
+                  <PieChart>
+                    <Pie
+                      data={accountEntries.map((a) => ({ name: a.name || "Untitled", value: Math.abs(a.value), kind: a.kind }))}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={68}
+                      outerRadius={114}
+                      paddingAngle={2}
+                      dataKey="value"
+                      nameKey="name"
+                    >
+                      {accountEntries.map((account, index) => (
+                        <Cell
+                          key={account.id}
+                          fill={ALLOCATION_COLORS[index % ALLOCATION_COLORS.length]}
+                          opacity={account.kind === "liability" ? 0.5 : 1}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value: number) => formatCurrency(Number(value), currency)}
+                      contentStyle={{
+                        background: "#3D2438",
+                        border: "1px solid rgba(61,36,56,0.2)",
+                        borderRadius: "6px",
+                        color: "#F7F3E8",
+                      }}
+                    />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          ) : null}
+          {expensePieData.length > 0 ? (
+            <div className="pie-chart-block">
+              <h3>Expense Breakdown</h3>
+              <div className="pie-wrap">
+                <ResponsiveContainer width="100%" height={320}>
+                  <PieChart>
+                    <Pie
+                      data={expensePieData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={68}
+                      outerRadius={114}
+                      paddingAngle={2}
+                      dataKey="value"
+                      nameKey="name"
+                    >
+                      {expensePieData.map((entry) => (
+                        <Cell key={entry.name} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value: number) => formatCurrency(Number(value), currency)}
+                      contentStyle={{
+                        background: "#3D2438",
+                        border: "1px solid rgba(61,36,56,0.2)",
+                        borderRadius: "6px",
+                        color: "#F7F3E8",
+                      }}
+                    />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          ) : null}
         </section>
       ) : null}
     </>
