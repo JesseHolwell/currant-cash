@@ -16,6 +16,8 @@ Turn bank CSV exports into a clear, local-first money dashboard with minimal fri
 - `Node.js + npm workspaces` (single command entry points)
 - Web: `React + Vite + Recharts (Sankey)`
 - Parsing/modeling: `TypeScript + Papa Parse`
+- State: `Zustand` with localStorage persistence
+- Testing: `Vitest` (domain unit tests)
 
 ## Quick start
 
@@ -43,8 +45,17 @@ Upload your CSV in the `Data Source` panel.
 ## Commands
 
 ```bash
-npm run web
+npm run web          # Start dev server
 ```
+
+```bash
+# Run from web/ directory
+npm test             # Run unit tests (Vitest)
+npm run test:watch   # Watch mode
+npm run test:coverage # Coverage report
+```
+
+Tests cover all pure domain functions in `web/src/domain/` — 7 test files, 127 tests.
 
 Legacy (deprecated) CLI command:
 
