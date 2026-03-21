@@ -230,8 +230,8 @@ const SAMPLE_PAYROLL_DRAFT: PayrollDraft = {
 
 const OCT_TRANSACTIONS = [
   // Income
-  { id: "smpl_oct_01", date: "2024-10-04", accountId: "smpl_everyday", merchant: "ACME CORP", narrative: "ACME CORP Salary", amount: 2800, direction: "credit" as const, category: "Income", categoryGroup: "Income", categoryReason: "rule", similarityKey: "acme corp" },
-  { id: "smpl_oct_02", date: "2024-10-18", accountId: "smpl_everyday", merchant: "ACME CORP", narrative: "ACME CORP Salary", amount: 2800, direction: "credit" as const, category: "Income", categoryGroup: "Income", categoryReason: "rule", similarityKey: "acme corp" },
+  { id: "smpl_oct_01", date: "2024-10-04", accountId: "smpl_everyday", merchant: "ACME CORP", narrative: "ACME CORP Salary", amount: -2800, direction: "credit" as const, category: "Income", categoryGroup: "Income", categoryReason: "rule", similarityKey: "acme corp" },
+  { id: "smpl_oct_02", date: "2024-10-18", accountId: "smpl_everyday", merchant: "ACME CORP", narrative: "ACME CORP Salary", amount: -2800, direction: "credit" as const, category: "Income", categoryGroup: "Income", categoryReason: "rule", similarityKey: "acme corp" },
   // Rent
   { id: "smpl_oct_03", date: "2024-10-01", accountId: "smpl_everyday", merchant: "Rent Real Estate", narrative: "Rent - Real Estate Payment", amount: 1800, direction: "debit" as const, category: "Rent", categoryGroup: "Life", categoryReason: "rule", similarityKey: "rent real estate" },
   // Groceries
@@ -269,8 +269,8 @@ const OCT_TRANSACTIONS = [
 
 const NOV_TRANSACTIONS = [
   // Income
-  { id: "smpl_nov_01", date: "2024-11-01", accountId: "smpl_everyday", merchant: "ACME CORP", narrative: "ACME CORP Salary", amount: 2800, direction: "credit" as const, category: "Income", categoryGroup: "Income", categoryReason: "rule", similarityKey: "acme corp" },
-  { id: "smpl_nov_02", date: "2024-11-15", accountId: "smpl_everyday", merchant: "ACME CORP", narrative: "ACME CORP Salary", amount: 2800, direction: "credit" as const, category: "Income", categoryGroup: "Income", categoryReason: "rule", similarityKey: "acme corp" },
+  { id: "smpl_nov_01", date: "2024-11-01", accountId: "smpl_everyday", merchant: "ACME CORP", narrative: "ACME CORP Salary", amount: -2800, direction: "credit" as const, category: "Income", categoryGroup: "Income", categoryReason: "rule", similarityKey: "acme corp" },
+  { id: "smpl_nov_02", date: "2024-11-15", accountId: "smpl_everyday", merchant: "ACME CORP", narrative: "ACME CORP Salary", amount: -2800, direction: "credit" as const, category: "Income", categoryGroup: "Income", categoryReason: "rule", similarityKey: "acme corp" },
   // Rent
   { id: "smpl_nov_03", date: "2024-11-01", accountId: "smpl_everyday", merchant: "Rent Real Estate", narrative: "Rent - Real Estate Payment", amount: 1800, direction: "debit" as const, category: "Rent", categoryGroup: "Life", categoryReason: "rule", similarityKey: "rent real estate" },
   // Groceries
@@ -307,8 +307,8 @@ const NOV_TRANSACTIONS = [
 
 const DEC_TRANSACTIONS = [
   // Income
-  { id: "smpl_dec_01", date: "2024-12-06", accountId: "smpl_everyday", merchant: "ACME CORP", narrative: "ACME CORP Salary", amount: 2800, direction: "credit" as const, category: "Income", categoryGroup: "Income", categoryReason: "rule", similarityKey: "acme corp" },
-  { id: "smpl_dec_02", date: "2024-12-20", accountId: "smpl_everyday", merchant: "ACME CORP", narrative: "ACME CORP Salary", amount: 2800, direction: "credit" as const, category: "Income", categoryGroup: "Income", categoryReason: "rule", similarityKey: "acme corp" },
+  { id: "smpl_dec_01", date: "2024-12-06", accountId: "smpl_everyday", merchant: "ACME CORP", narrative: "ACME CORP Salary", amount: -2800, direction: "credit" as const, category: "Income", categoryGroup: "Income", categoryReason: "rule", similarityKey: "acme corp" },
+  { id: "smpl_dec_02", date: "2024-12-20", accountId: "smpl_everyday", merchant: "ACME CORP", narrative: "ACME CORP Salary", amount: -2800, direction: "credit" as const, category: "Income", categoryGroup: "Income", categoryReason: "rule", similarityKey: "acme corp" },
   // Rent
   { id: "smpl_dec_03", date: "2024-12-01", accountId: "smpl_everyday", merchant: "Rent Real Estate", narrative: "Rent - Real Estate Payment", amount: 1800, direction: "debit" as const, category: "Rent", categoryGroup: "Life", categoryReason: "rule", similarityKey: "rent real estate" },
   // Groceries (higher in December for Christmas)

@@ -16,6 +16,24 @@ import {
 } from "recharts";
 import { formatCurrency } from "../../domain";
 
+function GoalCrossoverBadge({ viewBox, label }: { viewBox?: { x: number; y: number; height: number }; label: string }) {
+  if (!viewBox) return null;
+  const { x } = viewBox;
+  const text = `🎯 ${label}`;
+  const badgeW = text.length * 7 + 12;
+  const badgeH = 22;
+  const badgeX = x - badgeW / 2;
+  const badgeY = 10;
+  return (
+    <g>
+      <rect x={badgeX} y={badgeY} width={badgeW} height={badgeH} rx={5} fill="#C4843E" opacity={0.95} />
+      <text x={x} y={badgeY + 14.5} textAnchor="middle" fill="#fff" fontSize={11} fontWeight="600" fontFamily="inherit">
+        {text}
+      </text>
+    </g>
+  );
+}
+
 const ALLOCATION_COLORS = [
   "#C4856A", "#7BA3A8", "#8B7BAD", "#A8B87B", "#AD7B8B",
   "#7BA88B", "#B8A87B", "#7B8BAD", "#A87B7B", "#7BADB8",
@@ -174,7 +192,7 @@ export function ForecastTab({
           <ResponsiveContainer width="100%" height={360}>
             <LineChart
               data={forecastPoints}
-              margin={{ top: 12, right: 24, bottom: 8, left: 4 }}
+              margin={{ top: 44, right: 24, bottom: 8, left: 4 }}
             >
               <CartesianGrid
                 stroke="rgba(61,36,56,0.08)"
@@ -222,6 +240,24 @@ export function ForecastTab({
                 dot={{ r: 3, fill: "#8B2942" }}
                 name="Net Worth"
               />
+              {(() => {
+                if (maxGoalTarget <= 0) return null;
+                const crossover = forecastPoints.find((p, i) =>
+                  p.goal > 0 &&
+                  p.netWorth >= p.goal &&
+                  (i === 0 || forecastPoints[i - 1].netWorth < forecastPoints[i - 1].goal)
+                );
+                if (!crossover) return null;
+                return (
+                  <ReferenceLine
+                    x={crossover.label}
+                    stroke="#C4843E"
+                    strokeDasharray="4 3"
+                    strokeWidth={1.5}
+                    label={(props) => <GoalCrossoverBadge {...props} label={crossover.label} />}
+                  />
+                );
+              })()}
             </LineChart>
           </ResponsiveContainer>
         </div>
