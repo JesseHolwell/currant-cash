@@ -84,13 +84,15 @@ Legend: `[x]` shipped, `[ ]` not shipped.
 
 > Available on the free tier — not a premium feature.
 
-- [ ] Dedicated tab in sidebar navigation (`FIRE` or `Retirement`).
-- [ ] FIRE number calculator: target net worth = annual expenses × chosen multiplier (default 25×).
-- [ ] Projected retirement age based on current net worth, monthly savings rate, and assumed growth rate.
-- [ ] Savings rate tracker: monthly savings as a % of gross income.
-- [ ] Spending vs net worth chart over time (combined view).
-- [ ] Configurable inputs: expected annual return, safe withdrawal rate, current age.
+- [x] Dedicated tab in sidebar navigation (`FIRE`).
+- [x] FIRE number calculator: target net worth = annual expenses × chosen multiplier (default 25×).
+- [x] Projected retirement age based on current net worth, monthly savings rate, and assumed growth rate.
+- [x] Savings rate tracker: monthly savings as a % of gross income.
+- [x] Configurable inputs: expected annual return, safe withdrawal rate multiplier, current age.
+- [x] Net worth projection chart (age vs net worth with FIRE number overlay).
+- [x] Coast FIRE and Lean FIRE milestone numbers displayed.
 - [ ] Milestone markers on the forecast chart (e.g. "Coast FIRE", "Lean FIRE", "Full FIRE").
+- [ ] Spending vs net worth combined chart over time.
 
 ## Authentication
 

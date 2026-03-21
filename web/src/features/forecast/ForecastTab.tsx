@@ -14,7 +14,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { formatCurrency } from "../../../models";
+import { formatCurrency } from "../../domain";
 
 const ALLOCATION_COLORS = [
   "#C4856A", "#7BA3A8", "#8B7BAD", "#A8B87B", "#AD7B8B",

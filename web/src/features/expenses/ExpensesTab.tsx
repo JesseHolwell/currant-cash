@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Bar, BarChart, ResponsiveContainer, Sankey, Tooltip, XAxis, YAxis } from "recharts";
-import { SUMMARY_TOP_MERCHANTS_PER_GROUP, formatCurrency, formatTimelineLabel } from "../../../models";
+import { SUMMARY_TOP_MERCHANTS_PER_GROUP, formatCurrency, formatTimelineLabel } from "../../domain";
 import type {
   BuildVizResult,
   FlowStartMode,
   IncomeBasisMode,
   MerchantDetailMode,
   TimelinePeriod
-} from "../../../models";
-import { FlowTooltip, LinkShape, NodeShape } from "../../../sankeyShapes";
+} from "../../domain";
+import { FlowTooltip, LinkShape, NodeShape } from "../../sankeyShapes";
 
 const SPEND_PALETTE = [
   "#5C1A2A",

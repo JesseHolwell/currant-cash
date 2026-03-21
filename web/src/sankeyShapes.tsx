@@ -1,5 +1,5 @@
-import type { RechartsSankeyLinkPayload, RechartsSankeyNode } from "./models";
-import { formatCurrency } from "./models";
+import type { RechartsSankeyLinkPayload, RechartsSankeyNode } from "./domain";
+import { formatCurrency } from "./domain";
 
 type NodeKind = NonNullable<RechartsSankeyNode["kind"]>;
 

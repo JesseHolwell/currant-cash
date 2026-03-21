@@ -1,5 +1,5 @@
-import { formatCurrency } from "../../../models";
-import type { AccountEntry, AccountHistorySnapshot, GoalEntry, ResolvedGoalEntry } from "../../../models";
+import { formatCurrency } from "../../domain";
+import type { AccountEntry, AccountHistorySnapshot, GoalEntry, ResolvedGoalEntry } from "../../domain";
 
 type AccountKind = "asset" | "liability";
 

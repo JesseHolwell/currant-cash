@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ACCOUNT_HISTORY_STORAGE_KEY,
   ACCOUNT_ENTRIES_STORAGE_KEY,
@@ -16,33 +16,26 @@ import {
   TRANSACTION_BATCHES_STORAGE_KEY,
   UPLOADED_META_STORAGE_KEY,
   UPLOADED_TRANSACTIONS_STORAGE_KEY,
-  applyManualRules,
-  buildResolvedGoals,
+  buildDefaultCategoryDefinitions,
   buildIncomeModelFromTransactions,
   buildTransactionBatch,
-  buildDefaultCategoryDefinitions,
-  buildVisualization,
-  canonicalizeCategoryGroup,
-  categoryTaxonomyFromDefinitions,
   createLocalId,
-  deriveMetaFromBatches,
-  isInTimeline,
-  mergeTransactionsFromBatches,
-  monthKey,
   normalizeCoverageRange,
   parseForecastSettings,
   parseBankCsvToTransactions,
   parseStoredAccountEntries,
   parseStoredAccountHistory,
   parseStoredCategoryDefinitions,
+  parseStoredDrafts,
   parseStoredGoals,
+  parseStoredManualRules,
   parseStoredTransactionBatches,
   resolveCategoryGroupBucket,
   resolveSubcategoryBucket,
   sanitizeManualRule,
   sanitizePayrollDraft,
   similarityKeyForTransaction
-} from "./models";
+} from "./domain";
 import {
   useTransactionBatches,
   useCategoryRules,
@@ -54,40 +47,24 @@ import {
 import { useDarkMode } from "./hooks/useDarkMode";
 import { useAiSuggestions } from "./hooks/useAiSuggestions";
 import { useAppSettings } from "./hooks/useAppSettings";
+import { useDashboardState } from "./hooks/useDashboardState";
+import { useFireStore } from "./store/fire";
 import { isSupabaseConfigured } from "./lib/supabase";
 import { LandingPage } from "./components/LandingPage";
+import { Dashboard } from "./components/dashboard/Dashboard";
 import type {
   AccountEntry,
-  AccountHistorySnapshot,
   CategoryDefinition,
   CategorySubcategoryDefinition,
   DashboardTab,
   FlowStartMode,
   GoalEntry,
   IncomeBasisMode,
-  IncomeMode,
-  ManualRule,
-  ManualRulesState,
   MerchantDetailMode,
-  PayrollDraft,
   RawTransaction,
-  ResolvedGoalEntry,
-  SankeyMeta,
   TimelinePeriod,
-  TransactionBatch,
   TransactionDraft
-} from "./models";
-import { AccountsTab } from "./components/dashboard/tabs/AccountsTab";
-import { CategoriesTab } from "./components/dashboard/tabs/CategoriesTab";
-import { ApiKeyModal } from "./components/dashboard/tabs/ApiKeyModal";
-import { ExpensesTab } from "./components/dashboard/tabs/ExpensesTab";
-import { FireInsightsTab } from "./components/dashboard/tabs/FireInsightsTab";
-import { ForecastTab } from "./components/dashboard/tabs/ForecastTab";
-import { IncomeTab } from "./components/dashboard/tabs/IncomeTab";
-import { SettingsTab } from "./components/dashboard/tabs/SettingsTab";
-import { TransactionDataTab } from "./components/dashboard/tabs/TransactionDataTab";
-import { Sidebar } from "./components/dashboard/Sidebar";
-import { WorkspaceHeader } from "./components/dashboard/WorkspaceHeader";
+} from "./domain";
 
 function currentMonthValue(): string {
   const now = new Date();
@@ -122,48 +99,6 @@ const APP_STORAGE_KEYS = [
   FORECAST_SETTINGS_STORAGE_KEY
 ] as const;
 
-function sanitizeStoredManualRules(raw: unknown): ManualRulesState {
-  if (!raw || typeof raw !== "object") {
-    return EMPTY_MANUAL_RULES;
-  }
-  const parsed = raw as Partial<ManualRulesState>;
-  const byId: Record<string, ManualRule> = {};
-  const bySimilarity: Record<string, ManualRule> = {};
-
-  for (const [id, rule] of Object.entries(parsed.byId ?? {})) {
-    const cleaned = sanitizeManualRule(rule ?? {});
-    if (cleaned) {
-      byId[id] = cleaned;
-    }
-  }
-
-  for (const [similarity, rule] of Object.entries(parsed.bySimilarity ?? {})) {
-    const cleaned = sanitizeManualRule(rule ?? {});
-    if (cleaned) {
-      bySimilarity[similarity] = cleaned;
-    }
-  }
-
-  return { byId, bySimilarity };
-}
-
-function sanitizeStoredDrafts(raw: unknown): Record<string, TransactionDraft> {
-  if (!raw || typeof raw !== "object") {
-    return {};
-  }
-  const parsedDrafts = raw as Record<string, TransactionDraft>;
-  const normalizedDrafts: Record<string, TransactionDraft> = {};
-  for (const [transactionId, draft] of Object.entries(parsedDrafts)) {
-    normalizedDrafts[transactionId] = {
-      categoryGroup: canonicalizeCategoryGroup(draft.categoryGroup),
-      category: (draft.category ?? "").trim(),
-      nickname: draft.nickname ?? "",
-      applySimilar: draft.applySimilar !== false
-    };
-  }
-  return normalizedDrafts;
-}
-
 export default function App() {
   const { isDark, toggle: toggleTheme } = useDarkMode();
   const { user, authLoading, signInWithGoogle, signOut } = useAuth();
@@ -183,73 +118,33 @@ export default function App() {
   const [settingsStatus, setSettingsStatus] = useState<string | null>(null);
   const [settingsError, setSettingsError] = useState<string | null>(null);
 
-  const [fireCurrentAge, setFireCurrentAge] = useState<number>(() => {
-    try {
-      const raw = localStorage.getItem("fire_settings");
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (typeof parsed.currentAge === "number") return parsed.currentAge;
-      }
-    } catch {}
-    return 30;
-  });
-  const [fireAnnualReturn, setFireAnnualReturn] = useState<number>(() => {
-    try {
-      const raw = localStorage.getItem("fire_settings");
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (typeof parsed.annualReturn === "number") return parsed.annualReturn;
-      }
-    } catch {}
-    return 7;
-  });
-  const [fireMultiplier, setFireMultiplier] = useState<number>(() => {
-    try {
-      const raw = localStorage.getItem("fire_settings");
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (typeof parsed.multiplier === "number") return parsed.multiplier;
-      }
-    } catch {}
-    return 25;
-  });
+  const { currentAge: fireCurrentAge, annualReturn: fireAnnualReturn, multiplier: fireMultiplier,
+    setCurrentAge: setFireCurrentAge, setAnnualReturn: setFireAnnualReturn, setMultiplier: setFireMultiplier
+  } = useFireStore();
 
   const {
-    transactionBatches,
-    setTransactionBatches,
-    transactionDataStatus,
-    setTransactionDataStatus,
-    error,
-    setError,
-    loading,
-    setLoading
+    transactionBatches, setTransactionBatches,
+    transactionDataStatus, setTransactionDataStatus,
+    error, setError,
+    loading
   } = useTransactionBatches();
 
   const {
-    manualRules,
-    setManualRules,
-    drafts,
-    setDrafts,
-    categoryDefinitions,
-    setCategoryDefinitions
+    manualRules, setManualRules,
+    drafts, setDrafts,
+    categoryDefinitions, setCategoryDefinitions
   } = useCategoryRules();
 
   const {
-    accountEntries,
-    setAccountEntries,
-    accountHistory,
-    setAccountHistory,
-    goals,
-    setGoals
+    accountEntries, setAccountEntries,
+    accountHistory, setAccountHistory,
+    goals, setGoals
   } = useAccountsGoals();
 
   const {
-    payrollDraft,
-    setPayrollDraft,
-    forecastStartNetWorth,
-    setForecastStartNetWorth,
-    forecastMonthlyDelta,
-    setForecastMonthlyDelta
+    payrollDraft, setPayrollDraft,
+    forecastStartNetWorth, setForecastStartNetWorth,
+    forecastMonthlyDelta, setForecastMonthlyDelta
   } = usePayrollForecast();
 
   const { downloadSnapshot, scheduleSyncUpload } = useCloudSync(user, applySnapshot);
@@ -262,45 +157,8 @@ export default function App() {
     rejectSuggestion,
     acceptAllSuggestions,
     dismissSuggestions,
-    resetSuggestions,
+    resetSuggestions
   } = useAiSuggestions();
-
-  const transactions = useMemo(
-    () => mergeTransactionsFromBatches(transactionBatches),
-    [transactionBatches]
-  );
-
-  const meta: SankeyMeta = useMemo(
-    () => deriveMetaFromBatches(transactionBatches),
-    [transactionBatches]
-  );
-
-  const effectiveTransactions = useMemo(
-    () => applyManualRules(transactions, manualRules),
-    [transactions, manualRules]
-  );
-
-  const webIncomeModel = useMemo(
-    () => buildIncomeModelFromTransactions(effectiveTransactions, payrollDraft),
-    [effectiveTransactions, payrollDraft]
-  );
-
-  const incomeModel = webIncomeModel;
-  const incomeMode: IncomeMode = flowStartMode === "expenses" ? "expenses" : incomeBasisMode;
-
-  const timelineOptions = useMemo(() => {
-    const options = Array.from(new Set(effectiveTransactions.map((transaction) => monthKey(transaction.date)))).sort();
-    return ["all" as TimelinePeriod, ...options];
-  }, [effectiveTransactions]);
-
-  useEffect(() => {
-    if (timelinePeriod === "all") {
-      return;
-    }
-    if (!timelineOptions.includes(timelinePeriod)) {
-      setTimelinePeriod("all");
-    }
-  }, [timelineOptions, timelinePeriod]);
 
   // Cloud sync: load user's cloud data on sign-in (one-time per session).
   useEffect(() => {
@@ -334,379 +192,35 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, transactionBatches, manualRules, drafts, categoryDefinitions, accountEntries, accountHistory, goals, payrollDraft, forecastStartNetWorth, forecastMonthlyDelta]);
 
-  const viz = useMemo(
-    () => buildVisualization(effectiveTransactions, meta.currency, incomeMode, incomeModel, merchantDetailMode, timelinePeriod),
-    [effectiveTransactions, meta.currency, incomeMode, incomeModel, merchantDetailMode, timelinePeriod]
-  );
-
-  const configuredTaxonomy = useMemo(
-    () => categoryTaxonomyFromDefinitions(categoryDefinitions),
-    [categoryDefinitions]
-  );
-
-  const categoryGroupOptions = useMemo(() => {
-    const groups = new Set<string>();
-    for (const category of configuredTaxonomy.keys()) {
-      groups.add(category);
-    }
-    for (const transaction of effectiveTransactions) {
-      groups.add(resolveCategoryGroupBucket(transaction));
-    }
-    groups.delete("");
-    return [...groups].sort((a, b) => a.localeCompare(b));
-  }, [configuredTaxonomy, effectiveTransactions]);
-
-  const subcategoryOptionsByGroup = useMemo(() => {
-    const optionsByGroup = new Map<string, Set<string>>();
-    for (const [group, subcategories] of configuredTaxonomy.entries()) {
-      if (!optionsByGroup.has(group)) {
-        optionsByGroup.set(group, new Set<string>());
-      }
-      for (const subcategory of subcategories) {
-        optionsByGroup.get(group)?.add(subcategory);
-      }
-    }
-    for (const transaction of effectiveTransactions) {
-      const group = resolveCategoryGroupBucket(transaction);
-      const subcategory = resolveSubcategoryBucket(transaction);
-      if (!optionsByGroup.has(group)) {
-        optionsByGroup.set(group, new Set<string>());
-      }
-      optionsByGroup.get(group)?.add(subcategory);
-    }
-    const finalized = new Map<string, string[]>();
-    for (const [group, options] of optionsByGroup.entries()) {
-      finalized.set(group, [...options].sort((a, b) => a.localeCompare(b)));
-    }
-    return finalized;
-  }, [configuredTaxonomy, effectiveTransactions]);
-
-  const editableTransactions = useMemo(() => {
-    const scoped = effectiveTransactions.filter((transaction) => isInTimeline(transaction.date, timelinePeriod));
-    return scoped
-      .filter((transaction) => transaction.direction === "debit" && transaction.amount > 0)
-      .sort((a, b) => b.date.localeCompare(a.date));
-  }, [effectiveTransactions, timelinePeriod]);
-
-  const uncategorizedInPeriod = useMemo(
-    () => editableTransactions.filter((transaction) => resolveCategoryGroupBucket(transaction) === "Uncategorized"),
-    [editableTransactions]
-  );
-
-  const visibleEditableTransactions = useMemo(() => {
-    if (rulesFilter === "all") {
-      return editableTransactions;
-    }
-    return uncategorizedInPeriod;
-  }, [rulesFilter, editableTransactions, uncategorizedInPeriod]);
-  const flowTitle = incomeMode === "modeled"
-    ? merchantDetailMode === "summary"
-      ? "Flow: Income/Super/Credits -> Gross Income -> Net/Tax/Super Out -> Category -> Subcategory -> Merchant Summary"
-      : "Flow: Income/Super/Credits -> Gross Income -> Net/Tax/Super Out -> Category -> Subcategory -> Detailed Transactions"
-    : incomeMode === "expenses"
-      ? merchantDetailMode === "summary"
-        ? "Flow: Total Spend -> Category -> Subcategory -> Merchant Summary"
-        : "Flow: Total Spend -> Category -> Subcategory -> Detailed Transactions"
-      : merchantDetailMode === "summary"
-        ? "Flow: Income -> Category -> Subcategory -> Merchant Summary + Savings"
-        : "Flow: Income -> Category -> Subcategory -> Detailed Transactions + Savings";
-  const chartHeight = useMemo(() => {
-    const dynamicHeight = 360 + viz.maxColumnNodes * 34;
-    return Math.max(460, Math.min(980, dynamicHeight));
-  }, [viz.maxColumnNodes]);
-  const chartLeftMargin = incomeMode === "modeled" ? 230 : 240;
-  const chartRightMargin = merchantDetailMode === "summary" ? 360 : 420;
-  const nodePadding = useMemo(() => {
-    const branchCount = viz.maxColumnNodes;
-    if (branchCount >= 24) {
-      return 8;
-    }
-    if (branchCount >= 16) {
-      return 12;
-    }
-    if (branchCount >= 14) {
-      return 14;
-    }
-    return 18;
-  }, [viz.maxColumnNodes]);
-
-  const subtitle = useMemo(() => {
-    if (transactionBatches.length === 0) {
-      return "No CSV data loaded";
-    }
-    return `${transactionBatches.length} CSV file(s) | ${transactions.length} unique transaction(s)`;
-  }, [transactionBatches.length, transactions.length]);
-
-  const accountSummary = useMemo(() => {
-    let assets = 0;
-    let liabilities = 0;
-    const buckets = new Map<string, number>();
-
-    for (const account of accountEntries) {
-      const signedValue = account.kind === "asset" ? account.value : -account.value;
-      if (account.kind === "asset") {
-        assets += account.value;
-      } else {
-        liabilities += account.value;
-      }
-      buckets.set(account.bucket, (buckets.get(account.bucket) ?? 0) + signedValue);
-    }
-
-    return {
-      assets: Number(assets.toFixed(2)),
-      liabilities: Number(liabilities.toFixed(2)),
-      netWorth: Number((assets - liabilities).toFixed(2)),
-      byBucket: [...buckets.entries()].map(([bucket, total]) => ({ bucket, total })).sort((a, b) => b.total - a.total)
-    };
-  }, [accountEntries]);
-
-  const resolvedGoals: ResolvedGoalEntry[] = useMemo(
-    () => buildResolvedGoals(goals, accountEntries, accountSummary.netWorth),
-    [goals, accountEntries, accountSummary.netWorth]
-  );
-
-  const accountHistorySorted = useMemo(
-    () => [...accountHistory].sort((a, b) => a.month.localeCompare(b.month)),
-    [accountHistory]
-  );
-
-  const accountHistorySeries = useMemo(
-    () => accountEntries.map((account, index) => ({
-      accountId: account.id,
-      dataKey: `acct_${account.id}`,
-      label: account.name || `Account ${index + 1}`,
-      color: [
-        "#8B2942", // Currant Red
-        "#3D8B4F", // Currant Leaf
-        "#C4843E", // Warm gold
-        "#5C6FA8", // Muted blue
-        "#9B6BA0", // Soft purple
-        "#B05C40", // Terra cotta
-        "#4A7A6B", // Teal green
-        "#5C4A7A"  // Deep purple
-      ][index % 8]
-    })),
-    [accountEntries]
-  );
-
-  const accountHistoryChartData = useMemo<Array<{ month: string; label: string; [key: string]: string | number }>>(() => {
-    return accountHistorySorted.map((snapshot) => {
-      const monthDate = new Date(`${snapshot.month}-01T00:00:00`);
-      const row: { month: string; label: string; [key: string]: number | string } = {
-        month: snapshot.month,
-        label: Number.isNaN(monthDate.getTime())
-          ? snapshot.month
-          : monthDate.toLocaleString("en-AU", { month: "short", year: "2-digit" }),
-        totalNetWorth: 0
-      };
-      let runningTotal = 0;
-      for (const account of accountEntries) {
-        const rawValue = snapshot.balances[account.id] ?? 0;
-        const signedValue = account.kind === "asset" ? rawValue : -rawValue;
-        row[`acct_${account.id}`] = Number(signedValue.toFixed(2));
-        runningTotal += signedValue;
-      }
-      row.totalNetWorth = Number(runningTotal.toFixed(2));
-      return row;
-    });
-  }, [accountHistorySorted, accountEntries]);
-
-  const { inferredMonthlyNetFlow, inferredMonthlyExpenses, inferredMonthCount } = useMemo(() => {
-    const byMonth = new Map<string, { credits: number; debits: number }>();
-    for (const transaction of effectiveTransactions) {
-      const month = monthKey(transaction.date);
-      if (!byMonth.has(month)) {
-        byMonth.set(month, { credits: 0, debits: 0 });
-      }
-      const current = byMonth.get(month);
-      if (!current) {
-        continue;
-      }
-      if (transaction.direction === "credit" && transaction.amount < 0) {
-        current.credits += Math.abs(transaction.amount);
-      }
-      if (transaction.direction === "debit" && transaction.amount > 0) {
-        current.debits += transaction.amount;
-      }
-    }
-    const monthSummaries = [...byMonth.values()];
-    if (monthSummaries.length === 0) {
-      return { inferredMonthlyNetFlow: 0, inferredMonthlyExpenses: 0, inferredMonthCount: 0 };
-    }
-    const totalNet = monthSummaries.reduce((sum, summary) => sum + (summary.credits - summary.debits), 0);
-    const totalDebits = monthSummaries.reduce((sum, summary) => sum + summary.debits, 0);
-    return {
-      inferredMonthlyNetFlow: Number((totalNet / monthSummaries.length).toFixed(2)),
-      inferredMonthlyExpenses: Number((totalDebits / monthSummaries.length).toFixed(2)),
-      inferredMonthCount: monthSummaries.length
-    };
-  }, [effectiveTransactions]);
-
-  const startNetWorth = forecastStartNetWorth ?? accountSummary.netWorth;
-  const monthlyForecastDelta = forecastMonthlyDelta ?? inferredMonthlyNetFlow;
-  const maxGoalTarget = resolvedGoals.reduce((max, goal) => Math.max(max, goal.target), 0);
-
-  const forecastPoints = useMemo(() => {
-    const base = new Date();
-    base.setDate(1);
-    const points: Array<{ label: string; monthKey: string; netWorth: number; goal: number }> = [];
-    let running = startNetWorth;
-    for (let index = 0; index < 18; index += 1) {
-      const pointDate = new Date(base.getFullYear(), base.getMonth() + index, 1);
-      if (index > 0) {
-        running += monthlyForecastDelta;
-      }
-      points.push({
-        label: pointDate.toLocaleString("en-AU", { month: "short", year: "2-digit" }),
-        monthKey: `${pointDate.getFullYear()}-${String(pointDate.getMonth() + 1).padStart(2, "0")}`,
-        netWorth: Number(running.toFixed(2)),
-        goal: maxGoalTarget
-      });
-    }
-    return points;
-  }, [startNetWorth, monthlyForecastDelta, maxGoalTarget]);
-
-  useEffect(() => {
-    localStorage.setItem(
-      "fire_settings",
-      JSON.stringify({ currentAge: fireCurrentAge, annualReturn: fireAnnualReturn, multiplier: fireMultiplier })
-    );
-  }, [fireCurrentAge, fireAnnualReturn, fireMultiplier]);
-
-  const fireInsightsData = useMemo(() => {
-    const annualExpenses = inferredMonthlyExpenses * 12;
-    const fireNumber = annualExpenses * fireMultiplier;
-    const leanFireNumber = fireNumber * 0.6;
-    const monthlyReturn = Math.pow(1 + fireAnnualReturn / 100, 1 / 12) - 1;
-    const currentNW = accountSummary.netWorth;
-    const monthlySavings = inferredMonthlyNetFlow;
-
-    // Coast FIRE: amount needed today to reach FIRE by age 65 with no further contributions
-    const yearsUntilRetire = Math.max(0, 65 - fireCurrentAge);
-    const coastFireNumber =
-      monthlyReturn > 0 && fireNumber > 0
-        ? fireNumber / Math.pow(1 + monthlyReturn, yearsUntilRetire * 12)
-        : fireNumber;
-
-    // Years to FIRE
-    let yearsToFire: number | null = null;
-    if (fireNumber <= 0 || annualExpenses <= 0) {
-      yearsToFire = null;
-    } else if (currentNW >= fireNumber) {
-      yearsToFire = 0;
-    } else if (monthlyReturn > 0 && monthlySavings > 0) {
-      const n =
-        Math.log((fireNumber * monthlyReturn + monthlySavings) / (currentNW * monthlyReturn + monthlySavings)) /
-        Math.log(1 + monthlyReturn);
-      yearsToFire = n / 12;
-    }
-
-    // Savings rate (requires payroll gross income)
-    const freqMultiplier =
-      payrollDraft.payFrequency === "weekly" ? 52 / 12 : payrollDraft.payFrequency === "fortnightly" ? 26 / 12 : 1;
-    const grossMonthlyIncome = payrollDraft.grossPay > 0 ? payrollDraft.grossPay * freqMultiplier : null;
-    const savingsRate = grossMonthlyIncome ? (monthlySavings / grossMonthlyIncome) * 100 : null;
-
-    // Projection data (yearly data points from current age to FIRE or 60 years)
-    const projectionData: Array<{ age: number; label: string; netWorth: number }> = [];
-    let nw = currentNW;
-    const annualGrowthFactor = Math.pow(1 + monthlyReturn, 12);
-    const annualContribution =
-      monthlyReturn > 0
-        ? monthlySavings * ((annualGrowthFactor - 1) / monthlyReturn)
-        : monthlySavings * 12;
-    const maxYears = 60;
-    for (let i = 0; i <= maxYears; i++) {
-      projectionData.push({ age: fireCurrentAge + i, label: String(fireCurrentAge + i), netWorth: Math.round(nw) });
-      if (i > 0 && nw >= fireNumber * 1.5) break;
-      nw = nw * annualGrowthFactor + annualContribution;
-    }
-
-    return {
-      fireNumber,
-      leanFireNumber,
-      coastFireNumber,
-      yearsToFire,
-      projectedFireAge: yearsToFire !== null && yearsToFire > 0 ? fireCurrentAge + yearsToFire : yearsToFire === 0 ? fireCurrentAge : null,
-      savingsRate,
-      projectionData,
-      monthlySavings,
-    };
-  }, [
-    inferredMonthlyExpenses,
-    inferredMonthlyNetFlow,
-    fireMultiplier,
-    fireAnnualReturn,
-    fireCurrentAge,
-    accountSummary.netWorth,
+  const derived = useDashboardState({
+    transactionBatches,
+    manualRules,
+    categoryDefinitions,
     payrollDraft,
-  ]);
+    accountEntries,
+    accountHistory,
+    goals,
+    flowStartMode,
+    incomeBasisMode,
+    merchantDetailMode,
+    timelinePeriod,
+    rulesFilter,
+    forecastStartNetWorth,
+    forecastMonthlyDelta,
+    fireCurrentAge,
+    fireAnnualReturn,
+    fireMultiplier
+  });
 
-  const expensePieData = useMemo(() => {
-    const top = viz.categoryStats.slice(0, 7).map((item) => ({
-      name: item.category,
-      value: Number(item.total.toFixed(2)),
-      color: item.color
-    }));
-    const tail = viz.categoryStats.slice(7);
-    const tailTotal = tail.reduce((sum, item) => sum + item.total, 0);
-    if (tailTotal > 0) {
-      top.push({
-        name: "Other",
-        value: Number(tailTotal.toFixed(2)),
-        color: "#9E7088"
-      });
+  // Keep timeline period valid when data changes
+  useEffect(() => {
+    if (timelinePeriod === "all") return;
+    if (!derived.timelineOptions.includes(timelinePeriod)) {
+      setTimelinePeriod("all");
     }
-    return top;
-  }, [viz.categoryStats]);
+  }, [derived.timelineOptions, timelinePeriod]);
 
-  const monthlyExpenseData = useMemo(() => {
-    const categoryColors = new Map(viz.categoryStats.map((stat) => [stat.category, stat.color]));
-    const categoriesInViz = viz.categoryStats.map((stat) => stat.category);
-    const byMonth = new Map<string, { month: string; [key: string]: string | number }>();
-    for (const transaction of effectiveTransactions) {
-      if (transaction.direction !== "debit" || transaction.amount <= 0) {
-        continue;
-      }
-      const month = monthKey(transaction.date);
-      if (!byMonth.has(month)) {
-        byMonth.set(month, { month });
-      }
-      const row = byMonth.get(month);
-      if (!row) {
-        continue;
-      }
-      const category = resolveCategoryGroupBucket(transaction);
-      const current = typeof row[category] === "number" ? (row[category] as number) : 0;
-      row[category] = Number((current + transaction.amount).toFixed(2));
-    }
-    const sortedMonths = [...byMonth.keys()].sort((a, b) => a.localeCompare(b));
-    const rows = sortedMonths.map((month) => {
-      const row = byMonth.get(month) ?? { month };
-      const monthDate = new Date(`${month}-01T00:00:00`);
-      return {
-        ...row,
-        label: Number.isNaN(monthDate.getTime())
-          ? month
-          : monthDate.toLocaleString("en-AU", { month: "short", year: "2-digit" })
-      };
-    });
-    const usedCategories = new Set<string>();
-    for (const row of rows) {
-      for (const key of Object.keys(row)) {
-        if (key !== "month" && key !== "label") {
-          usedCategories.add(key);
-        }
-      }
-    }
-    const categories = categoriesInViz
-      .filter((cat) => usedCategories.has(cat))
-      .map((cat) => ({
-        category: cat,
-        color: categoryColors.get(cat) ?? "#9E7088"
-      }));
-    return { rows, categories };
-  }, [effectiveTransactions, viz.categoryStats]);
+  // ---------- Draft / rule helpers ----------
 
   function defaultDraftFor(transaction: RawTransaction): TransactionDraft {
     return {
@@ -724,49 +238,31 @@ export default function App() {
   function updateDraft(transaction: RawTransaction, patch: Partial<TransactionDraft>): void {
     setDrafts((prev) => {
       const current = prev[transaction.id] ?? defaultDraftFor(transaction);
-      return {
-        ...prev,
-        [transaction.id]: {
-          ...current,
-          ...patch
-        }
-      };
+      return { ...prev, [transaction.id]: { ...current, ...patch } };
     });
   }
 
+  // ---------- Category definition handlers ----------
+
   function updateCategoryDefinition(id: string, patch: Partial<Pick<CategoryDefinition, "category">>): void {
-    setCategoryDefinitions((prev) => prev.map((definition) => (
-      definition.id === id ? { ...definition, ...patch } : definition
-    )));
+    setCategoryDefinitions((prev) => prev.map((d) => d.id === id ? { ...d, ...patch } : d));
   }
 
   function addCategoryDefinition(): void {
     setCategoryDefinitions((prev) => [
       ...prev,
-      {
-        id: createLocalId("cat"),
-        category: "",
-        subcategories: [{ id: createLocalId("subcat"), name: "", keywords: [] }]
-      }
+      { id: createLocalId("cat"), category: "", subcategories: [{ id: createLocalId("subcat"), name: "", keywords: [] }] }
     ]);
   }
 
   function removeCategoryDefinition(id: string): void {
-    setCategoryDefinitions((prev) => prev.filter((definition) => definition.id !== id));
+    setCategoryDefinitions((prev) => prev.filter((d) => d.id !== id));
   }
 
   function addCategorySubcategory(categoryId: string): void {
-    setCategoryDefinitions((prev) => prev.map((definition) => {
-      if (definition.id !== categoryId) {
-        return definition;
-      }
-      return {
-        ...definition,
-        subcategories: [
-          ...definition.subcategories,
-          { id: createLocalId("subcat"), name: "", keywords: [] }
-        ]
-      };
+    setCategoryDefinitions((prev) => prev.map((d) => {
+      if (d.id !== categoryId) return d;
+      return { ...d, subcategories: [...d.subcategories, { id: createLocalId("subcat"), name: "", keywords: [] }] };
     }));
   }
 
@@ -775,34 +271,24 @@ export default function App() {
     subcategoryId: string,
     patch: Partial<Omit<CategorySubcategoryDefinition, "id">>
   ): void {
-    setCategoryDefinitions((prev) => prev.map((definition) => {
-      if (definition.id !== categoryId) {
-        return definition;
-      }
-      return {
-        ...definition,
-        subcategories: definition.subcategories.map((subcategory) => (
-          subcategory.id === subcategoryId ? { ...subcategory, ...patch } : subcategory
-        ))
-      };
+    setCategoryDefinitions((prev) => prev.map((d) => {
+      if (d.id !== categoryId) return d;
+      return { ...d, subcategories: d.subcategories.map((s) => s.id === subcategoryId ? { ...s, ...patch } : s) };
     }));
   }
 
   function removeCategorySubcategory(categoryId: string, subcategoryId: string): void {
-    setCategoryDefinitions((prev) => prev.map((definition) => {
-      if (definition.id !== categoryId) {
-        return definition;
-      }
-      return {
-        ...definition,
-        subcategories: definition.subcategories.filter((subcategory) => subcategory.id !== subcategoryId)
-      };
+    setCategoryDefinitions((prev) => prev.map((d) => {
+      if (d.id !== categoryId) return d;
+      return { ...d, subcategories: d.subcategories.filter((s) => s.id !== subcategoryId) };
     }));
   }
 
   function resetCategoryDefinitions(): void {
     setCategoryDefinitions(buildDefaultCategoryDefinitions());
   }
+
+  // ---------- Rule handlers ----------
 
   function saveRule(transaction: RawTransaction): void {
     const draft = draftFor(transaction);
@@ -858,19 +344,17 @@ export default function App() {
     localStorage.removeItem(MANUAL_DRAFTS_STORAGE_KEY);
   }
 
+  // ---------- AI suggestion handlers ----------
+
   function handleRunAiSuggestions(): void {
-    void runAiCategorization(openaiApiKey, uncategorizedInPeriod, configuredTaxonomy);
+    void runAiCategorization(openaiApiKey, derived.uncategorizedInPeriod, derived.configuredTaxonomy);
   }
 
   function handleAcceptAiSuggestion(transactionId: string): void {
     const suggestion = aiSuggestions.suggestions.find((s) => s.transactionId === transactionId);
-    const transaction = effectiveTransactions.find((t) => t.id === transactionId);
+    const transaction = derived.effectiveTransactions.find((t) => t.id === transactionId);
     if (!suggestion || !transaction) return;
-    updateDraft(transaction, {
-      categoryGroup: suggestion.categoryGroup,
-      category: suggestion.category,
-      applySimilar: true,
-    });
+    updateDraft(transaction, { categoryGroup: suggestion.categoryGroup, category: suggestion.category, applySimilar: true });
     saveRule(transaction);
     acceptSuggestion(transactionId);
   }
@@ -884,38 +368,25 @@ export default function App() {
     acceptAllSuggestions();
   }
 
-  function handleRejectAiSuggestion(transactionId: string): void {
-    rejectSuggestion(transactionId);
-  }
+  // ---------- Account handlers ----------
 
   function addAccount(): void {
     setAccountEntries((prev) => [
       ...prev,
-      {
-        id: createLocalId("acct"),
-        name: "",
-        bucket: "Other",
-        kind: "asset",
-        value: 0
-      }
+      { id: createLocalId("acct"), name: "", bucket: "Other", kind: "asset", value: 0 }
     ]);
   }
 
   function updateAccount(id: string, patch: Partial<Omit<AccountEntry, "id">>): void {
-    setAccountEntries((prev) => prev.map((account) => (
-      account.id === id ? { ...account, ...patch } : account
-    )));
+    setAccountEntries((prev) => prev.map((a) => a.id === id ? { ...a, ...patch } : a));
   }
 
   function removeAccount(id: string): void {
-    setAccountEntries((prev) => prev.filter((account) => account.id !== id));
+    setAccountEntries((prev) => prev.filter((a) => a.id !== id));
     setAccountHistory((prev) => prev.map((snapshot) => {
       const nextBalances = { ...snapshot.balances };
       delete nextBalances[id];
-      return {
-        ...snapshot,
-        balances: nextBalances
-      };
+      return { ...snapshot, balances: nextBalances };
     }));
     setGoals((prev) => prev.map((goal) => ({
       ...goal,
@@ -926,25 +397,16 @@ export default function App() {
   function addGoal(): void {
     setGoals((prev) => [
       ...prev,
-      {
-        id: createLocalId("goal"),
-        name: "",
-        target: 0,
-        current: 0,
-        trackingMode: "manual",
-        accountIds: []
-      }
+      { id: createLocalId("goal"), name: "", target: 0, current: 0, trackingMode: "manual", accountIds: [] }
     ]);
   }
 
   function updateGoal(id: string, patch: Partial<Omit<GoalEntry, "id">>): void {
-    setGoals((prev) => prev.map((goal) => (
-      goal.id === id ? { ...goal, ...patch } : goal
-    )));
+    setGoals((prev) => prev.map((g) => g.id === id ? { ...g, ...patch } : g));
   }
 
   function removeGoal(id: string): void {
-    setGoals((prev) => prev.filter((goal) => goal.id !== id));
+    setGoals((prev) => prev.filter((g) => g.id !== id));
   }
 
   function addAccountHistorySnapshot(): void {
@@ -955,48 +417,30 @@ export default function App() {
       for (const account of accountEntries) {
         balances[account.id] = Number(account.value.toFixed(2));
       }
-      return [
-        ...prev,
-        {
-          id: createLocalId("acct_hist"),
-          month: seedMonth,
-          balances
-        }
-      ];
+      return [...prev, { id: createLocalId("acct_hist"), month: seedMonth, balances }];
     });
   }
 
   function updateAccountHistoryMonth(snapshotId: string, month: string): void {
-    setAccountHistory((prev) => prev.map((snapshot) => (
-      snapshot.id === snapshotId ? { ...snapshot, month } : snapshot
-    )));
+    setAccountHistory((prev) => prev.map((s) => s.id === snapshotId ? { ...s, month } : s));
   }
 
   function updateAccountHistoryBalance(snapshotId: string, accountId: string, value: number): void {
-    setAccountHistory((prev) => prev.map((snapshot) => {
-      if (snapshot.id !== snapshotId) {
-        return snapshot;
-      }
-      const normalizedValue = Number.isFinite(value) ? Number(value.toFixed(2)) : 0;
-      return {
-        ...snapshot,
-        balances: {
-          ...snapshot.balances,
-          [accountId]: normalizedValue
-        }
-      };
+    setAccountHistory((prev) => prev.map((s) => {
+      if (s.id !== snapshotId) return s;
+      return { ...s, balances: { ...s.balances, [accountId]: Number.isFinite(value) ? Number(value.toFixed(2)) : 0 } };
     }));
   }
 
   function removeAccountHistorySnapshot(snapshotId: string): void {
-    setAccountHistory((prev) => prev.filter((snapshot) => snapshot.id !== snapshotId));
+    setAccountHistory((prev) => prev.filter((s) => s.id !== snapshotId));
   }
+
+  // ---------- Transaction / CSV handlers ----------
 
   async function handleCsvUpload(event: React.ChangeEvent<HTMLInputElement>): Promise<void> {
     const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
+    if (!file) return;
 
     try {
       const csvRaw = await file.text();
@@ -1006,21 +450,16 @@ export default function App() {
         return;
       }
 
-      const nextBatch = buildTransactionBatch({
-        fileName: file.name,
-        transactions: imported.transactions,
-        warnings: imported.warnings
-      });
-      const mergedBefore = new Set(transactions.map((transaction) => transaction.id));
-      const duplicateCount = nextBatch.transactions.filter((transaction) => mergedBefore.has(transaction.id)).length;
+      const nextBatch = buildTransactionBatch({ fileName: file.name, transactions: imported.transactions, warnings: imported.warnings });
+      const mergedBefore = new Set(derived.transactions.map((t) => t.id));
+      const duplicateCount = nextBatch.transactions.filter((t) => mergedBefore.has(t.id)).length;
 
       setTransactionBatches((prev) => [nextBatch, ...prev]);
       resetSuggestions();
       setError(null);
       setTimelinePeriod("all");
-      if (activeTab !== "transactionData") {
-        setActiveTab("transactionData");
-      }
+      if (activeTab !== "transactionData") setActiveTab("transactionData");
+
       const uploadedIncomeModel = buildIncomeModelFromTransactions(imported.transactions, payrollDraft);
       if (!uploadedIncomeModel.enabled && incomeBasisMode === "modeled") {
         setIncomeBasisMode("raw");
@@ -1043,34 +482,24 @@ export default function App() {
 
   function updateBatchCoverage(batchId: string, patch: { coverageStart?: string; coverageEnd?: string }): void {
     setTransactionBatches((prev) => prev.map((batch) => {
-      if (batch.id !== batchId) {
-        return batch;
-      }
+      if (batch.id !== batchId) return batch;
       const nextStart = patch.coverageStart && patch.coverageStart.trim() ? patch.coverageStart : batch.coverageStart;
       const nextEnd = patch.coverageEnd && patch.coverageEnd.trim() ? patch.coverageEnd : batch.coverageEnd;
       const normalized = normalizeCoverageRange(nextStart, nextEnd);
-      return {
-        ...batch,
-        coverageStart: normalized.start,
-        coverageEnd: normalized.end
-      };
+      return { ...batch, coverageStart: normalized.start, coverageEnd: normalized.end };
     }));
     setTransactionDataStatus("Updated CSV coverage dates.");
   }
 
   function deleteBatch(batchId: string): void {
     setTransactionBatches((prev) => {
-      const next = prev.filter((batch) => batch.id !== batchId);
-      if (next.length === 0) {
-        setActiveTab("transactionData");
-      }
+      const next = prev.filter((b) => b.id !== batchId);
+      if (next.length === 0) setActiveTab("transactionData");
       return next;
     });
     setError(null);
     setTimelinePeriod("all");
-    if (incomeBasisMode === "modeled") {
-      setIncomeBasisMode("raw");
-    }
+    if (incomeBasisMode === "modeled") setIncomeBasisMode("raw");
     setTransactionDataStatus("Deleted CSV batch.");
   }
 
@@ -1079,19 +508,47 @@ export default function App() {
     setError(null);
     setTimelinePeriod("all");
     setActiveTab("transactionData");
-    if (incomeBasisMode === "modeled") {
-      setIncomeBasisMode("raw");
-    }
+    if (incomeBasisMode === "modeled") setIncomeBasisMode("raw");
     setTransactionDataStatus("Cleared all CSV data. Add a CSV to begin.");
   }
 
+  // ---------- Data management ----------
+
+  function applySnapshot(candidate: Record<string, unknown>): void {
+    const nextTransactionBatches = parseStoredTransactionBatches(candidate.transactionBatches);
+    const nextManualRules = parseStoredManualRules(candidate.manualRules);
+    const nextDrafts = parseStoredDrafts(candidate.drafts);
+    const nextCategoryDefinitions = parseStoredCategoryDefinitions(candidate.categoryDefinitions);
+    const nextAccountEntries = parseStoredAccountEntries(candidate.accountEntries);
+    const nextAccountHistory = parseStoredAccountHistory(candidate.accountHistory);
+    const nextGoals = parseStoredGoals(candidate.goals);
+    const nextPayrollDraft = sanitizePayrollDraft(candidate.payrollDraft);
+    const nextForecast = parseForecastSettings(candidate.forecastSettings);
+
+    setTransactionBatches(nextTransactionBatches);
+    setManualRules(nextManualRules);
+    setDrafts(nextDrafts);
+    setCategoryDefinitions(nextCategoryDefinitions.length > 0 ? nextCategoryDefinitions : buildDefaultCategoryDefinitions());
+    setAccountEntries(nextAccountEntries.length > 0 ? nextAccountEntries : DEFAULT_ACCOUNT_ENTRIES);
+    setAccountHistory(nextAccountHistory);
+    setGoals(nextGoals.length > 0 ? nextGoals : DEFAULT_GOALS);
+    setPayrollDraft(nextPayrollDraft);
+    setForecastStartNetWorth(nextForecast.startNetWorth);
+    setForecastMonthlyDelta(nextForecast.monthlyDelta);
+  }
+
+  function migrateLocalDataToCloud(): void {
+    scheduleSyncUpload({
+      transactionBatches, manualRules, drafts, categoryDefinitions,
+      accountEntries, accountHistory, goals, payrollDraft,
+      forecastSettings: { startNetWorth: forecastStartNetWorth, monthlyDelta: forecastMonthlyDelta }
+    }, 0);
+    setShowMigration(false);
+  }
+
   function resetAllData(): void {
-    const confirmed = window.confirm(
-      "Clear all Currant data in this browser and restore the built-in defaults?"
-    );
-    if (!confirmed) {
-      return;
-    }
+    const confirmed = window.confirm("Clear all Currant data in this browser and restore the built-in defaults?");
+    if (!confirmed) return;
 
     for (const key of APP_STORAGE_KEYS) {
       localStorage.removeItem(key);
@@ -1119,75 +576,15 @@ export default function App() {
     setSettingsStatus("Restored built-in defaults and cleared all browser-stored data.");
   }
 
-  function handleContinueFree(): void {
-    localStorage.setItem(FREE_TIER_KEY, "1");
-    setBypassAuth(true);
-    setShowLanding(false);
-  }
-
-  async function handleSignOut(): Promise<void> {
-    localStorage.removeItem(FREE_TIER_KEY);
-    setBypassAuth(false);
-    await signOut();
-  }
-
-
-  function applySnapshot(candidate: Record<string, unknown>): void {
-    const nextTransactionBatches = parseStoredTransactionBatches(candidate.transactionBatches);
-    const nextManualRules = sanitizeStoredManualRules(candidate.manualRules);
-    const nextDrafts = sanitizeStoredDrafts(candidate.drafts);
-    const nextCategoryDefinitions = parseStoredCategoryDefinitions(candidate.categoryDefinitions);
-    const nextAccountEntries = parseStoredAccountEntries(candidate.accountEntries);
-    const nextAccountHistory = parseStoredAccountHistory(candidate.accountHistory);
-    const nextGoals = parseStoredGoals(candidate.goals);
-    const nextPayrollDraft = sanitizePayrollDraft(candidate.payrollDraft);
-    const nextForecast = parseForecastSettings(candidate.forecastSettings);
-
-    setTransactionBatches(nextTransactionBatches);
-    setManualRules(nextManualRules);
-    setDrafts(nextDrafts);
-    setCategoryDefinitions(nextCategoryDefinitions.length > 0 ? nextCategoryDefinitions : buildDefaultCategoryDefinitions());
-    setAccountEntries(nextAccountEntries.length > 0 ? nextAccountEntries : DEFAULT_ACCOUNT_ENTRIES);
-    setAccountHistory(nextAccountHistory);
-    setGoals(nextGoals.length > 0 ? nextGoals : DEFAULT_GOALS);
-    setPayrollDraft(nextPayrollDraft);
-    setForecastStartNetWorth(nextForecast.startNetWorth);
-    setForecastMonthlyDelta(nextForecast.monthlyDelta);
-  }
-
-  function migrateLocalDataToCloud(): void {
-    scheduleSyncUpload({
-      transactionBatches,
-      manualRules,
-      drafts,
-      categoryDefinitions,
-      accountEntries,
-      accountHistory,
-      goals,
-      payrollDraft,
-      forecastSettings: { startNetWorth: forecastStartNetWorth, monthlyDelta: forecastMonthlyDelta }
-    }, 0);
-    setShowMigration(false);
-  }
-
   function exportAllData(): void {
     try {
       const backup = {
         version: APP_BACKUP_VERSION,
         exportedAt: new Date().toISOString(),
         data: {
-          transactionBatches,
-          manualRules,
-          drafts,
-          categoryDefinitions,
-          accountEntries,
-          accountHistory,
-          goals,
-          payrollDraft,
-          forecastSettings: {
-            startNetWorth: forecastStartNetWorth,
-            monthlyDelta: forecastMonthlyDelta
-          }
+          transactionBatches, manualRules, drafts, categoryDefinitions,
+          accountEntries, accountHistory, goals, payrollDraft,
+          forecastSettings: { startNetWorth: forecastStartNetWorth, monthlyDelta: forecastMonthlyDelta }
         }
       };
 
@@ -1224,8 +621,8 @@ export default function App() {
 
       const candidate = payload as Record<string, unknown>;
       const nextTransactionBatches = parseStoredTransactionBatches(candidate.transactionBatches);
-      const nextManualRules = sanitizeStoredManualRules(candidate.manualRules);
-      const nextDrafts = sanitizeStoredDrafts(candidate.drafts);
+      const nextManualRules = parseStoredManualRules(candidate.manualRules);
+      const nextDrafts = parseStoredDrafts(candidate.drafts);
       const nextCategoryDefinitions = parseStoredCategoryDefinitions(candidate.categoryDefinitions);
       const nextAccountEntries = parseStoredAccountEntries(candidate.accountEntries);
       const nextAccountHistory = parseStoredAccountHistory(candidate.accountHistory);
@@ -1267,6 +664,22 @@ export default function App() {
     }
   }
 
+  // ---------- Auth handlers ----------
+
+  function handleContinueFree(): void {
+    localStorage.setItem(FREE_TIER_KEY, "1");
+    setBypassAuth(true);
+    setShowLanding(false);
+  }
+
+  async function handleSignOut(): Promise<void> {
+    localStorage.removeItem(FREE_TIER_KEY);
+    setBypassAuth(false);
+    await signOut();
+  }
+
+  // ---------- Render ----------
+
   if (loading || authLoading) {
     return (
       <main className="dashboard-shell loading-state">
@@ -1286,290 +699,99 @@ export default function App() {
     );
   }
 
-  const tabMeta: Record<DashboardTab, { label: string; title: string; subtitle: string }> = {
-    forecast: {
-      label: "Dashboard",
-      title: "Dashboard",
-      subtitle: "Track your net worth trajectory and account trends."
-    },
-    accounts: {
-      label: "Accounts",
-      title: "Accounts",
-      subtitle: "Track assets and liabilities that make up your net worth."
-    },
-    income: {
-      label: "Income",
-      title: "Income Model",
-      subtitle: "Configure payroll values used for modeled salary flow."
-    },
-    expenses: {
-      label: "Expenses",
-      title: "Expense Analysis",
-      subtitle: "Sankey + category breakdown for spend behavior."
-    },
-    categories: {
-      label: "Categories",
-      title: "Categories & Rules",
-      subtitle: "Define taxonomy and classify transactions quickly."
-    },
-    settings: {
-      label: "Settings",
-      title: "Settings & Backups",
-      subtitle: "Manage browser storage, backups, and full-app resets."
-    },
-    transactionData: {
-      label: "Transaction Data",
-      title: "Transaction Data",
-      subtitle: "Manage uploaded CSV files, coverage ranges, and historical transaction periods."
-    },
-    fireInsights: {
-      label: "FIRE",
-      title: "FIRE Insights",
-      subtitle: "Calculate your FIRE number, retirement timeline, and savings milestones."
-    }
-  };
-  const outputTabs: DashboardTab[] = ["forecast", "expenses", "fireInsights"];
-  const inputTabs: DashboardTab[] = ["transactionData", "accounts", "income", "categories", "settings"];
-
-  const activeTabMeta = tabMeta[activeTab];
-
   return (
-    <main className="dashboard-shell">
-      <Sidebar
-        tabMeta={tabMeta}
-        outputTabs={outputTabs}
-        inputTabs={inputTabs}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        accountSummary={accountSummary}
-        goals={resolvedGoals}
-        currency={meta.currency}
-        isDark={isDark}
-        onToggleTheme={toggleTheme}
-        user={user}
-        onSignOut={handleSignOut}
-        onSignIn={() => setShowAuthModal(true)}
-        onGoHome={() => setShowLanding(true)}
-      />
-
-      <section className="workspace">
-        <WorkspaceHeader
-          title={activeTabMeta.title}
-          subtitle={activeTabMeta.subtitle}
-          generatedLabel={subtitle}
-        />
-
-        {activeTab === "transactionData" ? (
-          <TransactionDataTab
-            batches={transactionBatches}
-            totalTransactionCount={transactions.length}
-            statusMessage={transactionDataStatus}
-            errorMessage={error}
-            onUpload={handleCsvUpload}
-            onUpdateBatchCoverage={updateBatchCoverage}
-            onDeleteBatch={deleteBatch}
-            onDeleteAllBatches={clearUploadedData}
-          />
-        ) : null}
-
-        {activeTab === "forecast" ? (
-          <ForecastTab
-            currency={meta.currency}
-            accountSummary={accountSummary}
-            startNetWorth={startNetWorth}
-            monthlyForecastDelta={monthlyForecastDelta}
-            isMonthlyDeltaOverridden={forecastMonthlyDelta !== null}
-            inferredMonthCount={inferredMonthCount}
-            forecastPoints={forecastPoints}
-            maxGoalTarget={maxGoalTarget}
-            accountHistorySeries={accountHistorySeries}
-            accountHistoryChartData={accountHistoryChartData}
-            expensePieData={expensePieData}
-            accountEntries={accountEntries}
-          />
-        ) : null}
-
-        {activeTab === "accounts" ? (
-          <AccountsTab
-            currency={meta.currency}
-            accountSummary={accountSummary}
-            accountEntries={accountEntries}
-            goals={resolvedGoals}
-            accountHistorySnapshots={accountHistorySorted}
-            inferredMonthlyNetFlow={inferredMonthlyNetFlow}
-            inferredMonthlyExpenses={inferredMonthlyExpenses}
-            forecastStartNetWorth={forecastStartNetWorth}
-            forecastMonthlyDelta={forecastMonthlyDelta}
-            onAddAccount={addAccount}
-            onUpdateAccount={updateAccount}
-            onRemoveAccount={removeAccount}
-            onAddGoal={addGoal}
-            onUpdateGoal={updateGoal}
-            onRemoveGoal={removeGoal}
-            onAddAccountHistorySnapshot={addAccountHistorySnapshot}
-            onUpdateAccountHistoryMonth={updateAccountHistoryMonth}
-            onUpdateAccountHistoryBalance={updateAccountHistoryBalance}
-            onRemoveAccountHistorySnapshot={removeAccountHistorySnapshot}
-            onForecastStartNetWorthChange={setForecastStartNetWorth}
-            onForecastMonthlyDeltaChange={setForecastMonthlyDelta}
-            onResetStartNetWorth={() => setForecastStartNetWorth(null)}
-            onResetMonthlyDelta={() => setForecastMonthlyDelta(null)}
-          />
-        ) : null}
-
-        {activeTab === "income" ? (
-          <IncomeTab
-            currency={meta.currency}
-            payrollDraft={payrollDraft}
-            matchedPayCount={incomeModel.payEventCount}
-            onPayrollDraftChange={(patch) => setPayrollDraft((prev) => ({ ...prev, ...patch }))}
-          />
-        ) : null}
-
-        {activeTab === "settings" ? (
-          <SettingsTab
-            statusMessage={settingsStatus}
-            errorMessage={settingsError}
-            onResetAllData={resetAllData}
-            onExportAllData={exportAllData}
-            onImportData={importAllData}
-          />
-        ) : null}
-
-        {activeTab === "expenses" ? (
-          <ExpensesTab
-            currency={meta.currency}
-            flowStartMode={flowStartMode}
-            onFlowStartModeChange={setFlowStartMode}
-            incomeBasisMode={incomeBasisMode}
-            onIncomeBasisModeChange={setIncomeBasisMode}
-            incomeModelEnabled={Boolean(incomeModel?.enabled)}
-            merchantDetailMode={merchantDetailMode}
-            onMerchantDetailModeChange={setMerchantDetailMode}
-            timelinePeriod={timelinePeriod}
-            onTimelinePeriodChange={setTimelinePeriod}
-            timelineOptions={timelineOptions}
-            viz={viz}
-            uncategorizedCount={uncategorizedInPeriod.length}
-            flowTitle={flowTitle}
-            chartHeight={chartHeight}
-            chartLeftMargin={chartLeftMargin}
-            chartRightMargin={chartRightMargin}
-            nodePadding={nodePadding}
-            monthlyExpenseData={monthlyExpenseData}
-          />
-        ) : null}
-
-        {activeTab === "categories" ? (
-          <CategoriesTab
-            currency={meta.currency}
-            timelinePeriod={timelinePeriod}
-            onTimelinePeriodChange={setTimelinePeriod}
-            timelineOptions={timelineOptions}
-            uncategorizedCount={uncategorizedInPeriod.length}
-            categoryDefinitions={categoryDefinitions}
-            onAddCategoryDefinition={addCategoryDefinition}
-            onResetCategoryDefinitions={resetCategoryDefinitions}
-            onUpdateCategoryDefinition={updateCategoryDefinition}
-            onRemoveCategoryDefinition={removeCategoryDefinition}
-            onAddCategorySubcategory={addCategorySubcategory}
-            onUpdateCategorySubcategory={updateCategorySubcategory}
-            onRemoveCategorySubcategory={removeCategorySubcategory}
-            rulesFilter={rulesFilter}
-            onRulesFilterChange={setRulesFilter}
-            onClearAllRules={clearAllRules}
-            visibleEditableTransactions={visibleEditableTransactions}
-            draftFor={draftFor}
-            onUpdateDraft={updateDraft}
-            onSaveRule={saveRule}
-            onClearRule={clearRule}
-            subcategoryOptionsByGroup={subcategoryOptionsByGroup}
-            categoryGroupOptions={categoryGroupOptions}
-            isSignedIn={!!user}
-            openaiApiKey={openaiApiKey}
-            aiSuggestions={aiSuggestions}
-            onRunAiSuggestions={handleRunAiSuggestions}
-            onAcceptAiSuggestion={handleAcceptAiSuggestion}
-            onAcceptAllAiSuggestions={handleAcceptAllAiSuggestions}
-            onRejectAiSuggestion={handleRejectAiSuggestion}
-            onDismissAiSuggestions={dismissSuggestions}
-            onOpenApiKeyModal={() => setShowApiKeyModal(true)}
-            onSignIn={() => setShowAuthModal(true)}
-          />
-        ) : null}
-
-        {activeTab === "fireInsights" ? (
-          <FireInsightsTab
-            currency={meta.currency}
-            currentNetWorth={accountSummary.netWorth}
-            monthlyExpenses={inferredMonthlyExpenses}
-            monthlySavings={fireInsightsData.monthlySavings}
-            currentAge={fireCurrentAge}
-            annualReturn={fireAnnualReturn}
-            fireMultiplier={fireMultiplier}
-            onCurrentAgeChange={setFireCurrentAge}
-            onAnnualReturnChange={setFireAnnualReturn}
-            onFireMultiplierChange={setFireMultiplier}
-            fireNumber={fireInsightsData.fireNumber}
-            leanFireNumber={fireInsightsData.leanFireNumber}
-            coastFireNumber={fireInsightsData.coastFireNumber}
-            yearsToFire={fireInsightsData.yearsToFire}
-            projectedFireAge={fireInsightsData.projectedFireAge}
-            savingsRate={fireInsightsData.savingsRate}
-            projectionData={fireInsightsData.projectionData}
-          />
-        ) : null}
-      </section>
-
-      {/* API key modal */}
-      {showApiKeyModal ? (
-        <ApiKeyModal
-          currentKey={openaiApiKey}
-          onSave={setOpenaiApiKey}
-          onClose={() => setShowApiKeyModal(false)}
-        />
-      ) : null}
-
-      {/* Auth modal */}
-      {showAuthModal ? (
-        <div className="migration-overlay" onClick={() => setShowAuthModal(false)}>
-          <div className="migration-dialog" onClick={(e) => e.stopPropagation()}>
-            <h2>Sign in to Currant</h2>
-            <p>Sign in with your Google account to enable cloud sync across devices.</p>
-            <div className="migration-actions">
-              <button type="button" className="migration-btn-primary" onClick={signInWithGoogle}>
-                Continue with Google
-              </button>
-            </div>
-            <div className="migration-actions">
-              <button type="button" className="migration-btn-secondary" onClick={() => setShowAuthModal(false)}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {/* Migration dialog */}
-      {showMigration ? (
-        <div className="migration-overlay">
-          <div className="migration-dialog">
-            <h2>Migrate local data to cloud?</h2>
-            <p>
-              You have local data saved in this browser. Would you like to upload it to your cloud account
-              so it&apos;s available on all your devices?
-            </p>
-            <div className="migration-actions">
-              <button type="button" className="migration-btn-primary" onClick={migrateLocalDataToCloud}>
-                Yes, upload to cloud
-              </button>
-              <button type="button" className="migration-btn-secondary" onClick={() => setShowMigration(false)}>
-                Keep local only
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-    </main>
+    <Dashboard
+      user={user}
+      isDark={isDark}
+      onToggleTheme={toggleTheme}
+      onSignOut={handleSignOut}
+      onSignIn={() => setShowAuthModal(true)}
+      onGoHome={() => setShowLanding(true)}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+      flowStartMode={flowStartMode}
+      onFlowStartModeChange={setFlowStartMode}
+      incomeBasisMode={incomeBasisMode}
+      onIncomeBasisModeChange={setIncomeBasisMode}
+      merchantDetailMode={merchantDetailMode}
+      onMerchantDetailModeChange={setMerchantDetailMode}
+      timelinePeriod={timelinePeriod}
+      onTimelinePeriodChange={setTimelinePeriod}
+      rulesFilter={rulesFilter}
+      onRulesFilterChange={setRulesFilter}
+      transactionBatches={transactionBatches}
+      transactionDataStatus={transactionDataStatus}
+      error={error}
+      manualRules={manualRules}
+      drafts={drafts}
+      categoryDefinitions={categoryDefinitions}
+      accountEntries={accountEntries}
+      accountHistory={accountHistory}
+      goals={goals}
+      payrollDraft={payrollDraft}
+      forecastStartNetWorth={forecastStartNetWorth}
+      forecastMonthlyDelta={forecastMonthlyDelta}
+      fireCurrentAge={fireCurrentAge}
+      fireAnnualReturn={fireAnnualReturn}
+      fireMultiplier={fireMultiplier}
+      openaiApiKey={openaiApiKey}
+      aiSuggestions={aiSuggestions}
+      derived={derived}
+      settingsStatus={settingsStatus}
+      settingsError={settingsError}
+      showApiKeyModal={showApiKeyModal}
+      showAuthModal={showAuthModal}
+      showMigration={showMigration}
+      onShowApiKeyModal={() => setShowApiKeyModal(true)}
+      onCloseApiKeyModal={() => setShowApiKeyModal(false)}
+      onCloseAuthModal={() => setShowAuthModal(false)}
+      onConfirmMigration={migrateLocalDataToCloud}
+      onDismissMigration={() => setShowMigration(false)}
+      draftFor={draftFor}
+      onUpdateDraft={updateDraft}
+      onSaveRule={saveRule}
+      onClearRule={clearRule}
+      onClearAllRules={clearAllRules}
+      onCsvUpload={handleCsvUpload}
+      onUpdateBatchCoverage={updateBatchCoverage}
+      onDeleteBatch={deleteBatch}
+      onDeleteAllBatches={clearUploadedData}
+      onAddCategoryDefinition={addCategoryDefinition}
+      onResetCategoryDefinitions={resetCategoryDefinitions}
+      onUpdateCategoryDefinition={updateCategoryDefinition}
+      onRemoveCategoryDefinition={removeCategoryDefinition}
+      onAddCategorySubcategory={addCategorySubcategory}
+      onUpdateCategorySubcategory={updateCategorySubcategory}
+      onRemoveCategorySubcategory={removeCategorySubcategory}
+      onAddAccount={addAccount}
+      onUpdateAccount={updateAccount}
+      onRemoveAccount={removeAccount}
+      onAddGoal={addGoal}
+      onUpdateGoal={updateGoal}
+      onRemoveGoal={removeGoal}
+      onAddAccountHistorySnapshot={addAccountHistorySnapshot}
+      onUpdateAccountHistoryMonth={updateAccountHistoryMonth}
+      onUpdateAccountHistoryBalance={updateAccountHistoryBalance}
+      onRemoveAccountHistorySnapshot={removeAccountHistorySnapshot}
+      onForecastStartNetWorthChange={setForecastStartNetWorth}
+      onForecastMonthlyDeltaChange={setForecastMonthlyDelta}
+      onResetStartNetWorth={() => setForecastStartNetWorth(null)}
+      onResetMonthlyDelta={() => setForecastMonthlyDelta(null)}
+      onPayrollDraftChange={(patch) => setPayrollDraft((prev) => ({ ...prev, ...patch }))}
+      onFireCurrentAgeChange={setFireCurrentAge}
+      onFireAnnualReturnChange={setFireAnnualReturn}
+      onFireMultiplierChange={setFireMultiplier}
+      onResetAllData={resetAllData}
+      onExportAllData={exportAllData}
+      onImportData={importAllData}
+      onRunAiSuggestions={handleRunAiSuggestions}
+      onAcceptAiSuggestion={handleAcceptAiSuggestion}
+      onAcceptAllAiSuggestions={handleAcceptAllAiSuggestions}
+      onRejectAiSuggestion={rejectSuggestion}
+      onDismissAiSuggestions={dismissSuggestions}
+      onSaveApiKey={setOpenaiApiKey}
+      onSignInWithGoogle={signInWithGoogle}
+      onMigrateLocalDataToCloud={migrateLocalDataToCloud}
+    />
   );
 }

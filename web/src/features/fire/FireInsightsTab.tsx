@@ -8,7 +8,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { formatCurrency } from "../../../models";
+import { formatCurrency } from "../../domain";
 
 type ProjectionPoint = {
   age: number;

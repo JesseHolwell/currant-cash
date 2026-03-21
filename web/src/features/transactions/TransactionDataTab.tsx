@@ -5,8 +5,8 @@ import {
   formatShortDate,
   formatTimelineLabel,
   monthKey
-} from "../../../models";
-import type { TransactionBatch } from "../../../models";
+} from "../../domain";
+import type { TransactionBatch } from "../../domain";
 
 type CalendarDay = {
   key: string;

@@ -1,6 +1,6 @@
 import type { User } from "@supabase/supabase-js";
-import { formatCurrency } from "../../models";
-import type { DashboardTab, ResolvedGoalEntry } from "../../models";
+import { formatCurrency } from "../../domain";
+import type { DashboardTab, ResolvedGoalEntry } from "../../domain";
 import { isSupabaseConfigured } from "../../lib/supabase";
 
 type AccountSummary = {
@@ -63,32 +63,38 @@ export function Sidebar({
         </button>
       </div>
 
-      <nav className="nav-list">
+      <nav className="nav-list" aria-label="Dashboard navigation">
         <div className="nav-section">
-          <p className="nav-section-title">Outputs</p>
-          {outputTabs.map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              className={activeTab === tab ? "nav-btn active" : "nav-btn"}
-              onClick={() => onTabChange(tab)}
-            >
-              {tabMeta[tab].label}
-            </button>
-          ))}
+          <p className="nav-section-title" id="nav-outputs-label">Outputs</p>
+          <div role="group" aria-labelledby="nav-outputs-label">
+            {outputTabs.map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                className={activeTab === tab ? "nav-btn active" : "nav-btn"}
+                onClick={() => onTabChange(tab)}
+                aria-current={activeTab === tab ? "page" : undefined}
+              >
+                {tabMeta[tab].label}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="nav-section">
-          <p className="nav-section-title">Inputs</p>
-          {inputTabs.map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              className={activeTab === tab ? "nav-btn active" : "nav-btn"}
-              onClick={() => onTabChange(tab)}
-            >
-              {tabMeta[tab].label}
-            </button>
-          ))}
+          <p className="nav-section-title" id="nav-inputs-label">Inputs</p>
+          <div role="group" aria-labelledby="nav-inputs-label">
+            {inputTabs.map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                className={activeTab === tab ? "nav-btn active" : "nav-btn"}
+                onClick={() => onTabChange(tab)}
+                aria-current={activeTab === tab ? "page" : undefined}
+              >
+                {tabMeta[tab].label}
+              </button>
+            ))}
+          </div>
         </div>
       </nav>
 

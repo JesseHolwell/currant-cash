@@ -22,9 +22,15 @@ export function ApiKeyModal({
   }
 
   return (
-    <div className="migration-overlay" onClick={onClose}>
-      <div className="migration-dialog api-key-dialog" onClick={(e) => e.stopPropagation()}>
-        <h2>OpenAI API Key</h2>
+    <div className="migration-overlay" onClick={onClose} aria-hidden="true">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="api-key-dialog-title"
+        className="migration-dialog api-key-dialog"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 id="api-key-dialog-title">OpenAI API Key</h2>
         <p>
           Enter your OpenAI API key to enable AI-powered category suggestions. Your key is stored
           locally in this browser only and is never sent to Currant&apos;s servers.

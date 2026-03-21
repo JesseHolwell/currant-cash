@@ -3,8 +3,8 @@ import {
   PAY_FREQUENCY_OPTIONS,
   formatCurrency,
   getPayFrequencyMeta
-} from "../../../models";
-import type { PayrollDraft } from "../../../models";
+} from "../../domain";
+import type { PayrollDraft } from "../../domain";
 
 const PAYROLL_FIELDS: Array<{
   key: keyof Omit<PayrollDraft, "employerKeywords" | "payFrequency">;

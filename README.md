@@ -56,11 +56,45 @@ Legacy (deprecated) CLI command:
 .
 ├─ README.md
 ├─ PRODUCT_SPEC.md
-├─ web/src/App.tsx
-├─ web/src/components/
-├─ web/src/models/
-├─ rules/
-│  ├─ categories.yml
-│  └─ overrides.yml
+├─ CLAUDE.md
+├─ web/
+│  └─ src/
+│     ├─ App.tsx               # Thin shell: auth, routing, event handlers
+│     ├─ main.tsx
+│     ├─ domain/               # Pure business logic (no React)
+│     │  ├─ types.ts
+│     │  ├─ constants.ts
+│     │  ├─ rules.ts
+│     │  ├─ taxonomy.ts
+│     │  ├─ csvImport.ts
+│     │  ├─ visualization.ts
+│     │  └─ ...
+│     ├─ store/                # Zustand slices with localStorage persistence
+│     │  ├─ transactions.ts
+│     │  ├─ categories.ts
+│     │  ├─ accounts.ts
+│     │  ├─ forecast.ts
+│     │  ├─ fire.ts
+│     │  ├─ settings.ts
+│     │  └─ ai.ts
+│     ├─ hooks/                # Thin wrappers + derived state
+│     │  ├─ useDashboardState.ts
+│     │  └─ ...
+│     ├─ features/             # Tab components (one folder per feature)
+│     │  ├─ transactions/
+│     │  ├─ categories/
+│     │  ├─ expenses/
+│     │  ├─ accounts/
+│     │  ├─ forecast/
+│     │  ├─ fire/
+│     │  ├─ income/
+│     │  └─ settings/
+│     └─ components/           # Shared / layout components
+│        ├─ dashboard/
+│        │  ├─ Dashboard.tsx
+│        │  ├─ Sidebar.tsx
+│        │  └─ WorkspaceHeader.tsx
+│        ├─ LandingPage.tsx
+│        └─ ErrorBoundary.tsx
 └─ cli/ (legacy, deprecated)
 ```

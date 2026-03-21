@@ -2891,3 +2891,52 @@ textarea {
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Error Boundary ─────────────────────────────────────────── */
+
+.error-boundary-fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 1rem;
+  padding: 2rem;
+  font-family: var(--font-sans, sans-serif);
+  color: var(--ink, #3D2438);
+  background: var(--bg-main, #f9f5f5);
+  text-align: center;
+}
+
+.error-boundary-fallback h2 {
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+.error-boundary-fallback details {
+  margin-top: 0.5rem;
+  text-align: left;
+  max-width: 600px;
+  width: 100%;
+}
+
+.error-boundary-fallback pre {
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: var(--bg-warm, #f2eeee);
+  padding: 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--line, rgba(61,36,56,0.12));
+}
+
+.error-boundary-fallback button {
+  margin-top: 0.5rem;
+  padding: 0.6rem 1.5rem;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent, #8B2942);
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.95rem;
+}

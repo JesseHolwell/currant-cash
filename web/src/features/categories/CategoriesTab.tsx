@@ -4,7 +4,7 @@ import {
   parseKeywordText,
   resolveCategoryGroupBucket,
   resolveSubcategoryBucket
-} from "../../../models";
+} from "../../domain";
 import type {
   AiCategorySuggestion,
   AiSuggestionsState,
@@ -13,7 +13,7 @@ import type {
   RawTransaction,
   TimelinePeriod,
   TransactionDraft
-} from "../../../models";
+} from "../../domain";
 import { AiSuggestionBanner } from "./AiSuggestionBanner";
 import type { AiBannerAuthState } from "./AiSuggestionBanner";
 

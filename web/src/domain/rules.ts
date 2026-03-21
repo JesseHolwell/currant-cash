@@ -3,10 +3,12 @@ import {
   INCOME_SOURCE_ALIASES,
   MERCHANT_ALIASES
 } from "./constants";
+import { EMPTY_MANUAL_RULES } from "./constants";
 import type {
   ManualRule,
   ManualRulesState,
-  RawTransaction
+  RawTransaction,
+  TransactionDraft
 } from "./types";
 import {
   cleanupLabel,
@@ -95,6 +97,48 @@ export function applyManualRules(transactions: RawTransaction[], rules: ManualRu
       categoryGroup: cleanRule?.categoryGroup ?? canonicalizeCategoryGroup(transaction.categoryGroup ?? transaction.category)
     };
   });
+}
+
+export function parseStoredManualRules(raw: unknown): ManualRulesState {
+  if (!raw || typeof raw !== "object") {
+    return EMPTY_MANUAL_RULES;
+  }
+  const parsed = raw as Partial<ManualRulesState>;
+  const byId: Record<string, ManualRule> = {};
+  const bySimilarity: Record<string, ManualRule> = {};
+
+  for (const [id, rule] of Object.entries(parsed.byId ?? {})) {
+    const cleaned = sanitizeManualRule(rule ?? {});
+    if (cleaned) {
+      byId[id] = cleaned;
+    }
+  }
+
+  for (const [similarity, rule] of Object.entries(parsed.bySimilarity ?? {})) {
+    const cleaned = sanitizeManualRule(rule ?? {});
+    if (cleaned) {
+      bySimilarity[similarity] = cleaned;
+    }
+  }
+
+  return { byId, bySimilarity };
+}
+
+export function parseStoredDrafts(raw: unknown): Record<string, TransactionDraft> {
+  if (!raw || typeof raw !== "object") {
+    return {};
+  }
+  const parsedDrafts = raw as Record<string, TransactionDraft>;
+  const normalizedDrafts: Record<string, TransactionDraft> = {};
+  for (const [transactionId, draft] of Object.entries(parsedDrafts)) {
+    normalizedDrafts[transactionId] = {
+      categoryGroup: canonicalizeCategoryGroup(draft.categoryGroup),
+      category: (draft.category ?? "").trim(),
+      nickname: draft.nickname ?? "",
+      applySimilar: draft.applySimilar !== false
+    };
+  }
+  return normalizedDrafts;
 }
 
 export function resolveIncomeSource(transaction: RawTransaction): string {
