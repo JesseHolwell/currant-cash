@@ -65,63 +65,55 @@ export function LandingPage({
 }: LandingPageProps) {
   return (
     <div className="landing">
-      {onBack ? (
-        <div className="landing-back-bar">
-          <button type="button" className="landing-btn-ghost" onClick={onBack}>
-            ← Back to dashboard
-          </button>
-        </div>
-      ) : null}
-      {/* ── Hero ── */}
-      <header className="landing-hero">
-        <div className="landing-brand">
+      {/* ── Nav header ── */}
+      <nav className="landing-nav">
+        <div className="landing-nav-brand">
           <div className="brand-mark" aria-hidden="true">
             <span className="brand-leaf" />
             <span className="brand-berry brand-berry-top" />
             <span className="brand-berry brand-berry-left" />
             <span className="brand-berry brand-berry-right" />
           </div>
-          <h1 className="landing-wordmark">Currant</h1>
+          <span className="landing-nav-wordmark">Currant</span>
         </div>
-        <p className="landing-tagline">Your personal finance command centre</p>
+        <div className="landing-nav-actions">
+          {onBack ? (
+            <button type="button" className="landing-btn-ghost" onClick={onBack}>
+              ← Back to dashboard
+            </button>
+          ) : null}
+          <button type="button" className="landing-nav-login" onClick={onLogIn}>
+            Log in
+          </button>
+          <button type="button" className="landing-btn-primary landing-nav-signup" onClick={onSignUp}>
+            Sign up
+          </button>
+        </div>
+      </nav>
+
+      {/* ── Hero ── */}
+      <header className="landing-hero">
+        <p className="landing-tagline">Financial Intelligence, Naturally Preserved.</p>
         <p className="landing-description">
-          Upload bank CSVs, model your salary, visualise your spending, forecast
-          your net worth, and plan your path to financial independence — all in
-          one beautiful dashboard.
+          An offline-first dashboard for your bank CSVs. Track net worth, expenses,
+          and FIRE projections without ever creating an account or linking a bank.
         </p>
         <div className="landing-cta-group">
           <button
             type="button"
             className="landing-btn-primary"
-            onClick={onSignUp}
+            onClick={onContinueFree}
           >
-            Sign up free
+            Continue for free
           </button>
           <button
             type="button"
             className="landing-btn-secondary"
-            onClick={onLogIn}
-          >
-            Log in
-          </button>
-        </div>
-        <div className="landing-preview-row">
-          <button
-            type="button"
-            className="landing-btn-preview"
             onClick={onPreviewSample}
           >
-            Preview with sample data →
+            Preview with sample data
           </button>
-          <span className="landing-preview-note">See a fully loaded dashboard before committing</span>
         </div>
-        <p className="landing-free-note">
-          No account required for the free tier — everything runs locally in
-          your browser.{" "}
-          <button type="button" className="landing-btn-inline" onClick={onContinueFree}>
-            Continue without account →
-          </button>
-        </p>
       </header>
 
       {/* ── Feature Highlights ── */}
@@ -180,9 +172,9 @@ export function LandingPage({
           <button
             type="button"
             className="landing-btn-primary"
-            onClick={onSignUp}
+            onClick={onContinueFree}
           >
-            Create free account
+            Continue for free
           </button>
           <button
             type="button"
@@ -190,13 +182,6 @@ export function LandingPage({
             onClick={onPreviewSample}
           >
             Preview with sample data
-          </button>
-          <button
-            type="button"
-            className="landing-btn-ghost"
-            onClick={onContinueFree}
-          >
-            Skip — use offline
           </button>
         </div>
       </section>

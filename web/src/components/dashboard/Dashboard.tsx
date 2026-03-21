@@ -8,6 +8,7 @@ import { ForecastTab } from "../../features/forecast/ForecastTab";
 import { IncomeTab } from "../../features/income/IncomeTab";
 import { SettingsTab } from "../../features/settings/SettingsTab";
 import { TransactionDataTab } from "../../features/transactions/TransactionDataTab";
+import { AppNav } from "./AppNav";
 import { Sidebar } from "./Sidebar";
 import { WorkspaceHeader } from "./WorkspaceHeader";
 import type {
@@ -187,7 +188,7 @@ const TAB_META: Record<DashboardTab, { label: string; title: string; subtitle: s
 };
 
 const OUTPUT_TABS: DashboardTab[] = ["forecast", "expenses", "fireInsights"];
-const INPUT_TABS: DashboardTab[] = ["transactionData", "accounts", "income", "categories", "settings"];
+const INPUT_TABS: DashboardTab[] = ["transactionData", "accounts", "income", "categories"];
 
 export function Dashboard({
   isSampleMode,
@@ -285,34 +286,39 @@ export function Dashboard({
   const activeTabMeta = TAB_META[activeTab];
 
   return (
-    <main className="dashboard-shell">
-      {isSampleMode ? (
-        <div className="sample-banner">
-          <span className="sample-banner-text">
-            You&apos;re previewing sample data &mdash; no changes will be saved.
-          </span>
-          <button type="button" className="sample-banner-cta" onClick={onExitSampleMode}>
-            Start with my data &rarr;
-          </button>
-        </div>
-      ) : null}
-
-      <Sidebar
-        tabMeta={TAB_META}
-        outputTabs={OUTPUT_TABS}
-        inputTabs={INPUT_TABS}
-        activeTab={activeTab}
-        onTabChange={onTabChange}
-        accountSummary={derived.accountSummary}
-        goals={derived.resolvedGoals}
-        currency={derived.meta.currency}
+    <div className="app-frame">
+      <AppNav
+        user={user}
         isDark={isDark}
         onToggleTheme={onToggleTheme}
-        user={user}
         onSignOut={onSignOut}
         onSignIn={onSignIn}
         onGoHome={onGoHome}
+        onGoToSettings={() => onTabChange("settings")}
       />
+
+      <main className="dashboard-shell">
+        {isSampleMode ? (
+          <div className="sample-banner">
+            <span className="sample-banner-text">
+              You&apos;re previewing sample data &mdash; no changes will be saved.
+            </span>
+            <button type="button" className="sample-banner-cta" onClick={onExitSampleMode}>
+              Start with my data &rarr;
+            </button>
+          </div>
+        ) : null}
+
+        <Sidebar
+          tabMeta={TAB_META}
+          outputTabs={OUTPUT_TABS}
+          inputTabs={INPUT_TABS}
+          activeTab={activeTab}
+          onTabChange={onTabChange}
+          accountSummary={derived.accountSummary}
+          goals={derived.resolvedGoals}
+          currency={derived.meta.currency}
+        />
 
       <section className="workspace">
         <WorkspaceHeader
@@ -482,7 +488,8 @@ export function Dashboard({
             projectionData={derived.fireInsightsData.projectionData}
           />
         ) : null}
-      </section>
+        </section>
+      </main>
 
       {showApiKeyModal ? (
         <ApiKeyModal
@@ -530,6 +537,6 @@ export function Dashboard({
           </div>
         </div>
       ) : null}
-    </main>
+    </div>
   );
 }

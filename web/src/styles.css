@@ -72,6 +72,194 @@ textarea {
   font: inherit;
 }
 
+/* ─── App frame & top nav ─────────────────────────────────────────────── */
+
+:root {
+  --app-nav-height: 56px;
+}
+
+.app-frame {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app-nav {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  width: 100%;
+  height: var(--app-nav-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+  background: var(--bg-main);
+  border-bottom: 1px solid var(--line);
+}
+
+.app-nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: none;
+  border: none;
+  padding: 0.25rem 0.5rem 0.25rem 0;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: opacity 150ms ease;
+}
+
+.app-nav-brand:hover {
+  opacity: 0.75;
+}
+
+.brand-mark-sm {
+  flex: 0 0 28px !important;
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 9px !important;
+}
+
+.brand-mark-sm .brand-berry {
+  width: 9px !important;
+  height: 9px !important;
+}
+
+.brand-mark-sm .brand-berry-top {
+  top: 8px !important;
+  left: 10px !important;
+}
+
+.brand-mark-sm .brand-berry-left {
+  top: 14px !important;
+  left: 6px !important;
+}
+
+.brand-mark-sm .brand-berry-right {
+  top: 14px !important;
+  right: 6px !important;
+}
+
+.brand-mark-sm .brand-leaf {
+  top: 6px !important;
+  left: 12px !important;
+  width: 8px !important;
+  height: 5px !important;
+}
+
+.app-nav-wordmark {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  background: linear-gradient(135deg, var(--ink) 30%, var(--berry-highlight) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.app-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.app-nav-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.app-nav-icon-btn:hover {
+  background: var(--fill-hover);
+  color: var(--ink);
+}
+
+.app-nav-user {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: 0.5rem;
+  padding-left: 0.75rem;
+  border-left: 1px solid var(--line);
+}
+
+.app-nav-avatar {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent);
+  overflow: hidden;
+}
+
+.app-nav-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.app-nav-email {
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+  max-width: 180px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-nav-sign-out {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink-soft);
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.app-nav-sign-out:hover {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.app-nav-sign-in {
+  margin-left: 0.5rem;
+  padding: 0.4rem 0.875rem;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-border);
+  color: var(--accent);
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.app-nav-sign-in:hover {
+  background: rgba(139, 41, 66, 0.15);
+}
+
 .dashboard-shell {
   width: min(1600px, 95vw);
   margin: 0 auto;
@@ -95,9 +283,9 @@ textarea {
 
 .sidebar {
   position: sticky;
-  top: 1rem;
+  top: calc(var(--app-nav-height) + 0.75rem);
   align-self: start;
-  max-height: calc(100vh - 2rem);
+  max-height: calc(100vh - var(--app-nav-height) - 1.5rem);
   overflow: auto;
   scrollbar-width: thin;
   scrollbar-color: rgba(61, 36, 56, 0.15) transparent;
@@ -2190,10 +2378,61 @@ textarea {
   color: var(--ink);
 }
 
-.landing-back-bar {
+.landing-nav {
   width: 100%;
-  padding: 0.75rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 2rem;
   border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  background: var(--bg-main);
+  z-index: 10;
+}
+
+.landing-nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.landing-nav-wordmark {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  background: linear-gradient(135deg, var(--ink) 30%, var(--berry-highlight) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.landing-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.landing-nav-login {
+  padding: 0.5rem 1rem;
+  background: none;
+  border: none;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: color 150ms ease;
+}
+
+.landing-nav-login:hover {
+  color: var(--ink);
+}
+
+.landing-nav-signup {
+  padding: 0.5rem 1.125rem;
+  font-size: 0.9375rem;
 }
 
 .landing-hero {

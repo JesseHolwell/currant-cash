@@ -1,7 +1,5 @@
-import type { User } from "@supabase/supabase-js";
 import { formatCurrency } from "../../domain";
 import type { DashboardTab, ResolvedGoalEntry } from "../../domain";
-import { isSupabaseConfigured } from "../../lib/supabase";
 
 type AccountSummary = {
   netWorth: number;
@@ -22,12 +20,6 @@ export function Sidebar({
   accountSummary,
   goals,
   currency,
-  isDark,
-  onToggleTheme,
-  user,
-  onSignOut,
-  onSignIn,
-  onGoHome,
 }: {
   tabMeta: TabMeta;
   outputTabs: DashboardTab[];
@@ -37,32 +29,9 @@ export function Sidebar({
   accountSummary: AccountSummary;
   goals: ResolvedGoalEntry[];
   currency: string;
-  isDark: boolean;
-  onToggleTheme: () => void;
-  user: User | null;
-  onSignOut: () => void;
-  onSignIn: () => void;
-  onGoHome: () => void;
 }) {
-  const avatarInitial = user?.email?.charAt(0).toUpperCase() ?? "?";
-  const avatarUrl = user?.user_metadata?.["avatar_url"] as string | undefined;
   return (
     <aside className="sidebar">
-      <div className="brand">
-        <button type="button" className="brand-lockup brand-home-btn" onClick={onGoHome} aria-label="Go to home page">
-          <div className="brand-mark" aria-hidden="true">
-            <span className="brand-leaf" />
-            <span className="brand-berry brand-berry-top" />
-            <span className="brand-berry brand-berry-left" />
-            <span className="brand-berry brand-berry-right" />
-          </div>
-          <div className="brand-copy">
-            <h1>Currant</h1>
-            <p className="brand-tagline">Financial Health</p>
-          </div>
-        </button>
-      </div>
-
       <nav className="nav-list" aria-label="Dashboard navigation">
         <div className="nav-section">
           <p className="nav-section-title" id="nav-outputs-label">Outputs</p>
@@ -113,44 +82,6 @@ export function Sidebar({
           <strong>{formatCurrency(accountSummary.netWorth, currency)}</strong>
         </div>
       </section>
-
-      <button type="button" className="theme-toggle" onClick={onToggleTheme}>
-        <span className="theme-toggle-icon">{isDark ? "☀" : "☾"}</span>
-        {isDark ? "Light mode" : "Dark mode"}
-      </button>
-
-      {isSupabaseConfigured ? (
-        <div className="sidebar-user">
-          {user ? (
-            <>
-              <div className="sidebar-user-info">
-                <div className="sidebar-user-avatar">
-                  {avatarUrl ? <img src={avatarUrl} alt="" /> : avatarInitial}
-                </div>
-                <span className="sidebar-user-email">{user.email}</span>
-              </div>
-              <button
-                type="button"
-                className="sidebar-sign-out-btn"
-                onClick={onSignOut}
-              >
-                Sign out
-              </button>
-            </>
-          ) : (
-            <div className="sidebar-sign-in-prompt">
-              <span className="sidebar-free-label">Free tier — local only</span>
-              <button
-                type="button"
-                className="sidebar-sign-in-btn"
-                onClick={onSignIn}
-              >
-                Sign in for cloud sync
-              </button>
-            </div>
-          )}
-        </div>
-      ) : null}
 
       <section className="sidebar-card">
         <p className="sidebar-label">Goals</p>
