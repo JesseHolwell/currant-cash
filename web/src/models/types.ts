@@ -84,7 +84,7 @@ export type FlowStartMode = "income" | "expenses";
 export type IncomeMode = IncomeBasisMode | "expenses";
 export type MerchantDetailMode = "summary" | "full";
 export type TimelinePeriod = "all" | `${number}-${number}`;
-export type DashboardTab = "forecast" | "accounts" | "income" | "expenses" | "categories" | "transactionData" | "settings";
+export type DashboardTab = "forecast" | "accounts" | "income" | "expenses" | "categories" | "transactionData" | "settings" | "fireInsights";
 
 export type AccountKind = "asset" | "liability";
 

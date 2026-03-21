@@ -81,6 +81,7 @@ import { AccountsTab } from "./components/dashboard/tabs/AccountsTab";
 import { CategoriesTab } from "./components/dashboard/tabs/CategoriesTab";
 import { ApiKeyModal } from "./components/dashboard/tabs/ApiKeyModal";
 import { ExpensesTab } from "./components/dashboard/tabs/ExpensesTab";
+import { FireInsightsTab } from "./components/dashboard/tabs/FireInsightsTab";
 import { ForecastTab } from "./components/dashboard/tabs/ForecastTab";
 import { IncomeTab } from "./components/dashboard/tabs/IncomeTab";
 import { SettingsTab } from "./components/dashboard/tabs/SettingsTab";
@@ -181,6 +182,37 @@ export default function App() {
   const [rulesFilter, setRulesFilter] = useState<"needs" | "all">("needs");
   const [settingsStatus, setSettingsStatus] = useState<string | null>(null);
   const [settingsError, setSettingsError] = useState<string | null>(null);
+
+  const [fireCurrentAge, setFireCurrentAge] = useState<number>(() => {
+    try {
+      const raw = localStorage.getItem("fire_settings");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (typeof parsed.currentAge === "number") return parsed.currentAge;
+      }
+    } catch {}
+    return 30;
+  });
+  const [fireAnnualReturn, setFireAnnualReturn] = useState<number>(() => {
+    try {
+      const raw = localStorage.getItem("fire_settings");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (typeof parsed.annualReturn === "number") return parsed.annualReturn;
+      }
+    } catch {}
+    return 7;
+  });
+  const [fireMultiplier, setFireMultiplier] = useState<number>(() => {
+    try {
+      const raw = localStorage.getItem("fire_settings");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (typeof parsed.multiplier === "number") return parsed.multiplier;
+      }
+    } catch {}
+    return 25;
+  });
 
   const {
     transactionBatches,
@@ -533,6 +565,82 @@ export default function App() {
     }
     return points;
   }, [startNetWorth, monthlyForecastDelta, maxGoalTarget]);
+
+  useEffect(() => {
+    localStorage.setItem(
+      "fire_settings",
+      JSON.stringify({ currentAge: fireCurrentAge, annualReturn: fireAnnualReturn, multiplier: fireMultiplier })
+    );
+  }, [fireCurrentAge, fireAnnualReturn, fireMultiplier]);
+
+  const fireInsightsData = useMemo(() => {
+    const annualExpenses = inferredMonthlyExpenses * 12;
+    const fireNumber = annualExpenses * fireMultiplier;
+    const leanFireNumber = fireNumber * 0.6;
+    const monthlyReturn = Math.pow(1 + fireAnnualReturn / 100, 1 / 12) - 1;
+    const currentNW = accountSummary.netWorth;
+    const monthlySavings = inferredMonthlyNetFlow;
+
+    // Coast FIRE: amount needed today to reach FIRE by age 65 with no further contributions
+    const yearsUntilRetire = Math.max(0, 65 - fireCurrentAge);
+    const coastFireNumber =
+      monthlyReturn > 0 && fireNumber > 0
+        ? fireNumber / Math.pow(1 + monthlyReturn, yearsUntilRetire * 12)
+        : fireNumber;
+
+    // Years to FIRE
+    let yearsToFire: number | null = null;
+    if (fireNumber <= 0 || annualExpenses <= 0) {
+      yearsToFire = null;
+    } else if (currentNW >= fireNumber) {
+      yearsToFire = 0;
+    } else if (monthlyReturn > 0 && monthlySavings > 0) {
+      const n =
+        Math.log((fireNumber * monthlyReturn + monthlySavings) / (currentNW * monthlyReturn + monthlySavings)) /
+        Math.log(1 + monthlyReturn);
+      yearsToFire = n / 12;
+    }
+
+    // Savings rate (requires payroll gross income)
+    const freqMultiplier =
+      payrollDraft.payFrequency === "weekly" ? 52 / 12 : payrollDraft.payFrequency === "fortnightly" ? 26 / 12 : 1;
+    const grossMonthlyIncome = payrollDraft.grossPay > 0 ? payrollDraft.grossPay * freqMultiplier : null;
+    const savingsRate = grossMonthlyIncome ? (monthlySavings / grossMonthlyIncome) * 100 : null;
+
+    // Projection data (yearly data points from current age to FIRE or 60 years)
+    const projectionData: Array<{ age: number; label: string; netWorth: number }> = [];
+    let nw = currentNW;
+    const annualGrowthFactor = Math.pow(1 + monthlyReturn, 12);
+    const annualContribution =
+      monthlyReturn > 0
+        ? monthlySavings * ((annualGrowthFactor - 1) / monthlyReturn)
+        : monthlySavings * 12;
+    const maxYears = 60;
+    for (let i = 0; i <= maxYears; i++) {
+      projectionData.push({ age: fireCurrentAge + i, label: String(fireCurrentAge + i), netWorth: Math.round(nw) });
+      if (i > 0 && nw >= fireNumber * 1.5) break;
+      nw = nw * annualGrowthFactor + annualContribution;
+    }
+
+    return {
+      fireNumber,
+      leanFireNumber,
+      coastFireNumber,
+      yearsToFire,
+      projectedFireAge: yearsToFire !== null && yearsToFire > 0 ? fireCurrentAge + yearsToFire : yearsToFire === 0 ? fireCurrentAge : null,
+      savingsRate,
+      projectionData,
+      monthlySavings,
+    };
+  }, [
+    inferredMonthlyExpenses,
+    inferredMonthlyNetFlow,
+    fireMultiplier,
+    fireAnnualReturn,
+    fireCurrentAge,
+    accountSummary.netWorth,
+    payrollDraft,
+  ]);
 
   const expensePieData = useMemo(() => {
     const top = viz.categoryStats.slice(0, 7).map((item) => ({
@@ -1213,9 +1321,14 @@ export default function App() {
       label: "Transaction Data",
       title: "Transaction Data",
       subtitle: "Manage uploaded CSV files, coverage ranges, and historical transaction periods."
+    },
+    fireInsights: {
+      label: "FIRE",
+      title: "FIRE Insights",
+      subtitle: "Calculate your FIRE number, retirement timeline, and savings milestones."
     }
   };
-  const outputTabs: DashboardTab[] = ["forecast", "expenses"];
+  const outputTabs: DashboardTab[] = ["forecast", "expenses", "fireInsights"];
   const inputTabs: DashboardTab[] = ["transactionData", "accounts", "income", "categories", "settings"];
 
   const activeTabMeta = tabMeta[activeTab];
@@ -1382,6 +1495,28 @@ export default function App() {
             onDismissAiSuggestions={dismissSuggestions}
             onOpenApiKeyModal={() => setShowApiKeyModal(true)}
             onSignIn={() => setShowAuthModal(true)}
+          />
+        ) : null}
+
+        {activeTab === "fireInsights" ? (
+          <FireInsightsTab
+            currency={meta.currency}
+            currentNetWorth={accountSummary.netWorth}
+            monthlyExpenses={inferredMonthlyExpenses}
+            monthlySavings={fireInsightsData.monthlySavings}
+            currentAge={fireCurrentAge}
+            annualReturn={fireAnnualReturn}
+            fireMultiplier={fireMultiplier}
+            onCurrentAgeChange={setFireCurrentAge}
+            onAnnualReturnChange={setFireAnnualReturn}
+            onFireMultiplierChange={setFireMultiplier}
+            fireNumber={fireInsightsData.fireNumber}
+            leanFireNumber={fireInsightsData.leanFireNumber}
+            coastFireNumber={fireInsightsData.coastFireNumber}
+            yearsToFire={fireInsightsData.yearsToFire}
+            projectedFireAge={fireInsightsData.projectedFireAge}
+            savingsRate={fireInsightsData.savingsRate}
+            projectionData={fireInsightsData.projectionData}
           />
         ) : null}
       </section>
