@@ -3009,3 +3009,119 @@ textarea {
   cursor: pointer;
   font-size: 0.95rem;
 }
+
+/* ── Sample mode banner ── */
+
+.sample-banner {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.7rem 1.1rem;
+  background: linear-gradient(135deg, hsl(350, 60%, 18%), hsl(350, 50%, 26%));
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(139, 41, 66, 0.4);
+  box-shadow: 0 2px 8px rgba(139, 41, 66, 0.25);
+  animation: rise 300ms cubic-bezier(0.2, 0.95, 0.35, 1);
+}
+
+.sample-banner-text {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+
+.sample-banner-cta {
+  flex-shrink: 0;
+  padding: 0.45rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms, border-color 150ms;
+  white-space: nowrap;
+}
+
+.sample-banner-cta:hover {
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.8);
+}
+
+/* ── Sample mode badge on workspace header ── */
+
+.workspace-header-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.sample-mode-badge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, hsl(350, 60%, 18%), hsl(350, 50%, 26%));
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  vertical-align: middle;
+  line-height: 1;
+}
+
+/* ── Landing page — preview button & row ── */
+
+.landing-preview-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.landing-btn-preview {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.65rem 1.35rem;
+  border-radius: var(--radius-md, 8px);
+  border: 1.5px solid var(--accent-border, rgba(139, 41, 66, 0.4));
+  background: var(--accent-soft, rgba(139, 41, 66, 0.07));
+  color: var(--accent, #8B2942);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms, border-color 150ms, color 150ms;
+}
+
+.landing-btn-preview:hover {
+  background: var(--accent-glow, rgba(139, 41, 66, 0.14));
+  border-color: var(--accent, #8B2942);
+  color: var(--accent-strong, #5C1A2A);
+}
+
+.landing-preview-note {
+  color: var(--muted, #9E7088);
+  font-size: 0.82rem;
+}
+
+.landing-btn-inline {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent, #8B2942);
+  font-size: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.landing-btn-inline:hover {
+  color: var(--accent-strong, #5C1A2A);
+}

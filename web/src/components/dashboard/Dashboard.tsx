@@ -33,6 +33,10 @@ import type { useDashboardState } from "../../hooks/useDashboardState";
 type DerivedState = ReturnType<typeof useDashboardState>;
 
 interface DashboardProps {
+  // Sample mode
+  isSampleMode: boolean;
+  onExitSampleMode: () => void;
+
   // Auth
   user: User | null;
   isDark: boolean;
@@ -186,6 +190,8 @@ const OUTPUT_TABS: DashboardTab[] = ["forecast", "expenses", "fireInsights"];
 const INPUT_TABS: DashboardTab[] = ["transactionData", "accounts", "income", "categories", "settings"];
 
 export function Dashboard({
+  isSampleMode,
+  onExitSampleMode,
   user,
   isDark,
   onToggleTheme,
@@ -280,6 +286,17 @@ export function Dashboard({
 
   return (
     <main className="dashboard-shell">
+      {isSampleMode ? (
+        <div className="sample-banner">
+          <span className="sample-banner-text">
+            You&apos;re previewing sample data &mdash; no changes will be saved.
+          </span>
+          <button type="button" className="sample-banner-cta" onClick={onExitSampleMode}>
+            Start with my data &rarr;
+          </button>
+        </div>
+      ) : null}
+
       <Sidebar
         tabMeta={TAB_META}
         outputTabs={OUTPUT_TABS}
@@ -302,6 +319,7 @@ export function Dashboard({
           title={activeTabMeta.title}
           subtitle={activeTabMeta.subtitle}
           generatedLabel={derived.subtitle}
+          isSampleMode={isSampleMode}
         />
 
         {activeTab === "transactionData" ? (

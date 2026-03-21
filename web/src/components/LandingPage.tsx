@@ -2,6 +2,7 @@ type LandingPageProps = {
   onContinueFree: () => void;
   onSignUp: () => void;
   onLogIn: () => void;
+  onPreviewSample: () => void;
   onBack?: () => void;
 };
 
@@ -59,6 +60,7 @@ export function LandingPage({
   onContinueFree,
   onSignUp,
   onLogIn,
+  onPreviewSample,
   onBack,
 }: LandingPageProps) {
   return (
@@ -102,17 +104,23 @@ export function LandingPage({
           >
             Log in
           </button>
+        </div>
+        <div className="landing-preview-row">
           <button
             type="button"
-            className="landing-btn-ghost"
-            onClick={onContinueFree}
+            className="landing-btn-preview"
+            onClick={onPreviewSample}
           >
-            Continue with free tier →
+            Preview with sample data →
           </button>
+          <span className="landing-preview-note">See a fully loaded dashboard before committing</span>
         </div>
         <p className="landing-free-note">
           No account required for the free tier — everything runs locally in
-          your browser.
+          your browser.{" "}
+          <button type="button" className="landing-btn-inline" onClick={onContinueFree}>
+            Continue without account →
+          </button>
         </p>
       </header>
 
@@ -175,6 +183,13 @@ export function LandingPage({
             onClick={onSignUp}
           >
             Create free account
+          </button>
+          <button
+            type="button"
+            className="landing-btn-secondary"
+            onClick={onPreviewSample}
+          >
+            Preview with sample data
           </button>
           <button
             type="button"

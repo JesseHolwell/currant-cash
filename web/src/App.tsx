@@ -52,6 +52,7 @@ import { useFireStore } from "./store/fire";
 import { isSupabaseConfigured } from "./lib/supabase";
 import { LandingPage } from "./components/LandingPage";
 import { Dashboard } from "./components/dashboard/Dashboard";
+import { SAMPLE_DATASET } from "./domain/sampleData";
 import type {
   AccountEntry,
   CategoryDefinition,
@@ -84,6 +85,7 @@ function nextMonthValue(month: string): string {
 
 const APP_BACKUP_VERSION = 1;
 const FREE_TIER_KEY = "currant-free-tier";
+const SAMPLE_MODE_KEY = "currant-sample-mode";
 
 const APP_STORAGE_KEYS = [
   TRANSACTION_BATCHES_STORAGE_KEY,
@@ -103,6 +105,7 @@ export default function App() {
   const { isDark, toggle: toggleTheme } = useDarkMode();
   const { user, authLoading, signInWithGoogle, signOut } = useAuth();
   const [bypassAuth, setBypassAuth] = useState(() => localStorage.getItem(FREE_TIER_KEY) === "1");
+  const [isSampleMode, setIsSampleMode] = useState(() => sessionStorage.getItem(SAMPLE_MODE_KEY) === "1");
   const [showLanding, setShowLanding] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showMigration, setShowMigration] = useState(false);
@@ -174,9 +177,19 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, loading]);
 
+  // Exit sample mode automatically when the user signs in (cloud data takes over).
+  useEffect(() => {
+    if (user && isSampleMode) {
+      sessionStorage.removeItem(SAMPLE_MODE_KEY);
+      setIsSampleMode(false);
+      setActiveTab("forecast");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
   // Cloud sync: debounced upload on any state change while signed in.
   useEffect(() => {
-    if (!user || !cloudLoadedRef.current) return;
+    if (!user || !cloudLoadedRef.current || isSampleMode) return;
     scheduleSyncUpload({
       transactionBatches,
       manualRules,
@@ -192,24 +205,25 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, transactionBatches, manualRules, drafts, categoryDefinitions, accountEntries, accountHistory, goals, payrollDraft, forecastStartNetWorth, forecastMonthlyDelta]);
 
+  const sd = SAMPLE_DATASET;
   const derived = useDashboardState({
-    transactionBatches,
-    manualRules,
-    categoryDefinitions,
-    payrollDraft,
-    accountEntries,
-    accountHistory,
-    goals,
+    transactionBatches: isSampleMode ? sd.transactionBatches : transactionBatches,
+    manualRules: isSampleMode ? sd.manualRules : manualRules,
+    categoryDefinitions: isSampleMode ? sd.categoryDefinitions : categoryDefinitions,
+    payrollDraft: isSampleMode ? sd.payrollDraft : payrollDraft,
+    accountEntries: isSampleMode ? sd.accountEntries : accountEntries,
+    accountHistory: isSampleMode ? sd.accountHistory : accountHistory,
+    goals: isSampleMode ? sd.goals : goals,
     flowStartMode,
     incomeBasisMode,
     merchantDetailMode,
     timelinePeriod,
     rulesFilter,
-    forecastStartNetWorth,
-    forecastMonthlyDelta,
-    fireCurrentAge,
-    fireAnnualReturn,
-    fireMultiplier
+    forecastStartNetWorth: isSampleMode ? sd.forecastStartNetWorth : forecastStartNetWorth,
+    forecastMonthlyDelta: isSampleMode ? sd.forecastMonthlyDelta : forecastMonthlyDelta,
+    fireCurrentAge: isSampleMode ? sd.fireCurrentAge : fireCurrentAge,
+    fireAnnualReturn: isSampleMode ? sd.fireAnnualReturn : fireAnnualReturn,
+    fireMultiplier: isSampleMode ? sd.fireMultiplier : fireMultiplier,
   });
 
   // Keep timeline period valid when data changes
@@ -672,6 +686,45 @@ export default function App() {
     setShowLanding(false);
   }
 
+  function handleEnterSampleMode(): void {
+    sessionStorage.setItem(SAMPLE_MODE_KEY, "1");
+    setIsSampleMode(true);
+    // Also bypass auth so the dashboard renders without requiring sign-in
+    if (!bypassAuth) {
+      localStorage.setItem(FREE_TIER_KEY, "1");
+      setBypassAuth(true);
+    }
+    setShowLanding(false);
+    setActiveTab("forecast");
+  }
+
+  function handleExitSampleMode(): void {
+    sessionStorage.removeItem(SAMPLE_MODE_KEY);
+    setIsSampleMode(false);
+    // Silently reset stores to a clean default state
+    for (const key of APP_STORAGE_KEYS) {
+      localStorage.removeItem(key);
+    }
+    localStorage.removeItem(AI_SUGGESTIONS_STORAGE_KEY);
+    setTransactionBatches([]);
+    setManualRules(EMPTY_MANUAL_RULES);
+    setDrafts({});
+    setCategoryDefinitions(buildDefaultCategoryDefinitions());
+    setAccountEntries(DEFAULT_ACCOUNT_ENTRIES);
+    setAccountHistory([]);
+    setGoals(DEFAULT_GOALS);
+    setPayrollDraft(EMPTY_PAYROLL_DRAFT);
+    setForecastStartNetWorth(null);
+    setForecastMonthlyDelta(null);
+    setActiveTab("transactionData");
+    // Show landing page if Supabase is configured so they can sign up / continue free
+    if (isSupabaseConfigured) {
+      localStorage.removeItem(FREE_TIER_KEY);
+      setBypassAuth(false);
+      setShowLanding(true);
+    }
+  }
+
   async function handleSignOut(): Promise<void> {
     localStorage.removeItem(FREE_TIER_KEY);
     setBypassAuth(false);
@@ -694,6 +747,7 @@ export default function App() {
         onContinueFree={handleContinueFree}
         onSignUp={signInWithGoogle}
         onLogIn={signInWithGoogle}
+        onPreviewSample={handleEnterSampleMode}
         onBack={showLanding ? () => setShowLanding(false) : undefined}
       />
     );
@@ -701,6 +755,8 @@ export default function App() {
 
   return (
     <Dashboard
+      isSampleMode={isSampleMode}
+      onExitSampleMode={handleExitSampleMode}
       user={user}
       isDark={isDark}
       onToggleTheme={toggleTheme}
@@ -719,21 +775,21 @@ export default function App() {
       onTimelinePeriodChange={setTimelinePeriod}
       rulesFilter={rulesFilter}
       onRulesFilterChange={setRulesFilter}
-      transactionBatches={transactionBatches}
+      transactionBatches={isSampleMode ? sd.transactionBatches : transactionBatches}
       transactionDataStatus={transactionDataStatus}
       error={error}
-      manualRules={manualRules}
-      drafts={drafts}
-      categoryDefinitions={categoryDefinitions}
-      accountEntries={accountEntries}
-      accountHistory={accountHistory}
-      goals={goals}
-      payrollDraft={payrollDraft}
-      forecastStartNetWorth={forecastStartNetWorth}
-      forecastMonthlyDelta={forecastMonthlyDelta}
-      fireCurrentAge={fireCurrentAge}
-      fireAnnualReturn={fireAnnualReturn}
-      fireMultiplier={fireMultiplier}
+      manualRules={isSampleMode ? sd.manualRules : manualRules}
+      drafts={isSampleMode ? {} : drafts}
+      categoryDefinitions={isSampleMode ? sd.categoryDefinitions : categoryDefinitions}
+      accountEntries={isSampleMode ? sd.accountEntries : accountEntries}
+      accountHistory={isSampleMode ? sd.accountHistory : accountHistory}
+      goals={isSampleMode ? sd.goals : goals}
+      payrollDraft={isSampleMode ? sd.payrollDraft : payrollDraft}
+      forecastStartNetWorth={isSampleMode ? sd.forecastStartNetWorth : forecastStartNetWorth}
+      forecastMonthlyDelta={isSampleMode ? sd.forecastMonthlyDelta : forecastMonthlyDelta}
+      fireCurrentAge={isSampleMode ? sd.fireCurrentAge : fireCurrentAge}
+      fireAnnualReturn={isSampleMode ? sd.fireAnnualReturn : fireAnnualReturn}
+      fireMultiplier={isSampleMode ? sd.fireMultiplier : fireMultiplier}
       openaiApiKey={openaiApiKey}
       aiSuggestions={aiSuggestions}
       derived={derived}

@@ -43,7 +43,6 @@ Legend: `[x]` shipped, `[ ]` not shipped.
 - [x] Editable fields: net pay, gross pay, tax, super, tolerance, employer keywords.
 - [x] Generated YAML snippet preview for `payroll.private.yml`.
 - [x] Local browser persistence for income settings.
-- [ ] Write payroll config directly to filesystem from the UI.
 - [x] Make income configuration country-agnostic: user can add, remove, and rename arbitrary income/deduction fields (e.g. replace `super` with `401k`, remove tax fields entirely, etc.).
 - [x] Remove hard-coded Australian payroll field assumptions from the data model and UI labels.
 
@@ -72,17 +71,14 @@ Legend: `[x]` shipped, `[ ]` not shipped.
 - [x] Editable coverage start/end dates per CSV.
 - [x] Coverage calendar showing which days are covered across uploaded files.
 - [x] Delete individual CSV batches or clear all CSV data.
-- [ ] Replace an existing CSV batch with a new file.
 
 ## Goals
 
 - [x] Goal list with editable name/current/target values.
 - [x] Goal progress bars in Forecast and sidebar.
-- [ ] Goal-linked notifications/milestones.
+- [ ] Optionally mark goals as distinct so the funds are not counted twice.
 
 ## FIRE Insights tab
-
-> Available on the free tier — not a premium feature.
 
 - [x] Dedicated tab in sidebar navigation (`FIRE`).
 - [x] FIRE number calculator: target net worth = annual expenses × chosen multiplier (default 25×).
@@ -148,8 +144,7 @@ Legend: `[x]` shipped, `[ ]` not shipped.
 - [x] Support current CSV format (`Debit Amount`, `Credit Amount`, `Narrative`, and related fields).
 - [x] Infer observed CSV date range from parsed transactions.
 - [x] Allow manual coverage-date adjustments for historical period tracking.
-- [ ] CLI ingestion (`npm run ingest -- --input <csv-path>`) - deprecated, no active development.
 - [ ] Ingest additional bank CSV formats.
 - [ ] Add output JSON schema contracts.
 - [ ] Add regression tests for classification and artifact stability.
-- [ ] Provide sample dataset to preview app before onboarding
+- [x] Provide sample dataset to preview app before onboarding
