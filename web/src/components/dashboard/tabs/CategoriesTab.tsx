@@ -6,12 +6,16 @@ import {
   resolveSubcategoryBucket
 } from "../../../models";
 import type {
+  AiCategorySuggestion,
+  AiSuggestionsState,
   CategoryDefinition,
   CategorySubcategoryDefinition,
   RawTransaction,
   TimelinePeriod,
   TransactionDraft
 } from "../../../models";
+import { AiSuggestionBanner } from "./AiSuggestionBanner";
+import type { AiBannerAuthState } from "./AiSuggestionBanner";
 
 export function CategoriesTab({
   currency,
@@ -36,7 +40,17 @@ export function CategoriesTab({
   onSaveRule,
   onClearRule,
   subcategoryOptionsByGroup,
-  categoryGroupOptions
+  categoryGroupOptions,
+  isSignedIn,
+  openaiApiKey,
+  aiSuggestions,
+  onRunAiSuggestions,
+  onAcceptAiSuggestion,
+  onAcceptAllAiSuggestions,
+  onRejectAiSuggestion,
+  onDismissAiSuggestions,
+  onOpenApiKeyModal,
+  onSignIn,
 }: {
   currency: string;
   timelinePeriod: TimelinePeriod;
@@ -65,7 +79,33 @@ export function CategoriesTab({
   onClearRule: (transaction: RawTransaction) => void;
   subcategoryOptionsByGroup: Map<string, string[]>;
   categoryGroupOptions: string[];
+  isSignedIn: boolean;
+  openaiApiKey: string;
+  aiSuggestions: AiSuggestionsState;
+  onRunAiSuggestions: () => void;
+  onAcceptAiSuggestion: (transactionId: string) => void;
+  onAcceptAllAiSuggestions: () => void;
+  onRejectAiSuggestion: (transactionId: string) => void;
+  onDismissAiSuggestions: () => void;
+  onOpenApiKeyModal: () => void;
+  onSignIn: () => void;
 }) {
+  const pendingCount = aiSuggestions.suggestions.filter((s) => s.status === "pending").length;
+
+  const bannerAuthState: AiBannerAuthState = (() => {
+    if (!isSignedIn) return "unauthenticated";
+    if (!openaiApiKey.trim()) return "no-key";
+    if (aiSuggestions.status === "running") return "running";
+    if (aiSuggestions.status === "error") return "error";
+    if (aiSuggestions.status === "done" && pendingCount > 0) return "done";
+    return "ready";
+  })();
+
+  const suggestionByTransactionId = new Map<string, AiCategorySuggestion>(
+    aiSuggestions.suggestions
+      .filter((s) => s.status === "pending")
+      .map((s) => [s.transactionId, s])
+  );
   return (
     <>
       <section className="panel controls-panel">
@@ -176,6 +216,17 @@ export function CategoriesTab({
       </section>
 
       <section className="uncategorized">
+        <AiSuggestionBanner
+          authState={bannerAuthState}
+          pendingCount={pendingCount}
+          uncategorizedCount={uncategorizedCount}
+          errorMessage={aiSuggestions.errorMessage}
+          onSignIn={onSignIn}
+          onOpenApiKeyModal={onOpenApiKeyModal}
+          onRunSuggestions={onRunAiSuggestions}
+          onAcceptAll={onAcceptAllAiSuggestions}
+          onDismiss={onDismissAiSuggestions}
+        />
         <div className="rules-header">
           <h3>Transaction Rules</h3>
           <div className="mode-toggle">
@@ -207,6 +258,7 @@ export function CategoriesTab({
             {visibleEditableTransactions.slice(0, 120).map((transaction) => {
               const draft = draftFor(transaction);
               const draftSubcategoryOptions = subcategoryOptionsByGroup.get(draft.categoryGroup) ?? [];
+              const aiSuggestion = suggestionByTransactionId.get(transaction.id);
               return (
                 <li key={transaction.id} className="rule-item">
                   <div className="rule-item-top">
@@ -220,49 +272,91 @@ export function CategoriesTab({
                       Source: {transaction.manualSource === "id" ? "manual" : transaction.manualSource === "similar" ? "auto" : "default"}
                     </span>
                   </div>
-                  <div className="rule-controls">
-                    <select
-                      value={draft.categoryGroup}
-                      onChange={(event) => {
-                        const nextGroup = event.target.value;
-                        const options = subcategoryOptionsByGroup.get(nextGroup) ?? [];
-                        const nextCategory = options.includes(draft.category) ? draft.category : (options[0] ?? draft.category);
-                        onUpdateDraft(transaction, {
-                          categoryGroup: nextGroup,
-                          category: nextCategory
-                        });
-                      }}
-                    >
-                      {[...new Set([draft.categoryGroup, ...categoryGroupOptions].filter(Boolean))].map((option) => (
-                        <option key={option} value={option}>{option}</option>
-                      ))}
-                    </select>
-                    <select
-                      value={draft.category}
-                      aria-label="Subcategory"
-                      onChange={(event) => onUpdateDraft(transaction, { category: event.target.value })}
-                    >
-                      {[...new Set([draft.category, ...draftSubcategoryOptions].filter(Boolean))].map((option) => (
-                        <option key={option} value={option}>{option}</option>
-                      ))}
-                    </select>
-                    <input
-                      type="text"
-                      value={draft.nickname}
-                      placeholder="Nickname for chart label"
-                      onChange={(event) => onUpdateDraft(transaction, { nickname: event.target.value })}
-                    />
-                    <label className="rule-checkbox">
+                  {aiSuggestion ? (
+                    <div className="rule-controls rule-controls--ai">
+                      <select
+                        value={draft.categoryGroup}
+                        onChange={(event) => {
+                          const nextGroup = event.target.value;
+                          const options = subcategoryOptionsByGroup.get(nextGroup) ?? [];
+                          const nextCategory = options.includes(draft.category) ? draft.category : (options[0] ?? draft.category);
+                          onUpdateDraft(transaction, { categoryGroup: nextGroup, category: nextCategory });
+                        }}
+                      >
+                        {[...new Set([draft.categoryGroup, ...categoryGroupOptions].filter(Boolean))].map((option) => (
+                          <option key={option} value={option}>{option}</option>
+                        ))}
+                      </select>
+                      <select
+                        value={draft.category}
+                        aria-label="Subcategory"
+                        onChange={(event) => onUpdateDraft(transaction, { category: event.target.value })}
+                      >
+                        {[...new Set([draft.category, ...draftSubcategoryOptions].filter(Boolean))].map((option) => (
+                          <option key={option} value={option}>{option}</option>
+                        ))}
+                      </select>
+                      <span className="ai-badge">AI</span>
+                      <button
+                        type="button"
+                        className="mode-btn active"
+                        onClick={() => onAcceptAiSuggestion(transaction.id)}
+                      >
+                        Accept
+                      </button>
+                      <button
+                        type="button"
+                        className="mode-btn"
+                        onClick={() => onRejectAiSuggestion(transaction.id)}
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="rule-controls">
+                      <select
+                        value={draft.categoryGroup}
+                        onChange={(event) => {
+                          const nextGroup = event.target.value;
+                          const options = subcategoryOptionsByGroup.get(nextGroup) ?? [];
+                          const nextCategory = options.includes(draft.category) ? draft.category : (options[0] ?? draft.category);
+                          onUpdateDraft(transaction, {
+                            categoryGroup: nextGroup,
+                            category: nextCategory
+                          });
+                        }}
+                      >
+                        {[...new Set([draft.categoryGroup, ...categoryGroupOptions].filter(Boolean))].map((option) => (
+                          <option key={option} value={option}>{option}</option>
+                        ))}
+                      </select>
+                      <select
+                        value={draft.category}
+                        aria-label="Subcategory"
+                        onChange={(event) => onUpdateDraft(transaction, { category: event.target.value })}
+                      >
+                        {[...new Set([draft.category, ...draftSubcategoryOptions].filter(Boolean))].map((option) => (
+                          <option key={option} value={option}>{option}</option>
+                        ))}
+                      </select>
                       <input
-                        type="checkbox"
-                        checked={draft.applySimilar}
-                        onChange={(event) => onUpdateDraft(transaction, { applySimilar: event.target.checked })}
+                        type="text"
+                        value={draft.nickname}
+                        placeholder="Nickname for chart label"
+                        onChange={(event) => onUpdateDraft(transaction, { nickname: event.target.value })}
                       />
-                      Apply to similar
-                    </label>
-                    <button type="button" className="mode-btn active" onClick={() => onSaveRule(transaction)}>Save</button>
-                    <button type="button" className="mode-btn" onClick={() => onClearRule(transaction)}>Reset</button>
-                  </div>
+                      <label className="rule-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={draft.applySimilar}
+                          onChange={(event) => onUpdateDraft(transaction, { applySimilar: event.target.checked })}
+                        />
+                        Apply to similar
+                      </label>
+                      <button type="button" className="mode-btn active" onClick={() => onSaveRule(transaction)}>Save</button>
+                      <button type="button" className="mode-btn" onClick={() => onClearRule(transaction)}>Reset</button>
+                    </div>
+                  )}
                 </li>
               );
             })}

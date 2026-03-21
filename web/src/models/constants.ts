@@ -41,6 +41,8 @@ export const FORECAST_SETTINGS_STORAGE_KEY =
   "personal-spend-forecast-settings-v1";
 export const TRANSACTION_BATCHES_STORAGE_KEY =
   "personal-spend-transaction-batches-v1";
+export const AI_SUGGESTIONS_STORAGE_KEY = "personal-spend-ai-suggestions-v1";
+export const APP_SETTINGS_STORAGE_KEY = "personal-spend-settings-v1";
 export const UPLOADED_TRANSACTIONS_STORAGE_KEY =
   "personal-spend-uploaded-transactions-v1";
 export const UPLOADED_META_STORAGE_KEY = "personal-spend-uploaded-meta-v1";

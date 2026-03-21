@@ -12,6 +12,7 @@ import {
   MANUAL_DRAFTS_STORAGE_KEY,
   MANUAL_RULES_STORAGE_KEY,
   PAYROLL_DRAFT_STORAGE_KEY,
+  AI_SUGGESTIONS_STORAGE_KEY,
   TRANSACTION_BATCHES_STORAGE_KEY,
   UPLOADED_META_STORAGE_KEY,
   UPLOADED_TRANSACTIONS_STORAGE_KEY,
@@ -51,6 +52,8 @@ import {
   useCloudSync
 } from "./hooks";
 import { useDarkMode } from "./hooks/useDarkMode";
+import { useAiSuggestions } from "./hooks/useAiSuggestions";
+import { useAppSettings } from "./hooks/useAppSettings";
 import { isSupabaseConfigured } from "./lib/supabase";
 import { LandingPage } from "./components/LandingPage";
 import type {
@@ -76,6 +79,7 @@ import type {
 } from "./models";
 import { AccountsTab } from "./components/dashboard/tabs/AccountsTab";
 import { CategoriesTab } from "./components/dashboard/tabs/CategoriesTab";
+import { ApiKeyModal } from "./components/dashboard/tabs/ApiKeyModal";
 import { ExpensesTab } from "./components/dashboard/tabs/ExpensesTab";
 import { ForecastTab } from "./components/dashboard/tabs/ForecastTab";
 import { IncomeTab } from "./components/dashboard/tabs/IncomeTab";
@@ -166,6 +170,7 @@ export default function App() {
   const [showLanding, setShowLanding] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showMigration, setShowMigration] = useState(false);
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const cloudLoadedRef = useRef(false);
 
   const [activeTab, setActiveTab] = useState<DashboardTab>("transactionData");
@@ -216,6 +221,17 @@ export default function App() {
   } = usePayrollForecast();
 
   const { downloadSnapshot, scheduleSyncUpload } = useCloudSync(user, applySnapshot);
+
+  const { openaiApiKey, setOpenaiApiKey } = useAppSettings();
+  const {
+    aiSuggestions,
+    runAiCategorization,
+    acceptSuggestion,
+    rejectSuggestion,
+    acceptAllSuggestions,
+    dismissSuggestions,
+    resetSuggestions,
+  } = useAiSuggestions();
 
   const transactions = useMemo(
     () => mergeTransactionsFromBatches(transactionBatches),
@@ -483,7 +499,7 @@ export default function App() {
     }
     const monthSummaries = [...byMonth.values()];
     if (monthSummaries.length === 0) {
-      return { inferredMonthlyNetFlow: 0, inferredMonthCount: 0 };
+      return { inferredMonthlyNetFlow: 0, inferredMonthlyExpenses: 0, inferredMonthCount: 0 };
     }
     const totalNet = monthSummaries.reduce((sum, summary) => sum + (summary.credits - summary.debits), 0);
     const totalDebits = monthSummaries.reduce((sum, summary) => sum + summary.debits, 0);
@@ -734,6 +750,36 @@ export default function App() {
     localStorage.removeItem(MANUAL_DRAFTS_STORAGE_KEY);
   }
 
+  function handleRunAiSuggestions(): void {
+    void runAiCategorization(openaiApiKey, uncategorizedInPeriod, configuredTaxonomy);
+  }
+
+  function handleAcceptAiSuggestion(transactionId: string): void {
+    const suggestion = aiSuggestions.suggestions.find((s) => s.transactionId === transactionId);
+    const transaction = effectiveTransactions.find((t) => t.id === transactionId);
+    if (!suggestion || !transaction) return;
+    updateDraft(transaction, {
+      categoryGroup: suggestion.categoryGroup,
+      category: suggestion.category,
+      applySimilar: true,
+    });
+    saveRule(transaction);
+    acceptSuggestion(transactionId);
+  }
+
+  function handleAcceptAllAiSuggestions(): void {
+    for (const suggestion of aiSuggestions.suggestions) {
+      if (suggestion.status === "pending") {
+        handleAcceptAiSuggestion(suggestion.transactionId);
+      }
+    }
+    acceptAllSuggestions();
+  }
+
+  function handleRejectAiSuggestion(transactionId: string): void {
+    rejectSuggestion(transactionId);
+  }
+
   function addAccount(): void {
     setAccountEntries((prev) => [
       ...prev,
@@ -861,6 +907,7 @@ export default function App() {
       const duplicateCount = nextBatch.transactions.filter((transaction) => mergedBefore.has(transaction.id)).length;
 
       setTransactionBatches((prev) => [nextBatch, ...prev]);
+      resetSuggestions();
       setError(null);
       setTimelinePeriod("all");
       if (activeTab !== "transactionData") {
@@ -941,6 +988,7 @@ export default function App() {
     for (const key of APP_STORAGE_KEYS) {
       localStorage.removeItem(key);
     }
+    localStorage.removeItem(AI_SUGGESTIONS_STORAGE_KEY);
 
     setTransactionBatches([]);
     setManualRules(EMPTY_MANUAL_RULES);
@@ -1324,9 +1372,28 @@ export default function App() {
             onClearRule={clearRule}
             subcategoryOptionsByGroup={subcategoryOptionsByGroup}
             categoryGroupOptions={categoryGroupOptions}
+            isSignedIn={!!user}
+            openaiApiKey={openaiApiKey}
+            aiSuggestions={aiSuggestions}
+            onRunAiSuggestions={handleRunAiSuggestions}
+            onAcceptAiSuggestion={handleAcceptAiSuggestion}
+            onAcceptAllAiSuggestions={handleAcceptAllAiSuggestions}
+            onRejectAiSuggestion={handleRejectAiSuggestion}
+            onDismissAiSuggestions={dismissSuggestions}
+            onOpenApiKeyModal={() => setShowApiKeyModal(true)}
+            onSignIn={() => setShowAuthModal(true)}
           />
         ) : null}
       </section>
+
+      {/* API key modal */}
+      {showApiKeyModal ? (
+        <ApiKeyModal
+          currentKey={openaiApiKey}
+          onSave={setOpenaiApiKey}
+          onClose={() => setShowApiKeyModal(false)}
+        />
+      ) : null}
 
       {/* Auth modal */}
       {showAuthModal ? (

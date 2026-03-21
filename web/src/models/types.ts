@@ -48,6 +48,20 @@ export type TransactionDraft = {
   applySimilar: boolean;
 };
 
+export type AiCategorySuggestion = {
+  transactionId: string;
+  categoryGroup: string;
+  category: string;
+  status: "pending" | "accepted" | "rejected";
+};
+
+export type AiSuggestionsState = {
+  suggestions: AiCategorySuggestion[];
+  status: "idle" | "running" | "done" | "error";
+  lastRunAt: string | null;
+  errorMessage?: string;
+};
+
 export type CategorySubcategoryDefinition = {
   id: string;
   name: string;

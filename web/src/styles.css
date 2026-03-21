@@ -2595,3 +2595,161 @@ textarea {
 .migration-btn-secondary:hover {
   background: var(--bg-warm);
 }
+
+/* ── AI suggestion banner ── */
+
+.ai-suggestion-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--line-strong);
+  background: var(--bg-warm);
+  flex-wrap: wrap;
+}
+
+.ai-banner--unauthenticated,
+.ai-banner--no-key {
+  border-color: var(--line-strong);
+  color: var(--ink-soft);
+}
+
+.ai-banner--ready {
+  border-color: var(--accent);
+  background: rgba(139, 41, 66, 0.06);
+  color: var(--ink);
+}
+
+.ai-banner--running {
+  border-color: var(--line-strong);
+  color: var(--ink-soft);
+}
+
+.ai-banner--done {
+  border-color: var(--accent);
+  background: rgba(139, 41, 66, 0.06);
+  color: var(--ink);
+}
+
+.ai-banner--error {
+  border-color: #b05c40;
+  background: rgba(176, 92, 64, 0.08);
+  color: var(--ink);
+}
+
+.ai-banner-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.ai-banner-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.ai-banner-action {
+  padding: 0.35rem 0.8rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+  white-space: nowrap;
+}
+
+.ai-banner-action:hover {
+  background: var(--bg-warm);
+  color: var(--ink);
+}
+
+.ai-banner-action--primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.ai-banner-action--primary:hover {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+  color: #fff;
+}
+
+.ai-banner-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--line-strong);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: ai-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes ai-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── AI badge on transaction rows ── */
+
+.ai-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+/* ── API key modal ── */
+
+.api-key-dialog {
+  max-width: 480px;
+}
+
+.api-key-input-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.api-key-input {
+  flex: 1;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--bg-base);
+  color: var(--ink);
+  font-size: 0.875rem;
+  font-family: monospace;
+}
+
+.api-key-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.api-key-hint {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+.api-key-hint a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.api-key-hint a:hover {
+  text-decoration: underline;
+}
