@@ -1351,7 +1351,7 @@ export default function App() {
         <div className="migration-overlay" onClick={() => setShowAuthModal(false)}>
           <div className="migration-dialog" onClick={(e) => e.stopPropagation()}>
             <h2>Sign in to Currant</h2>
-            <p>Sign in with your Google or GitHub account to enable cloud sync across devices.</p>
+            <p>Sign in with your Google account to enable cloud sync across devices.</p>
             <div className="migration-actions">
               <button type="button" className="migration-btn-primary" onClick={signInWithGoogle}>
                 Continue with Google

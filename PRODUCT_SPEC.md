@@ -94,7 +94,7 @@ Legend: `[x]` shipped, `[ ]` not shipped.
 
 ## Authentication
 
-- [x] SSO sign-in (Google and/or GitHub OAuth as initial providers).
+- [x] SSO sign-in (Google OAuth).
 - [x] Anonymous / guest mode retained for users who don't sign in (local storage only, no sync).
 - [x] Session persistence across browser tabs.
 - [ ] Account settings page: manage connected providers, display name, sign out.
