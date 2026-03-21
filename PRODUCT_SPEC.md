@@ -3,6 +3,16 @@
 Feature checklist for the product.  
 Legend: `[x]` shipped, `[ ]` not shipped.
 
+## Homepage / Landing page
+
+- [x] Standalone landing page shown before the app shell loads (unauthenticated entry point).
+- [x] App name, tagline, and brief description of core functionality.
+- [x] Feature highlights section (Forecast, Expenses, FIRE Insights, Auto-categorisation, etc.).
+- [x] Free vs premium tier comparison (what you get on each tier).
+- [x] Three CTAs: `Sign up`, `Log in`, `Continue with free tier`.
+- [x] `Continue with free tier` bypasses auth and goes straight to the app (local storage mode).
+- [x] Signed-in users are redirected past the landing page directly into the app.
+
 ## Navigation and layout
 
 - [x] Sidebar navigation with these tabs: `Forecast`, `Accounts`, `Income`, `Expenses`, `Categories`.
@@ -34,6 +44,8 @@ Legend: `[x]` shipped, `[ ]` not shipped.
 - [x] Generated YAML snippet preview for `payroll.private.yml`.
 - [x] Local browser persistence for income settings.
 - [ ] Write payroll config directly to filesystem from the UI.
+- [ ] Make income configuration country-agnostic: user can add, remove, and rename arbitrary income/deduction fields (e.g. replace `super` with `401k`, remove tax fields entirely, etc.).
+- [ ] Remove hard-coded Australian payroll field assumptions from the data model and UI labels.
 
 ## Expenses tab
 
@@ -67,6 +79,64 @@ Legend: `[x]` shipped, `[ ]` not shipped.
 - [x] Goal list with editable name/current/target values.
 - [x] Goal progress bars in Forecast and sidebar.
 - [ ] Goal-linked notifications/milestones.
+
+## FIRE Insights tab
+
+> Available on the free tier — not a premium feature.
+
+- [ ] Dedicated tab in sidebar navigation (`FIRE` or `Retirement`).
+- [ ] FIRE number calculator: target net worth = annual expenses × chosen multiplier (default 25×).
+- [ ] Projected retirement age based on current net worth, monthly savings rate, and assumed growth rate.
+- [ ] Savings rate tracker: monthly savings as a % of gross income.
+- [ ] Spending vs net worth chart over time (combined view).
+- [ ] Configurable inputs: expected annual return, safe withdrawal rate, current age.
+- [ ] Milestone markers on the forecast chart (e.g. "Coast FIRE", "Lean FIRE", "Full FIRE").
+
+## Authentication
+
+- [x] SSO sign-in (Google and/or GitHub OAuth as initial providers).
+- [x] Anonymous / guest mode retained for users who don't sign in (local storage only, no sync).
+- [x] Session persistence across browser tabs.
+- [ ] Account settings page: manage connected providers, display name, sign out.
+- [ ] Auth gating: premium features require a signed-in account.
+
+## Premium Tier
+
+> The free tier continues to work fully offline with local browser storage. Premium unlocks cloud sync, AI features, and future paid capabilities.
+
+- [ ] Define free vs premium feature boundary (see individual sections for per-feature flags).
+- [ ] Paywall / upgrade prompt UI shown when a user attempts to access a premium feature.
+- [ ] Premium status stored server-side and checked on sign-in (no payment integration yet — manual flag or invite code for initial rollout).
+- [ ] Graceful degradation: if a user's subscription lapses, their data remains readable but cloud sync and AI features are paused.
+- [ ] Foundation for future Stripe or similar payment integration (stub only, not implemented).
+
+## Cloud Persistence (Premium)
+
+- [x] Supabase backend: users table, transactions table, categories table, rules table, accounts table.
+- [x] On sign-in, offer to migrate existing local storage data to cloud.
+- [x] Real-time sync across devices and browsers for signed-in premium users.
+- [x] Free tier continues to use local storage exclusively — no data sent to server.
+- [x] Conflict resolution strategy for offline edits (last-write-wins as initial approach).
+- [x] Data export: allow users to download all their cloud data as JSON at any time.
+
+## Auto-categorisation (Premium)
+
+- [ ] On CSV upload, send uncategorised transactions to OpenAI for a first-pass category suggestion.
+- [ ] Suggestions displayed inline in the Categories tab with accept / reject / edit actions.
+- [ ] Accepted suggestions auto-create a transaction rule so the same merchant is categorised on future uploads.
+- [ ] User can trigger re-categorisation on demand for any uncategorised transactions.
+- [ ] Category suggestions also proposed for any missing category definitions (new merchant types).
+- [ ] OpenAI API key configurable in settings (user-supplied key as initial approach, platform key later).
+- [ ] Free tier: no LLM categorisation; manual rules only.
+
+## Mobile App
+
+- [ ] React Native (Expo) wrapper targeting iOS initially.
+- [ ] Feature parity with web app for core tabs (Forecast, Accounts, Income, Expenses, Categories, FIRE Insights).
+- [ ] CSV upload via iOS share sheet or Files app picker.
+- [ ] Deployed to TestFlight for internal / beta testing.
+- [ ] App Store submission out of scope for initial milestone.
+- [ ] Shared business logic extracted into a platform-agnostic package (no DOM dependencies).
 
 ## Data ingestion
 

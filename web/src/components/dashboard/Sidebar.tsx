@@ -1,12 +1,17 @@
+import type { User } from "@supabase/supabase-js";
 import { formatCurrency } from "../../models";
 import type { DashboardTab, ResolvedGoalEntry } from "../../models";
+import { isSupabaseConfigured } from "../../lib/supabase";
 
 type AccountSummary = {
   netWorth: number;
   byBucket: Array<{ bucket: string; total: number }>;
 };
 
-type TabMeta = Record<DashboardTab, { label: string; title: string; subtitle: string }>;
+type TabMeta = Record<
+  DashboardTab,
+  { label: string; title: string; subtitle: string }
+>;
 
 export function Sidebar({
   tabMeta,
@@ -18,7 +23,12 @@ export function Sidebar({
   goals,
   currency,
   isDark,
-  onToggleTheme
+  onToggleTheme,
+  user,
+  onSignOut,
+  onSignIn,
+  onGoHome,
+  onExportData,
 }: {
   tabMeta: TabMeta;
   outputTabs: DashboardTab[];
@@ -30,11 +40,18 @@ export function Sidebar({
   currency: string;
   isDark: boolean;
   onToggleTheme: () => void;
+  user: User | null;
+  onSignOut: () => void;
+  onSignIn: () => void;
+  onGoHome: () => void;
+  onExportData: () => void;
 }) {
+  const avatarInitial = user?.email?.charAt(0).toUpperCase() ?? "?";
+  const avatarUrl = user?.user_metadata?.["avatar_url"] as string | undefined;
   return (
     <aside className="sidebar">
       <div className="brand">
-        <div className="brand-lockup">
+        <button type="button" className="brand-lockup brand-home-btn" onClick={onGoHome} aria-label="Go to home page">
           <div className="brand-mark" aria-hidden="true">
             <span className="brand-leaf" />
             <span className="brand-berry brand-berry-top" />
@@ -43,9 +60,9 @@ export function Sidebar({
           </div>
           <div className="brand-copy">
             <h1>Currant</h1>
-            <p className="brand-tagline">Financial Dashboard</p>
+            <p className="brand-tagline">Financial Health</p>
           </div>
-        </div>
+        </button>
       </div>
 
       <nav className="nav-list">
@@ -98,6 +115,48 @@ export function Sidebar({
         {isDark ? "Light mode" : "Dark mode"}
       </button>
 
+      {isSupabaseConfigured ? (
+        <div className="sidebar-user">
+          {user ? (
+            <>
+              <div className="sidebar-user-info">
+                <div className="sidebar-user-avatar">
+                  {avatarUrl ? <img src={avatarUrl} alt="" /> : avatarInitial}
+                </div>
+                <span className="sidebar-user-email">{user.email}</span>
+              </div>
+              <div className="sidebar-user-actions">
+                <button
+                  type="button"
+                  className="sidebar-action-btn"
+                  onClick={onExportData}
+                >
+                  Export data
+                </button>
+                <button
+                  type="button"
+                  className="sidebar-sign-out-btn"
+                  onClick={onSignOut}
+                >
+                  Sign out
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="sidebar-sign-in-prompt">
+              <span className="sidebar-free-label">Free tier — local only</span>
+              <button
+                type="button"
+                className="sidebar-sign-in-btn"
+                onClick={onSignIn}
+              >
+                Sign in for cloud sync
+              </button>
+            </div>
+          )}
+        </div>
+      ) : null}
+
       <section className="sidebar-card">
         <p className="sidebar-label">Goals</p>
         <ul className="goal-mini-list">
@@ -106,10 +165,17 @@ export function Sidebar({
               <li key={goal.id}>
                 <div>
                   <span>{goal.name || "Untitled Goal"}</span>
-                  <small>{Math.round(goal.progress * 100)}% · {formatCurrency(Math.round(goal.currentValue), currency)} / {formatCurrency(Math.round(goal.target), currency)}</small>
+                  <small>
+                    {Math.round(goal.progress * 100)}% ·{" "}
+                    {formatCurrency(Math.round(goal.currentValue), currency)} /{" "}
+                    {formatCurrency(Math.round(goal.target), currency)}
+                  </small>
                 </div>
                 <div className="goal-mini-track">
-                  <div className="goal-mini-fill" style={{ width: `${Math.round(goal.progress * 100)}%` }} />
+                  <div
+                    className="goal-mini-fill"
+                    style={{ width: `${Math.round(goal.progress * 100)}%` }}
+                  />
                 </div>
               </li>
             );

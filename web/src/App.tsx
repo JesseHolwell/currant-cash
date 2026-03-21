@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ACCOUNT_HISTORY_STORAGE_KEY,
   ACCOUNT_ENTRIES_STORAGE_KEY,
@@ -46,9 +46,13 @@ import {
   useTransactionBatches,
   useCategoryRules,
   useAccountsGoals,
-  usePayrollForecast
+  usePayrollForecast,
+  useAuth,
+  useCloudSync
 } from "./hooks";
 import { useDarkMode } from "./hooks/useDarkMode";
+import { isSupabaseConfigured } from "./lib/supabase";
+import { LandingPage } from "./components/LandingPage";
 import type {
   AccountEntry,
   AccountHistorySnapshot,
@@ -97,6 +101,7 @@ function nextMonthValue(month: string): string {
 }
 
 const APP_BACKUP_VERSION = 1;
+const FREE_TIER_KEY = "currant-free-tier";
 
 const APP_STORAGE_KEYS = [
   TRANSACTION_BATCHES_STORAGE_KEY,
@@ -156,6 +161,13 @@ function sanitizeStoredDrafts(raw: unknown): Record<string, TransactionDraft> {
 
 export default function App() {
   const { isDark, toggle: toggleTheme } = useDarkMode();
+  const { user, authLoading, signInWithGoogle, signOut } = useAuth();
+  const [bypassAuth, setBypassAuth] = useState(() => localStorage.getItem(FREE_TIER_KEY) === "1");
+  const [showLanding, setShowLanding] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showMigration, setShowMigration] = useState(false);
+  const cloudLoadedRef = useRef(false);
+
   const [activeTab, setActiveTab] = useState<DashboardTab>("transactionData");
   const [flowStartMode, setFlowStartMode] = useState<FlowStartMode>("income");
   const [incomeBasisMode, setIncomeBasisMode] = useState<IncomeBasisMode>("raw");
@@ -203,6 +215,8 @@ export default function App() {
     setForecastMonthlyDelta
   } = usePayrollForecast();
 
+  const { downloadSnapshot, scheduleSyncUpload } = useCloudSync(user, applySnapshot);
+
   const transactions = useMemo(
     () => mergeTransactionsFromBatches(transactionBatches),
     [transactionBatches]
@@ -239,6 +253,38 @@ export default function App() {
       setTimelinePeriod("all");
     }
   }, [timelineOptions, timelinePeriod]);
+
+  // Cloud sync: load user's cloud data on sign-in (one-time per session).
+  useEffect(() => {
+    if (!user || loading || cloudLoadedRef.current) return;
+    cloudLoadedRef.current = true;
+    downloadSnapshot().then((snapshot) => {
+      if (snapshot) {
+        applySnapshot(snapshot);
+      } else if (transactionBatches.length > 0) {
+        setShowMigration(true);
+      }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, loading]);
+
+  // Cloud sync: debounced upload on any state change while signed in.
+  useEffect(() => {
+    if (!user || !cloudLoadedRef.current) return;
+    scheduleSyncUpload({
+      transactionBatches,
+      manualRules,
+      drafts,
+      categoryDefinitions,
+      accountEntries,
+      accountHistory,
+      goals,
+      payrollDraft,
+      forecastSettings: { startNetWorth: forecastStartNetWorth, monthlyDelta: forecastMonthlyDelta }
+    });
+  // scheduleSyncUpload is intentionally omitted — it is stable within a session.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, transactionBatches, manualRules, drafts, categoryDefinitions, accountEntries, accountHistory, goals, payrollDraft, forecastStartNetWorth, forecastMonthlyDelta]);
 
   const viz = useMemo(
     () => buildVisualization(effectiveTransactions, meta.currency, incomeMode, incomeModel, merchantDetailMode, timelinePeriod),
@@ -915,6 +961,77 @@ export default function App() {
     setSettingsStatus("Restored built-in defaults and cleared all browser-stored data.");
   }
 
+  function handleContinueFree(): void {
+    localStorage.setItem(FREE_TIER_KEY, "1");
+    setBypassAuth(true);
+  }
+
+  async function handleSignOut(): Promise<void> {
+    localStorage.removeItem(FREE_TIER_KEY);
+    setBypassAuth(false);
+    await signOut();
+  }
+
+  function handleExportData(): void {
+    const snapshot = {
+      transactionBatches,
+      manualRules,
+      drafts,
+      categoryDefinitions,
+      accountEntries,
+      accountHistory,
+      goals,
+      payrollDraft,
+      forecastSettings: { startNetWorth: forecastStartNetWorth, monthlyDelta: forecastMonthlyDelta },
+      exportedAt: new Date().toISOString(),
+    };
+    const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `currant-export-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function applySnapshot(candidate: Record<string, unknown>): void {
+    const nextTransactionBatches = parseStoredTransactionBatches(candidate.transactionBatches);
+    const nextManualRules = sanitizeStoredManualRules(candidate.manualRules);
+    const nextDrafts = sanitizeStoredDrafts(candidate.drafts);
+    const nextCategoryDefinitions = parseStoredCategoryDefinitions(candidate.categoryDefinitions);
+    const nextAccountEntries = parseStoredAccountEntries(candidate.accountEntries);
+    const nextAccountHistory = parseStoredAccountHistory(candidate.accountHistory);
+    const nextGoals = parseStoredGoals(candidate.goals);
+    const nextPayrollDraft = sanitizePayrollDraft(candidate.payrollDraft);
+    const nextForecast = parseForecastSettings(candidate.forecastSettings);
+
+    setTransactionBatches(nextTransactionBatches);
+    setManualRules(nextManualRules);
+    setDrafts(nextDrafts);
+    setCategoryDefinitions(nextCategoryDefinitions.length > 0 ? nextCategoryDefinitions : buildDefaultCategoryDefinitions());
+    setAccountEntries(nextAccountEntries.length > 0 ? nextAccountEntries : DEFAULT_ACCOUNT_ENTRIES);
+    setAccountHistory(nextAccountHistory);
+    setGoals(nextGoals.length > 0 ? nextGoals : DEFAULT_GOALS);
+    setPayrollDraft(nextPayrollDraft);
+    setForecastStartNetWorth(nextForecast.startNetWorth);
+    setForecastMonthlyDelta(nextForecast.monthlyDelta);
+  }
+
+  function migrateLocalDataToCloud(): void {
+    scheduleSyncUpload({
+      transactionBatches,
+      manualRules,
+      drafts,
+      categoryDefinitions,
+      accountEntries,
+      accountHistory,
+      goals,
+      payrollDraft,
+      forecastSettings: { startNetWorth: forecastStartNetWorth, monthlyDelta: forecastMonthlyDelta }
+    }, 0);
+    setShowMigration(false);
+  }
+
   function exportAllData(): void {
     try {
       const backup = {
@@ -1012,11 +1129,22 @@ export default function App() {
     }
   }
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <main className="dashboard-shell loading-state">
         <p>Loading saved dataset...</p>
       </main>
+    );
+  }
+
+  if ((isSupabaseConfigured && !user && !bypassAuth) || showLanding) {
+    return (
+      <LandingPage
+        onContinueFree={handleContinueFree}
+        onSignUp={signInWithGoogle}
+        onLogIn={signInWithGoogle}
+        onBack={showLanding ? () => setShowLanding(false) : undefined}
+      />
     );
   }
 
@@ -1075,6 +1203,11 @@ export default function App() {
         currency={meta.currency}
         isDark={isDark}
         onToggleTheme={toggleTheme}
+        user={user}
+        onSignOut={handleSignOut}
+        onSignIn={() => setShowAuthModal(true)}
+        onGoHome={() => setShowLanding(true)}
+        onExportData={handleExportData}
       />
 
       <section className="workspace">
@@ -1211,6 +1344,47 @@ export default function App() {
           />
         ) : null}
       </section>
+
+      {/* Auth modal */}
+      {showAuthModal ? (
+        <div className="migration-overlay" onClick={() => setShowAuthModal(false)}>
+          <div className="migration-dialog" onClick={(e) => e.stopPropagation()}>
+            <h2>Sign in to Currant</h2>
+            <p>Sign in with your Google or GitHub account to enable cloud sync across devices.</p>
+            <div className="migration-actions">
+              <button type="button" className="migration-btn-primary" onClick={signInWithGoogle}>
+                Continue with Google
+              </button>
+            </div>
+            <div className="migration-actions">
+              <button type="button" className="migration-btn-secondary" onClick={() => setShowAuthModal(false)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Migration dialog */}
+      {showMigration ? (
+        <div className="migration-overlay">
+          <div className="migration-dialog">
+            <h2>Migrate local data to cloud?</h2>
+            <p>
+              You have local data saved in this browser. Would you like to upload it to your cloud account
+              so it&apos;s available on all your devices?
+            </p>
+            <div className="migration-actions">
+              <button type="button" className="migration-btn-primary" onClick={migrateLocalDataToCloud}>
+                Yes, upload to cloud
+              </button>
+              <button type="button" className="migration-btn-secondary" onClick={() => setShowMigration(false)}>
+                Keep local only
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

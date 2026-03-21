@@ -68,7 +68,7 @@ function buildCoverageMonths(batches: TransactionBatch[]): CalendarMonth[] {
     const thisMonthKey = monthKey(`${currentYear}-${String(currentMonth + 1).padStart(2, "0")}-01`);
     months.push({
       monthKey: thisMonthKey,
-      label: formatTimelineLabel(thisMonthKey),
+      label: new Date(currentYear, currentMonth, 1).toLocaleString("en-AU", { month: "short", year: "numeric" }),
       coveredDays: coveredCount,
       totalDays,
       days
