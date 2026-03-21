@@ -964,6 +964,7 @@ export default function App() {
   function handleContinueFree(): void {
     localStorage.setItem(FREE_TIER_KEY, "1");
     setBypassAuth(true);
+    setShowLanding(false);
   }
 
   async function handleSignOut(): Promise<void> {
