@@ -28,7 +28,6 @@ export function Sidebar({
   onSignOut,
   onSignIn,
   onGoHome,
-  onExportData,
 }: {
   tabMeta: TabMeta;
   outputTabs: DashboardTab[];
@@ -44,7 +43,6 @@ export function Sidebar({
   onSignOut: () => void;
   onSignIn: () => void;
   onGoHome: () => void;
-  onExportData: () => void;
 }) {
   const avatarInitial = user?.email?.charAt(0).toUpperCase() ?? "?";
   const avatarUrl = user?.user_metadata?.["avatar_url"] as string | undefined;
@@ -125,22 +123,13 @@ export function Sidebar({
                 </div>
                 <span className="sidebar-user-email">{user.email}</span>
               </div>
-              <div className="sidebar-user-actions">
-                <button
-                  type="button"
-                  className="sidebar-action-btn"
-                  onClick={onExportData}
-                >
-                  Export data
-                </button>
-                <button
-                  type="button"
-                  className="sidebar-sign-out-btn"
-                  onClick={onSignOut}
-                >
-                  Sign out
-                </button>
-              </div>
+              <button
+                type="button"
+                className="sidebar-sign-out-btn"
+                onClick={onSignOut}
+              >
+                Sign out
+              </button>
             </>
           ) : (
             <div className="sidebar-sign-in-prompt">

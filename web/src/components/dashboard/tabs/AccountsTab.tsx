@@ -16,6 +16,7 @@ export function AccountsTab({
   goals,
   accountHistorySnapshots,
   inferredMonthlyNetFlow,
+  inferredMonthlyExpenses,
   forecastStartNetWorth,
   forecastMonthlyDelta,
   onAddAccount,
@@ -39,6 +40,7 @@ export function AccountsTab({
   goals: ResolvedGoalEntry[];
   accountHistorySnapshots: AccountHistorySnapshot[];
   inferredMonthlyNetFlow: number;
+  inferredMonthlyExpenses: number;
   forecastStartNetWorth: number | null;
   forecastMonthlyDelta: number | null;
   onAddAccount: () => void;
@@ -126,6 +128,12 @@ export function AccountsTab({
         <p className="mode-note">
           Define savings or net worth targets against manual values, selected accounts, or total net worth.
         </p>
+        {inferredMonthlyExpenses > 0 ? (
+          <p className="mode-note">
+            A 6-month emergency fund is recommended. Based on your average monthly expenses of {formatCurrency(inferredMonthlyExpenses, currency)}, that's{" "}
+            <strong>{formatCurrency(inferredMonthlyExpenses * 6, currency)}</strong>.
+          </p>
+        ) : null}
         <div className="goal-grid">
           {goals.map((goal) => {
             return (

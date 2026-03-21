@@ -463,7 +463,7 @@ export default function App() {
     });
   }, [accountHistorySorted, accountEntries]);
 
-  const { inferredMonthlyNetFlow, inferredMonthCount } = useMemo(() => {
+  const { inferredMonthlyNetFlow, inferredMonthlyExpenses, inferredMonthCount } = useMemo(() => {
     const byMonth = new Map<string, { credits: number; debits: number }>();
     for (const transaction of effectiveTransactions) {
       const month = monthKey(transaction.date);
@@ -486,8 +486,10 @@ export default function App() {
       return { inferredMonthlyNetFlow: 0, inferredMonthCount: 0 };
     }
     const totalNet = monthSummaries.reduce((sum, summary) => sum + (summary.credits - summary.debits), 0);
+    const totalDebits = monthSummaries.reduce((sum, summary) => sum + summary.debits, 0);
     return {
       inferredMonthlyNetFlow: Number((totalNet / monthSummaries.length).toFixed(2)),
+      inferredMonthlyExpenses: Number((totalDebits / monthSummaries.length).toFixed(2)),
       inferredMonthCount: monthSummaries.length
     };
   }, [effectiveTransactions]);
@@ -973,27 +975,6 @@ export default function App() {
     await signOut();
   }
 
-  function handleExportData(): void {
-    const snapshot = {
-      transactionBatches,
-      manualRules,
-      drafts,
-      categoryDefinitions,
-      accountEntries,
-      accountHistory,
-      goals,
-      payrollDraft,
-      forecastSettings: { startNetWorth: forecastStartNetWorth, monthlyDelta: forecastMonthlyDelta },
-      exportedAt: new Date().toISOString(),
-    };
-    const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `currant-export-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
 
   function applySnapshot(candidate: Record<string, unknown>): void {
     const nextTransactionBatches = parseStoredTransactionBatches(candidate.transactionBatches);
@@ -1208,7 +1189,6 @@ export default function App() {
         onSignOut={handleSignOut}
         onSignIn={() => setShowAuthModal(true)}
         onGoHome={() => setShowLanding(true)}
-        onExportData={handleExportData}
       />
 
       <section className="workspace">
@@ -1255,6 +1235,7 @@ export default function App() {
             goals={resolvedGoals}
             accountHistorySnapshots={accountHistorySorted}
             inferredMonthlyNetFlow={inferredMonthlyNetFlow}
+            inferredMonthlyExpenses={inferredMonthlyExpenses}
             forecastStartNetWorth={forecastStartNetWorth}
             forecastMonthlyDelta={forecastMonthlyDelta}
             onAddAccount={addAccount}
