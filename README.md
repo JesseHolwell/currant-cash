@@ -18,6 +18,7 @@ Turn bank CSV exports into a clear, local-first money dashboard with minimal fri
 - Parsing/modeling: `TypeScript + Papa Parse`
 - State: `Zustand` with localStorage persistence
 - Testing: `Vitest` (domain unit tests)
+- iOS: `Capacitor` (wraps the web build in a native `WKWebView`)
 
 ## Quick start
 
@@ -56,6 +57,31 @@ npm run test:coverage # Coverage report
 ```
 
 Tests cover all pure domain functions in `web/src/domain/` — 7 test files, 127 tests.
+
+### iOS / TestFlight
+
+Prerequisites: macOS, Xcode, Apple Developer account.
+
+```bash
+# From web/
+npm run ios          # build → sync to Xcode project → open Xcode
+```
+
+Or step by step:
+
+```bash
+cd web
+npm run build        # compile to dist/
+npx cap sync ios     # copy dist/ into the Xcode project
+npx cap open ios     # open Xcode
+```
+
+In Xcode:
+1. Select your Apple Developer team under *Signing & Capabilities*.
+2. **Product → Archive** to build a release binary.
+3. Upload to TestFlight via Xcode Organizer.
+
+> Re-run `npx cap sync ios` (or `npm run ios`) after every web code change — it keeps the bundled assets up to date in the Xcode project.
 
 Legacy (deprecated) CLI command:
 
