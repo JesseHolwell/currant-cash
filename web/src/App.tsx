@@ -52,6 +52,7 @@ import { useFireStore } from "./store/fire";
 import { isSupabaseConfigured } from "./lib/supabase";
 import { LandingPage } from "./components/LandingPage";
 import { Dashboard } from "./components/dashboard/Dashboard";
+import { OnboardingWizard } from "./components/onboarding/OnboardingWizard";
 import { SAMPLE_DATASET } from "./domain/sampleData";
 import type {
   AccountEntry,
@@ -86,6 +87,7 @@ function nextMonthValue(month: string): string {
 const APP_BACKUP_VERSION = 1;
 const FREE_TIER_KEY = "currant-free-tier";
 const SAMPLE_MODE_KEY = "currant-sample-mode";
+const ONBOARDING_COMPLETE_KEY = "currant-onboarding-complete";
 
 const APP_STORAGE_KEYS = [
   TRANSACTION_BATCHES_STORAGE_KEY,
@@ -112,7 +114,10 @@ export default function App() {
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const cloudLoadedRef = useRef(false);
 
-  const [activeTab, setActiveTab] = useState<DashboardTab>("transactionData");
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState(0);
+
+  const [activeTab, setActiveTab] = useState<DashboardTab>("forecast");
   const [flowStartMode, setFlowStartMode] = useState<FlowStartMode>("income");
   const [incomeBasisMode, setIncomeBasisMode] = useState<IncomeBasisMode>("raw");
   const [merchantDetailMode, setMerchantDetailMode] = useState<MerchantDetailMode>("summary");
@@ -152,7 +157,12 @@ export default function App() {
 
   const { downloadSnapshot, scheduleSyncUpload } = useCloudSync(user, applySnapshot);
 
-  const { openaiApiKey, setOpenaiApiKey } = useAppSettings();
+  const {
+    openaiApiKey, setOpenaiApiKey,
+    displayName, setDisplayName,
+    birthYear, setBirthYear,
+    currency, setCurrency,
+  } = useAppSettings();
   const {
     aiSuggestions,
     runAiCategorization,
@@ -172,6 +182,9 @@ export default function App() {
         applySnapshot(snapshot);
       } else if (transactionBatches.length > 0) {
         setShowMigration(true);
+      } else if (!localStorage.getItem(ONBOARDING_COMPLETE_KEY)) {
+        setOnboardingStep(0);
+        setShowOnboarding(true);
       }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -221,9 +234,10 @@ export default function App() {
     rulesFilter,
     forecastStartNetWorth: isSampleMode ? sd.forecastStartNetWorth : forecastStartNetWorth,
     forecastMonthlyDelta: isSampleMode ? sd.forecastMonthlyDelta : forecastMonthlyDelta,
-    fireCurrentAge: isSampleMode ? sd.fireCurrentAge : fireCurrentAge,
+    fireCurrentAge: isSampleMode ? sd.fireCurrentAge : (birthYear > 0 ? new Date().getFullYear() - birthYear : fireCurrentAge),
     fireAnnualReturn: isSampleMode ? sd.fireAnnualReturn : fireAnnualReturn,
     fireMultiplier: isSampleMode ? sd.fireMultiplier : fireMultiplier,
+    currency: isSampleMode ? undefined : currency,
   });
 
   // Keep timeline period valid when data changes
@@ -472,7 +486,7 @@ export default function App() {
       resetSuggestions();
       setError(null);
       setTimelinePeriod("all");
-      if (activeTab !== "transactionData") setActiveTab("transactionData");
+      if (activeTab !== "imports") setActiveTab("imports");
 
       const uploadedIncomeModel = buildIncomeModelFromTransactions(imported.transactions, payrollDraft);
       if (!uploadedIncomeModel.enabled && incomeBasisMode === "modeled") {
@@ -508,7 +522,7 @@ export default function App() {
   function deleteBatch(batchId: string): void {
     setTransactionBatches((prev) => {
       const next = prev.filter((b) => b.id !== batchId);
-      if (next.length === 0) setActiveTab("transactionData");
+      if (next.length === 0) setActiveTab("imports");
       return next;
     });
     setError(null);
@@ -521,7 +535,7 @@ export default function App() {
     setTransactionBatches([]);
     setError(null);
     setTimelinePeriod("all");
-    setActiveTab("transactionData");
+    setActiveTab("imports");
     if (incomeBasisMode === "modeled") setIncomeBasisMode("raw");
     setTransactionDataStatus("Cleared all CSV data. Add a CSV to begin.");
   }
@@ -684,6 +698,10 @@ export default function App() {
     localStorage.setItem(FREE_TIER_KEY, "1");
     setBypassAuth(true);
     setShowLanding(false);
+    if (!localStorage.getItem(ONBOARDING_COMPLETE_KEY)) {
+      setOnboardingStep(0);
+      setShowOnboarding(true);
+    }
   }
 
   function handleEnterSampleMode(): void {
@@ -716,12 +734,22 @@ export default function App() {
     setPayrollDraft(EMPTY_PAYROLL_DRAFT);
     setForecastStartNetWorth(null);
     setForecastMonthlyDelta(null);
-    setActiveTab("transactionData");
+    setActiveTab("imports");
     // Show landing page if Supabase is configured so they can sign up / continue free
     if (isSupabaseConfigured) {
       localStorage.removeItem(FREE_TIER_KEY);
       setBypassAuth(false);
       setShowLanding(true);
+    }
+  }
+
+  function handleCompleteOnboarding(goToTab?: string): void {
+    localStorage.setItem(ONBOARDING_COMPLETE_KEY, "1");
+    setShowOnboarding(false);
+    if (goToTab) {
+      setActiveTab(goToTab as DashboardTab);
+    } else {
+      setActiveTab("forecast");
     }
   }
 
@@ -749,6 +777,43 @@ export default function App() {
         onLogIn={signInWithGoogle}
         onPreviewSample={handleEnterSampleMode}
         onBack={showLanding ? () => setShowLanding(false) : undefined}
+      />
+    );
+  }
+
+  if (showOnboarding) {
+    return (
+      <OnboardingWizard
+        step={onboardingStep}
+        onStepChange={setOnboardingStep}
+        onComplete={handleCompleteOnboarding}
+        user={user}
+        isDark={isDark}
+        onToggleTheme={toggleTheme}
+        onSignOut={handleSignOut}
+        onSignIn={() => setShowAuthModal(true)}
+        onGoHome={() => setShowLanding(true)}
+        displayName={user?.user_metadata?.["full_name"] as string ?? displayName}
+        onDisplayNameChange={setDisplayName}
+        birthYear={birthYear}
+        onBirthYearChange={setBirthYear}
+        currency={currency}
+        onCurrencyChange={setCurrency}
+        payrollDraft={payrollDraft}
+        onPayrollDraftChange={(patch) => setPayrollDraft((prev) => ({ ...prev, ...patch }))}
+        accountEntries={accountEntries}
+        onAddAccount={addAccount}
+        onUpdateAccount={updateAccount}
+        onRemoveAccount={removeAccount}
+        goals={derived.resolvedGoals}
+        onAddGoal={addGoal}
+        onUpdateGoal={updateGoal}
+        onRemoveGoal={removeGoal}
+        inferredMonthlyExpenses={derived.inferredMonthlyExpenses}
+        batches={transactionBatches}
+        transactionDataStatus={transactionDataStatus}
+        transactionError={error}
+        onUpload={handleCsvUpload}
       />
     );
   }
@@ -837,6 +902,11 @@ export default function App() {
       onFireCurrentAgeChange={setFireCurrentAge}
       onFireAnnualReturnChange={setFireAnnualReturn}
       onFireMultiplierChange={setFireMultiplier}
+      displayName={displayName}
+      onDisplayNameChange={setDisplayName}
+      birthYear={birthYear}
+      onBirthYearChange={setBirthYear}
+      onCurrencyChange={setCurrency}
       onResetAllData={resetAllData}
       onExportAllData={exportAllData}
       onImportData={importAllData}

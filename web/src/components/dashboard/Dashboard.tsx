@@ -1,5 +1,6 @@
 import type { User } from "@supabase/supabase-js";
 import { AccountsTab } from "../../features/accounts/AccountsTab";
+import { GoalsTab } from "../../features/goals/GoalsTab";
 import { CategoriesTab } from "../../features/categories/CategoriesTab";
 import { ApiKeyModal } from "../../features/categories/ApiKeyModal";
 import { ExpensesTab } from "../../features/expenses/ExpensesTab";
@@ -131,6 +132,11 @@ interface DashboardProps {
   onFireCurrentAgeChange: (age: number) => void;
   onFireAnnualReturnChange: (rate: number) => void;
   onFireMultiplierChange: (multiplier: number) => void;
+  displayName: string;
+  onDisplayNameChange: (name: string) => void;
+  birthYear: number;
+  onBirthYearChange: (year: number) => void;
+  onCurrencyChange: (currency: string) => void;
   onResetAllData: () => void;
   onExportAllData: () => void;
   onImportData: (file: File) => Promise<void>;
@@ -175,20 +181,22 @@ const TAB_META: Record<DashboardTab, { label: string; title: string; subtitle: s
     title: "Settings & Backups",
     subtitle: "Manage browser storage, backups, and full-app resets."
   },
-  transactionData: {
-    label: "Transaction Data",
-    title: "Transaction Data",
+  imports: {
+    label: "Imports",
+    title: "Imports",
     subtitle: "Manage uploaded CSV files, coverage ranges, and historical transaction periods."
   },
   fireInsights: {
     label: "FIRE",
     title: "FIRE Insights",
     subtitle: "Calculate your FIRE number, retirement timeline, and savings milestones."
-  }
+  },
+  goals: {
+    label: "Goals",
+    title: "Goals",
+    subtitle: "Define savings and net worth targets, and track your progress."
+  },
 };
-
-const OUTPUT_TABS: DashboardTab[] = ["forecast", "expenses", "fireInsights"];
-const INPUT_TABS: DashboardTab[] = ["transactionData", "accounts", "income", "categories"];
 
 export function Dashboard({
   isSampleMode,
@@ -271,6 +279,11 @@ export function Dashboard({
   onFireCurrentAgeChange,
   onFireAnnualReturnChange,
   onFireMultiplierChange,
+  displayName,
+  onDisplayNameChange,
+  birthYear,
+  onBirthYearChange,
+  onCurrencyChange,
   onResetAllData,
   onExportAllData,
   onImportData,
@@ -298,6 +311,16 @@ export function Dashboard({
       />
 
       <main className="dashboard-shell">
+        <Sidebar
+          tabMeta={TAB_META}
+          activeTab={activeTab}
+          onTabChange={onTabChange}
+          accountSummary={derived.accountSummary}
+          goals={derived.resolvedGoals}
+          currency={derived.meta.currency}
+        />
+
+      <section className="workspace">
         {isSampleMode ? (
           <div className="sample-banner">
             <span className="sample-banner-text">
@@ -308,19 +331,6 @@ export function Dashboard({
             </button>
           </div>
         ) : null}
-
-        <Sidebar
-          tabMeta={TAB_META}
-          outputTabs={OUTPUT_TABS}
-          inputTabs={INPUT_TABS}
-          activeTab={activeTab}
-          onTabChange={onTabChange}
-          accountSummary={derived.accountSummary}
-          goals={derived.resolvedGoals}
-          currency={derived.meta.currency}
-        />
-
-      <section className="workspace">
         <WorkspaceHeader
           title={activeTabMeta.title}
           subtitle={activeTabMeta.subtitle}
@@ -328,7 +338,7 @@ export function Dashboard({
           isSampleMode={isSampleMode}
         />
 
-        {activeTab === "transactionData" ? (
+        {activeTab === "imports" ? (
           <TransactionDataTab
             batches={transactionBatches}
             totalTransactionCount={derived.transactions.length}
@@ -363,18 +373,13 @@ export function Dashboard({
             currency={derived.meta.currency}
             accountSummary={derived.accountSummary}
             accountEntries={accountEntries}
-            goals={derived.resolvedGoals}
             accountHistorySnapshots={derived.accountHistorySorted}
             inferredMonthlyNetFlow={derived.inferredMonthlyNetFlow}
-            inferredMonthlyExpenses={derived.inferredMonthlyExpenses}
             forecastStartNetWorth={forecastStartNetWorth}
             forecastMonthlyDelta={forecastMonthlyDelta}
             onAddAccount={onAddAccount}
             onUpdateAccount={onUpdateAccount}
             onRemoveAccount={onRemoveAccount}
-            onAddGoal={onAddGoal}
-            onUpdateGoal={onUpdateGoal}
-            onRemoveGoal={onRemoveGoal}
             onAddAccountHistorySnapshot={onAddAccountHistorySnapshot}
             onUpdateAccountHistoryMonth={onUpdateAccountHistoryMonth}
             onUpdateAccountHistoryBalance={onUpdateAccountHistoryBalance}
@@ -383,6 +388,18 @@ export function Dashboard({
             onForecastMonthlyDeltaChange={onForecastMonthlyDeltaChange}
             onResetStartNetWorth={onResetStartNetWorth}
             onResetMonthlyDelta={onResetMonthlyDelta}
+          />
+        ) : null}
+
+        {activeTab === "goals" ? (
+          <GoalsTab
+            currency={derived.meta.currency}
+            goals={derived.resolvedGoals}
+            accountEntries={accountEntries}
+            inferredMonthlyExpenses={derived.inferredMonthlyExpenses}
+            onAddGoal={onAddGoal}
+            onUpdateGoal={onUpdateGoal}
+            onRemoveGoal={onRemoveGoal}
           />
         ) : null}
 
@@ -399,6 +416,12 @@ export function Dashboard({
           <SettingsTab
             statusMessage={settingsStatus}
             errorMessage={settingsError}
+            displayName={displayName}
+            onDisplayNameChange={onDisplayNameChange}
+            birthYear={birthYear}
+            onBirthYearChange={onBirthYearChange}
+            currency={derived.meta.currency}
+            onCurrencyChange={onCurrencyChange}
             onResetAllData={onResetAllData}
             onExportAllData={onExportAllData}
             onImportData={onImportData}

@@ -46,6 +46,8 @@ interface DashboardStateInput {
   fireCurrentAge: number;
   fireAnnualReturn: number;
   fireMultiplier: number;
+  /** User-configured currency override. Falls back to batch-derived currency. */
+  currency?: string;
 }
 
 export function useDashboardState({
@@ -65,7 +67,8 @@ export function useDashboardState({
   forecastMonthlyDelta,
   fireCurrentAge,
   fireAnnualReturn,
-  fireMultiplier
+  fireMultiplier,
+  currency: currencyOverride
 }: DashboardStateInput) {
   const transactions = useMemo(
     () => mergeTransactionsFromBatches(transactionBatches),
@@ -73,8 +76,11 @@ export function useDashboardState({
   );
 
   const meta: SankeyMeta = useMemo(
-    () => deriveMetaFromBatches(transactionBatches),
-    [transactionBatches]
+    () => {
+      const derived = deriveMetaFromBatches(transactionBatches);
+      return currencyOverride ? { ...derived, currency: currencyOverride } : derived;
+    },
+    [transactionBatches, currencyOverride]
   );
 
   const effectiveTransactions = useMemo(
