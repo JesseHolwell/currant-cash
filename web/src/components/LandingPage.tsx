@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 type LandingPageProps = {
   onContinueFree: () => void;
   onSignUp: () => void;
@@ -63,29 +65,72 @@ export function LandingPage({
   onPreviewSample,
   onBack,
 }: LandingPageProps) {
+  const [progress, setProgress] = useState(0);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const FADE_START = 50;
+    const FADE_END = 150;
+    const onScroll = () => {
+      const scrollY = window.scrollY;
+      const p = Math.min(
+        1,
+        Math.max(0, (scrollY - FADE_START) / (FADE_END - FADE_START)),
+      );
+      setProgress(p);
+      setScrolled(scrollY > 0);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
     <div className="landing">
       {/* ── Nav header ── */}
-      <nav className="landing-nav">
+      <nav className={`landing-nav${scrolled ? " landing-nav--scrolled" : ""}`}>
         <div className="landing-nav-brand">
-          <div className="brand-mark" aria-hidden="true">
+          <div
+            className="brand-mark"
+            aria-hidden="true"
+            style={{
+              transform: `scale(${1 - 0.5 * progress})`,
+              transformOrigin: "left center",
+              marginRight: `${-28 * progress}px`,
+            }}
+          >
             <span className="brand-leaf" />
             <span className="brand-berry brand-berry-top" />
             <span className="brand-berry brand-berry-left" />
             <span className="brand-berry brand-berry-right" />
           </div>
-          <span className="landing-nav-wordmark">Currant</span>
+          <span
+            className="landing-nav-wordmark"
+            style={{
+              opacity: progress,
+              transform: `translateY(${(1 - progress) * 6}px)`,
+            }}
+          >
+            Currant
+          </span>
         </div>
         <div className="landing-nav-actions">
           {onBack ? (
-            <button type="button" className="landing-btn-ghost" onClick={onBack}>
+            <button
+              type="button"
+              className="landing-btn-ghost"
+              onClick={onBack}
+            >
               ← Back to dashboard
             </button>
           ) : null}
           <button type="button" className="landing-nav-login" onClick={onLogIn}>
             Log in
           </button>
-          <button type="button" className="landing-btn-primary landing-nav-signup" onClick={onSignUp}>
+          <button
+            type="button"
+            className="landing-btn-primary landing-nav-signup"
+            onClick={onSignUp}
+          >
             Sign up
           </button>
         </div>
@@ -93,10 +138,23 @@ export function LandingPage({
 
       {/* ── Hero ── */}
       <header className="landing-hero">
-        <p className="landing-tagline">Financial Intelligence, Naturally Preserved.</p>
+        <h1
+          className="landing-hero-brand"
+          aria-hidden="true"
+          style={{
+            opacity: 1 - progress,
+            transform: `translateY(${-14 * progress}px)`,
+          }}
+        >
+          Currant
+        </h1>
+        <p className="landing-tagline">
+          Financial Health, Naturally Preserved.
+        </p>
         <p className="landing-description">
-          An offline-first dashboard for your bank CSVs. Track net worth, expenses,
-          and FIRE projections without ever creating an account or linking a bank.
+          An offline-first dashboard for your bank CSVs. Track net worth,
+          expenses, and FIRE projections without ever creating an account or
+          linking a bank.
         </p>
         <div className="landing-cta-group">
           <button

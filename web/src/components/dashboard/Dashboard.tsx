@@ -38,6 +38,7 @@ interface DashboardProps {
   // Sample mode
   isSampleMode: boolean;
   onExitSampleMode: () => void;
+  sampleBannerLabel?: string;
 
   // Auth
   user: User | null;
@@ -202,6 +203,7 @@ const TAB_META: Record<DashboardTab, { label: string; title: string; subtitle: s
 export function Dashboard({
   isSampleMode,
   onExitSampleMode,
+  sampleBannerLabel = "Start with my data",
   user,
   isDark,
   onToggleTheme,
@@ -328,7 +330,7 @@ export function Dashboard({
               You&apos;re previewing sample data &mdash; no changes will be saved.
             </span>
             <button type="button" className="sample-banner-cta" onClick={onExitSampleMode}>
-              Start with my data &rarr;
+              {sampleBannerLabel} &rarr;
             </button>
           </div>
         ) : null}

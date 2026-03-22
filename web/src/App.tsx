@@ -764,10 +764,17 @@ export default function App() {
     setActiveTab("forecast");
   }
 
+  const hasExistingData = !!user || !!localStorage.getItem(ONBOARDING_COMPLETE_KEY);
+
   function handleExitSampleMode(): void {
     sessionStorage.removeItem(SAMPLE_MODE_KEY);
     setIsSampleMode(false);
-    // Silently reset stores to a clean default state
+    if (hasExistingData) {
+      // User already has data — just drop back into their dashboard
+      setShowLanding(false);
+      return;
+    }
+    // No existing data — wipe stores and start onboarding
     for (const key of APP_STORAGE_KEYS) {
       localStorage.removeItem(key);
     }
@@ -783,12 +790,10 @@ export default function App() {
     setForecastStartNetWorth(null);
     setForecastMonthlyDelta(null);
     setActiveTab("imports");
-    // Show landing page if Supabase is configured so they can sign up / continue free
-    if (isSupabaseConfigured) {
-      localStorage.removeItem(FREE_TIER_KEY);
-      setBypassAuth(false);
-      setShowLanding(true);
-    }
+    localStorage.setItem(FREE_TIER_KEY, "1");
+    setBypassAuth(true);
+    setOnboardingStep(0);
+    setShowOnboarding(true);
   }
 
   function handleCompleteOnboarding(goToTab?: string): void {
@@ -839,7 +844,7 @@ export default function App() {
         isDark={isDark}
         onToggleTheme={toggleTheme}
         onSignIn={() => setShowAuthModal(true)}
-        onGoHome={() => setShowLanding(true)}
+        onGoHome={() => { setShowLanding(true); setShowOnboarding(false); }}
         displayName={user?.user_metadata?.["full_name"] as string ?? displayName}
         onDisplayNameChange={setDisplayName}
         birthYear={birthYear}
@@ -869,6 +874,7 @@ export default function App() {
     <Dashboard
       isSampleMode={isSampleMode}
       onExitSampleMode={handleExitSampleMode}
+      sampleBannerLabel={hasExistingData ? "Back to my data" : "Start with my data"}
       user={user}
       isDark={isDark}
       onToggleTheme={toggleTheme}
