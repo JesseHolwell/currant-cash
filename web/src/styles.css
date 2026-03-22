@@ -4211,3 +4211,25 @@ textarea {
   border-color: var(--accent-border);
   box-shadow: 0 0 0 3px var(--accent-ring);
 }
+
+/* ─── Settings — danger card & button ────────────────────────────────── */
+
+.settings-action-card--danger {
+  border-color: var(--danger-soft);
+  background: var(--danger-soft);
+}
+
+.settings-action-card--danger h4 {
+  color: var(--danger);
+}
+
+.mode-btn--danger {
+  background: none;
+  border: 1px solid var(--danger);
+  color: var(--danger);
+}
+
+.mode-btn--danger:hover {
+  background: var(--danger);
+  color: #fff;
+}

@@ -155,7 +155,7 @@ export default function App() {
     forecastMonthlyDelta, setForecastMonthlyDelta
   } = usePayrollForecast();
 
-  const { downloadSnapshot, scheduleSyncUpload } = useCloudSync(user, applySnapshot);
+  const { downloadSnapshot, scheduleSyncUpload, deleteSnapshot } = useCloudSync(user, applySnapshot);
 
   const {
     openaiApiKey, setOpenaiApiKey,
@@ -604,6 +604,54 @@ export default function App() {
     setSettingsStatus("Restored built-in defaults and cleared all browser-stored data.");
   }
 
+  async function handleDeleteAllData(): Promise<void> {
+    const isCloud = !!user;
+    const message = isCloud
+      ? "This will permanently delete all your data from this device and from the cloud. This cannot be undone."
+      : "This will permanently delete all your data from this browser. This cannot be undone.";
+    if (!window.confirm(message)) return;
+
+    for (const key of APP_STORAGE_KEYS) {
+      localStorage.removeItem(key);
+    }
+    localStorage.removeItem(AI_SUGGESTIONS_STORAGE_KEY);
+    localStorage.removeItem(ONBOARDING_COMPLETE_KEY);
+
+    setTransactionBatches([]);
+    setManualRules(EMPTY_MANUAL_RULES);
+    setDrafts({});
+    setCategoryDefinitions(buildDefaultCategoryDefinitions());
+    setAccountEntries([]);
+    setAccountHistory([]);
+    setGoals([]);
+    setPayrollDraft(EMPTY_PAYROLL_DRAFT);
+    setForecastStartNetWorth(null);
+    setForecastMonthlyDelta(null);
+    setFlowStartMode("income");
+    setIncomeBasisMode("raw");
+    setMerchantDetailMode("summary");
+    setTimelinePeriod("all");
+    setRulesFilter("needs");
+    setError(null);
+    setSettingsError(null);
+
+    if (isCloud) {
+      try {
+        await deleteSnapshot();
+      } catch {
+        // Best-effort — local data is already gone, proceed with sign-out
+      }
+    }
+
+    localStorage.removeItem(FREE_TIER_KEY);
+    setBypassAuth(false);
+    if (isCloud) {
+      await signOut();
+    } else {
+      setShowLanding(true);
+    }
+  }
+
   function exportAllData(): void {
     try {
       const backup = {
@@ -907,7 +955,8 @@ export default function App() {
       birthYear={birthYear}
       onBirthYearChange={setBirthYear}
       onCurrencyChange={setCurrency}
-      onResetAllData={resetAllData}
+      onDeleteAllData={handleDeleteAllData}
+      userEmail={user?.email ?? null}
       onExportAllData={exportAllData}
       onImportData={importAllData}
       onRunAiSuggestions={handleRunAiSuggestions}

@@ -85,5 +85,14 @@ export function useCloudSync(
     };
   }, []);
 
-  return { uploadSnapshot, downloadSnapshot, scheduleSyncUpload };
+  const deleteSnapshot = useCallback(async (): Promise<void> => {
+    if (!user || !isSupabaseConfigured) return;
+    await supabase
+      .from("user_data")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("data_key", CLOUD_KEY);
+  }, [user]);
+
+  return { uploadSnapshot, downloadSnapshot, scheduleSyncUpload, deleteSnapshot };
 }

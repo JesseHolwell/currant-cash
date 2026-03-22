@@ -63,8 +63,7 @@ export function AppNav({
               <div className="app-nav-avatar" aria-hidden="true">
                 {avatarUrl ? <img src={avatarUrl} alt="" /> : avatarInitial}
               </div>
-              <span className="app-nav-email">{user.email}</span>
-              <button
+<button
                 type="button"
                 className="app-nav-sign-out"
                 onClick={onSignOut}

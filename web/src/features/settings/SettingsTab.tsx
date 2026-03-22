@@ -22,7 +22,9 @@ export function SettingsTab({
   onBirthYearChange,
   currency,
   onCurrencyChange,
-  onResetAllData,
+  isSignedIn,
+  userEmail,
+  onDeleteAllData,
   onExportAllData,
   onImportData
 }: {
@@ -34,7 +36,9 @@ export function SettingsTab({
   onBirthYearChange: (year: number) => void;
   currency: string;
   onCurrencyChange: (currency: string) => void;
-  onResetAllData: () => void;
+  isSignedIn: boolean;
+  userEmail: string | null;
+  onDeleteAllData: () => Promise<void>;
   onExportAllData: () => void;
   onImportData: (file: File) => Promise<void>;
 }) {
@@ -55,6 +59,7 @@ export function SettingsTab({
     <>
       <section className="panel settings-panel">
         <h3>Profile</h3>
+        {userEmail && <p className="settings-signed-in-as">Signed in as <strong>{userEmail}</strong></p>}
         <p className="mode-note">Used to personalise the app and power FIRE calculations.</p>
 
         <div className="settings-profile-grid">
@@ -100,6 +105,21 @@ export function SettingsTab({
       </section>
 
       <section className="panel settings-panel">
+        <h3>Support</h3>
+        <p className="mode-note">
+          Currant is open source.{" "}
+          <a
+            href="https://github.com/JesseHolwell/personal-spend/issues"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Raise an issue on GitHub
+          </a>{" "}
+          if you run into a bug or have a feature request.
+        </p>
+      </section>
+
+      <section className="panel settings-panel">
         <section className="settings-note">
           <h3>Browser Storage</h3>
           <p>
@@ -112,11 +132,19 @@ export function SettingsTab({
         {errorMessage ? <p className="error">{errorMessage}</p> : null}
 
         <section className="settings-actions">
-          <article className="settings-action-card">
-            <h4>Clear All Data</h4>
-            <p>Restore the app to its built-in defaults and remove imported CSV data and local edits.</p>
-            <button type="button" className="mode-btn" onClick={onResetAllData}>
-              Clear All Data
+          <article className="settings-action-card settings-action-card--danger">
+            <h4>Delete All My Data</h4>
+            <p>
+              {isSignedIn
+                ? "Permanently delete all your data from this device and from the cloud. This cannot be undone."
+                : "Permanently delete all your data from this browser. This cannot be undone."}
+            </p>
+            <button
+              type="button"
+              className="mode-btn mode-btn--danger"
+              onClick={() => { void onDeleteAllData(); }}
+            >
+              Delete All My Data
             </button>
           </article>
 

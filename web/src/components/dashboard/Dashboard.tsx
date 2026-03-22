@@ -137,7 +137,8 @@ interface DashboardProps {
   birthYear: number;
   onBirthYearChange: (year: number) => void;
   onCurrencyChange: (currency: string) => void;
-  onResetAllData: () => void;
+  onDeleteAllData: () => Promise<void>;
+  userEmail: string | null;
   onExportAllData: () => void;
   onImportData: (file: File) => Promise<void>;
   onRunAiSuggestions: () => void;
@@ -284,7 +285,8 @@ export function Dashboard({
   birthYear,
   onBirthYearChange,
   onCurrencyChange,
-  onResetAllData,
+  onDeleteAllData,
+  userEmail,
   onExportAllData,
   onImportData,
   onRunAiSuggestions,
@@ -422,7 +424,9 @@ export function Dashboard({
             onBirthYearChange={onBirthYearChange}
             currency={derived.meta.currency}
             onCurrencyChange={onCurrencyChange}
-            onResetAllData={onResetAllData}
+            isSignedIn={!!user}
+            userEmail={userEmail}
+            onDeleteAllData={onDeleteAllData}
             onExportAllData={onExportAllData}
             onImportData={onImportData}
           />
