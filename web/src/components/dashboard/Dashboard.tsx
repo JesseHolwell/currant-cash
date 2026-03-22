@@ -106,6 +106,9 @@ interface DashboardProps {
   onClearRule: (transaction: RawTransaction) => void;
   onClearAllRules: () => void;
   onCsvUpload: (event: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
+  onPlaidConnect: (() => void) | null;
+  plaidConnecting: boolean;
+  plaidError: string | null;
   onUpdateBatchCoverage: (batchId: string, patch: { coverageStart?: string; coverageEnd?: string }) => void;
   onDeleteBatch: (batchId: string) => void;
   onDeleteAllBatches: () => void;
@@ -255,6 +258,9 @@ export function Dashboard({
   onClearRule,
   onClearAllRules,
   onCsvUpload,
+  onPlaidConnect,
+  plaidConnecting,
+  plaidError,
   onUpdateBatchCoverage,
   onDeleteBatch,
   onDeleteAllBatches,
@@ -349,6 +355,9 @@ export function Dashboard({
               statusMessage={transactionDataStatus}
               errorMessage={error}
               onUpload={onCsvUpload}
+              onPlaidConnect={onPlaidConnect}
+              plaidConnecting={plaidConnecting}
+              plaidError={plaidError}
               onUpdateBatchCoverage={onUpdateBatchCoverage}
               onDeleteBatch={onDeleteBatch}
               onDeleteAllBatches={onDeleteAllBatches}

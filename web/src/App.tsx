@@ -46,10 +46,11 @@ import {
 } from "./hooks";
 import { useDarkMode } from "./hooks/useDarkMode";
 import { useAiSuggestions } from "./hooks/useAiSuggestions";
+import { usePlaidConnect } from "./hooks/usePlaidConnect";
 import { useAppSettings } from "./hooks/useAppSettings";
 import { useDashboardState } from "./hooks/useDashboardState";
 import { useFireStore } from "./store/fire";
-import { isSupabaseConfigured } from "./lib/supabase";
+import { isSupabaseConfigured, supabaseUrl } from "./lib/supabase";
 import { LandingPage } from "./components/LandingPage";
 import { Dashboard } from "./components/dashboard/Dashboard";
 import { OnboardingWizard } from "./components/onboarding/OnboardingWizard";
@@ -172,6 +173,18 @@ export default function App() {
     dismissSuggestions,
     resetSuggestions
   } = useAiSuggestions();
+
+  const plaid = usePlaidConnect({
+    supabaseUrl,
+    categoryDefinitions,
+    onBatchReady: (batch) => {
+      setTransactionBatches((prev) => [batch, ...prev]);
+      resetSuggestions();
+      setError(null);
+      if (activeTab !== "imports") setActiveTab("imports");
+      setTransactionDataStatus(`Connected ${batch.fileName}: ${batch.transactionCount} transaction(s) imported.`);
+    },
+  });
 
   // Cloud sync: load user's cloud data on sign-in (one-time per session).
   useEffect(() => {
@@ -927,6 +940,9 @@ export default function App() {
       onClearRule={clearRule}
       onClearAllRules={clearAllRules}
       onCsvUpload={handleCsvUpload}
+      onPlaidConnect={isSupabaseConfigured ? plaid.connect : null}
+      plaidConnecting={plaid.loading}
+      plaidError={plaid.error}
       onUpdateBatchCoverage={updateBatchCoverage}
       onDeleteBatch={deleteBatch}
       onDeleteAllBatches={clearUploadedData}

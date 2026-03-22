@@ -86,6 +86,9 @@ export function TransactionDataTab({
   statusMessage,
   errorMessage,
   onUpload,
+  onPlaidConnect,
+  plaidConnecting,
+  plaidError,
   onUpdateBatchCoverage,
   onDeleteBatch,
   onDeleteAllBatches
@@ -95,6 +98,9 @@ export function TransactionDataTab({
   statusMessage: string | null;
   errorMessage: string | null;
   onUpload: (event: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
+  onPlaidConnect: (() => void) | null;
+  plaidConnecting: boolean;
+  plaidError: string | null;
   onUpdateBatchCoverage: (batchId: string, patch: { coverageStart?: string; coverageEnd?: string }) => void;
   onDeleteBatch: (batchId: string) => void;
   onDeleteAllBatches: () => void;
@@ -112,10 +118,21 @@ export function TransactionDataTab({
             outside the first or last transaction.
           </p>
           {errorMessage ? <p className="text-danger text-sm mt-2">{errorMessage}</p> : null}
+          {plaidError ? <p className="text-danger text-sm mt-2">{plaidError}</p> : null}
           {statusMessage ? <p className="text-muted text-[0.82rem] mt-[0.42rem]">{statusMessage}</p> : null}
         </div>
         <div className="flex items-center gap-[0.4rem] flex-wrap">
-          <label className="mode-btn active cursor-pointer">
+          {onPlaidConnect ? (
+            <button
+              type="button"
+              className="mode-btn active"
+              onClick={onPlaidConnect}
+              disabled={plaidConnecting}
+            >
+              {plaidConnecting ? "Connecting…" : "Connect Bank"}
+            </button>
+          ) : null}
+          <label className="mode-btn cursor-pointer">
             Add CSV
             <input
               className="hidden"

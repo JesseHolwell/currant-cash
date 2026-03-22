@@ -11,3 +11,4 @@ export * from "./csvImport";
 export * from "./incomeModel";
 export * from "./transactionData";
 export * from "./goals";
+export * from "./plaidImport";

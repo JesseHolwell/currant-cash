@@ -30,6 +30,46 @@ npm run web
 Then open the local Vite URL (usually `http://localhost:5173`).
 Upload your CSV in the `Data Source` panel.
 
+## Supabase / Plaid bank connection (optional)
+
+The "Connect Bank" button uses Plaid via Supabase Edge Functions. It only appears when `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` are set.
+
+### Prerequisites
+
+- [Supabase CLI](https://supabase.com/docs/guides/cli) — `brew install supabase/tap/supabase`
+- A [Plaid](https://dashboard.plaid.com) account (free sandbox tier is enough)
+
+### First-time setup
+
+```bash
+# Link the CLI to your Supabase project
+supabase link --project-ref <your-project-ref>
+
+# Store Plaid credentials as Supabase secrets
+supabase secrets set \
+  PLAID_CLIENT_ID=your_client_id \
+  PLAID_SECRET=your_sandbox_secret \
+  PLAID_ENV=sandbox
+
+# Deploy edge functions
+# --no-verify-jwt is required: the publishable key format is not a JWT
+supabase functions deploy plaid-create-link-token --no-verify-jwt
+supabase functions deploy plaid-exchange-token --no-verify-jwt
+```
+
+### Environment variables (web/.env.local)
+
+```bash
+VITE_SUPABASE_URL=https://<your-project-ref>.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+```
+
+See `web/.env.example` for the template.
+
+### Sandbox test credentials
+
+In the Plaid Link modal, use `user_good` / `pass_good` to connect a synthetic bank.
+
 ## Product spec
 
 - Feature scope and delivery status: [`PRODUCT_SPEC.md`](PRODUCT_SPEC.md)
