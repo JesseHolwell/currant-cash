@@ -816,7 +816,7 @@ export default function App() {
 
   if (loading || authLoading) {
     return (
-      <main className="dashboard-shell loading-state">
+      <main className="flex items-center justify-center min-h-[70vh] flex-col">
         <p>Loading saved dataset...</p>
       </main>
     );

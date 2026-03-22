@@ -26,14 +26,14 @@ export class ErrorBoundary extends Component<Props, State> {
         return this.props.fallback;
       }
       return (
-        <div role="alert" className="error-boundary-fallback">
-          <h2>Something went wrong</h2>
-          <p>An unexpected error occurred. Your data is safe — refresh the page to continue.</p>
-          <details>
-            <summary>Error details</summary>
-            <pre>{this.state.error.message}</pre>
+        <div role="alert" className="flex flex-col items-center justify-center min-h-[70vh] text-center gap-4 p-8">
+          <h2 className="font-display text-xl text-ink">Something went wrong</h2>
+          <p className="text-ink-soft">An unexpected error occurred. Your data is safe — refresh the page to continue.</p>
+          <details className="text-left text-sm text-muted">
+            <summary className="cursor-pointer">Error details</summary>
+            <pre className="mt-2 p-3 bg-[var(--bg-warm)] rounded-md overflow-auto text-xs">{this.state.error.message}</pre>
           </details>
-          <button onClick={() => window.location.reload()}>Reload page</button>
+          <button className="mode-btn active" onClick={() => window.location.reload()}>Reload page</button>
         </div>
       );
     }

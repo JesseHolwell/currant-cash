@@ -27,7 +27,7 @@ export function ApiKeyModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="api-key-dialog-title"
-        className="migration-dialog api-key-dialog"
+        className="migration-dialog"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id="api-key-dialog-title">OpenAI API Key</h2>
@@ -35,10 +35,10 @@ export function ApiKeyModal({
           Enter your OpenAI API key to enable AI-powered category suggestions. Your key is stored
           locally in this browser only and is never sent to Currant&apos;s servers.
         </p>
-        <div className="api-key-input-group">
+        <div className="mt-3">
           <input
             type="password"
-            className="api-key-input"
+            className="w-full border border-line-strong bg-surface text-ink rounded-sm px-[0.6rem] py-[0.45rem] text-[0.83rem] focus:outline-none focus:border-[var(--accent-border)] focus:shadow-[0_0_0_3px_var(--accent-ring)] font-mono"
             placeholder="sk-..."
             value={value}
             onChange={(e) => setValue(e.target.value)}
@@ -48,12 +48,13 @@ export function ApiKeyModal({
             spellCheck={false}
           />
         </div>
-        <p className="api-key-hint">
+        <p className="text-muted text-[0.8rem] mt-2">
           Get your API key from{" "}
           <a
             href="https://platform.openai.com/api-keys"
             target="_blank"
             rel="noopener noreferrer"
+            className="text-accent underline hover:opacity-80"
           >
             platform.openai.com/api-keys
           </a>

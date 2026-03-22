@@ -50,34 +50,34 @@ export function AccountsTab({
 }) {
   return (
     <>
-      <section className="stats">
-        <article>
-          <h2>Assets</h2>
-          <p>{formatCurrency(accountSummary.assets, currency)}</p>
+      <section className="grid grid-cols-4 gap-[0.65rem]">
+        <article className="border border-line rounded-md px-4 py-[0.9rem] bg-surface shadow-soft hover:border-line-strong transition-colors">
+          <h2 className="text-[0.72rem] uppercase tracking-[0.12em] text-muted font-bold">Assets</h2>
+          <p className="font-mono text-ink font-semibold tracking-[-0.03em] mt-[0.38rem] text-[clamp(1.2rem,1.8vw,1.55rem)]">{formatCurrency(accountSummary.assets, currency)}</p>
         </article>
-        <article>
-          <h2>Liabilities</h2>
-          <p>{formatCurrency(accountSummary.liabilities, currency)}</p>
+        <article className="border border-line rounded-md px-4 py-[0.9rem] bg-surface shadow-soft hover:border-line-strong transition-colors">
+          <h2 className="text-[0.72rem] uppercase tracking-[0.12em] text-muted font-bold">Liabilities</h2>
+          <p className="font-mono text-ink font-semibold tracking-[-0.03em] mt-[0.38rem] text-[clamp(1.2rem,1.8vw,1.55rem)]">{formatCurrency(accountSummary.liabilities, currency)}</p>
         </article>
-        <article>
-          <h2>Net Worth</h2>
-          <p>{formatCurrency(accountSummary.netWorth, currency)}</p>
+        <article className="border border-line rounded-md px-4 py-[0.9rem] bg-surface shadow-soft hover:border-line-strong transition-colors">
+          <h2 className="text-[0.72rem] uppercase tracking-[0.12em] text-muted font-bold">Net Worth</h2>
+          <p className="font-mono text-ink font-semibold tracking-[-0.03em] mt-[0.38rem] text-[clamp(1.2rem,1.8vw,1.55rem)]">{formatCurrency(accountSummary.netWorth, currency)}</p>
         </article>
-        <article>
-          <h2>Accounts</h2>
-          <p>{accountEntries.length}</p>
+        <article className="border border-line rounded-md px-4 py-[0.9rem] bg-surface shadow-soft hover:border-line-strong transition-colors">
+          <h2 className="text-[0.72rem] uppercase tracking-[0.12em] text-muted font-bold">Accounts</h2>
+          <p className="font-mono text-ink font-semibold tracking-[-0.03em] mt-[0.38rem] text-[clamp(1.2rem,1.8vw,1.55rem)]">{accountEntries.length}</p>
         </article>
       </section>
 
-      <section className="panel">
-        <div className="rules-header">
-          <h3>Account Breakdown</h3>
+      <section className="border border-line rounded-md p-4 bg-surface shadow-soft min-w-0">
+        <div className="flex items-center justify-between gap-3 mb-2">
+          <h3 className="font-display text-base tracking-[-0.02em] text-ink">Account Breakdown</h3>
           <button type="button" className="mode-btn active" onClick={onAddAccount}>Add Account</button>
         </div>
-        <p className="mode-note">
+        <p className="text-muted text-[0.82rem] mt-[0.42rem]">
           Track any balance category you want (bank, crypto, stocks, debt). Liabilities reduce net worth.
         </p>
-        <ul className="account-list">
+        <ul className="list-none mt-3 p-0 grid gap-[0.48rem]">
           {accountEntries.map((account) => (
             <li key={account.id} className="account-row">
               <input
@@ -110,46 +110,48 @@ export function AccountsTab({
         </ul>
       </section>
 
-      <section className="panel">
-        <div className="rules-header">
-          <h3>Account Balance History</h3>
+      <section className="border border-line rounded-md p-4 bg-surface shadow-soft min-w-0">
+        <div className="flex items-center justify-between gap-3 mb-2">
+          <h3 className="font-display text-base tracking-[-0.02em] text-ink">Account Balance History</h3>
           <button type="button" className="mode-btn active" onClick={onAddAccountHistorySnapshot}>
             Add Month Snapshot
           </button>
         </div>
-        <p className="mode-note">
+        <p className="text-muted text-[0.82rem] mt-[0.42rem]">
           Enter monthly balances for each account. Liabilities should be entered as positive balances; they are treated as
           negative in the chart.
         </p>
         {accountHistorySnapshots.length === 0 ? (
-          <p className="mode-note">No monthly snapshots yet. Add your first month to start the trend chart.</p>
+          <p className="text-muted text-[0.82rem] mt-[0.42rem]">No monthly snapshots yet. Add your first month to start the trend chart.</p>
         ) : (
-          <div className="history-wrap">
-            <table className="history-table">
+          <div className="overflow-x-auto mt-3">
+            <table className="w-full border-collapse text-sm">
               <thead>
                 <tr>
-                  <th>Month</th>
+                  <th className="text-left font-semibold text-muted text-[0.72rem] uppercase tracking-[0.08em] py-[0.5rem] px-[0.6rem] border-b border-line">Month</th>
                   {accountEntries.map((account) => (
-                    <th key={account.id}>{account.name || "Untitled Account"}</th>
+                    <th key={account.id} className="text-left font-semibold text-muted text-[0.72rem] uppercase tracking-[0.08em] py-[0.5rem] px-[0.6rem] border-b border-line">{account.name || "Untitled Account"}</th>
                   ))}
-                  <th />
+                  <th className="border-b border-line" />
                 </tr>
               </thead>
               <tbody>
                 {accountHistorySnapshots.map((snapshot) => (
-                  <tr key={snapshot.id}>
-                    <td>
+                  <tr key={snapshot.id} className="hover:bg-[var(--bg-warm)] transition-colors">
+                    <td className="py-[0.4rem] px-[0.5rem] border-b border-line">
                       <input
                         type="month"
                         value={snapshot.month}
+                        className="border border-line-strong bg-surface text-ink rounded-sm px-[0.6rem] py-[0.45rem] text-[0.83rem] focus:outline-none focus:border-[var(--accent-border)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
                         onChange={(event) => onUpdateAccountHistoryMonth(snapshot.id, event.target.value)}
                       />
                     </td>
                     {accountEntries.map((account) => (
-                      <td key={`${snapshot.id}-${account.id}`}>
+                      <td key={`${snapshot.id}-${account.id}`} className="py-[0.4rem] px-[0.5rem] border-b border-line">
                         <input
                           type="number"
                           value={snapshot.balances[account.id] ?? 0}
+                          className="border border-line-strong bg-surface text-ink rounded-sm px-[0.6rem] py-[0.45rem] text-[0.83rem] focus:outline-none focus:border-[var(--accent-border)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
                           onChange={(event) => onUpdateAccountHistoryBalance(
                             snapshot.id,
                             account.id,
@@ -158,7 +160,7 @@ export function AccountsTab({
                         />
                       </td>
                     ))}
-                    <td>
+                    <td className="py-[0.4rem] px-[0.5rem] border-b border-line">
                       <button
                         type="button"
                         className="mode-btn"
@@ -175,35 +177,39 @@ export function AccountsTab({
         )}
       </section>
 
-      <section className="panel controls-panel">
-        <h3>Forecast Inputs</h3>
-        <div className="control-grid">
-          <label>
-            Start net worth
-            <input
-              type="number"
-              value={forecastStartNetWorth ?? ""}
-              placeholder={`${accountSummary.netWorth}`}
-              onChange={(event) => {
-                const next = event.target.value.trim();
-                onForecastStartNetWorthChange(next ? Number(next) : null);
-              }}
-            />
-          </label>
-          <label>
-            Monthly forecast delta
-            <input
-              type="number"
-              value={forecastMonthlyDelta ?? ""}
-              placeholder={`${inferredMonthlyNetFlow}`}
-              onChange={(event) => {
-                const next = event.target.value.trim();
-                onForecastMonthlyDeltaChange(next ? Number(next) : null);
-              }}
-            />
-          </label>
+      <section className="border border-line rounded-md p-4 bg-surface shadow-soft flex items-center justify-between gap-[0.8rem] flex-wrap">
+        <div>
+          <h3 className="font-display text-base tracking-[-0.02em] text-ink">Forecast Inputs</h3>
+          <div className="grid grid-cols-2 gap-[0.6rem] w-full mt-3">
+            <label className="grid gap-[0.25rem] text-[0.75rem] text-ink-soft font-semibold">
+              Start net worth
+              <input
+                type="number"
+                value={forecastStartNetWorth ?? ""}
+                placeholder={`${accountSummary.netWorth}`}
+                className="border border-line-strong bg-surface text-ink rounded-sm px-[0.6rem] py-[0.45rem] text-[0.83rem] focus:outline-none focus:border-[var(--accent-border)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
+                onChange={(event) => {
+                  const next = event.target.value.trim();
+                  onForecastStartNetWorthChange(next ? Number(next) : null);
+                }}
+              />
+            </label>
+            <label className="grid gap-[0.25rem] text-[0.75rem] text-ink-soft font-semibold">
+              Monthly forecast delta
+              <input
+                type="number"
+                value={forecastMonthlyDelta ?? ""}
+                placeholder={`${inferredMonthlyNetFlow}`}
+                className="border border-line-strong bg-surface text-ink rounded-sm px-[0.6rem] py-[0.45rem] text-[0.83rem] focus:outline-none focus:border-[var(--accent-border)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
+                onChange={(event) => {
+                  const next = event.target.value.trim();
+                  onForecastMonthlyDeltaChange(next ? Number(next) : null);
+                }}
+              />
+            </label>
+          </div>
         </div>
-        <div className="mode-toggle">
+        <div className="inline-flex items-center gap-[0.4rem] flex-wrap">
           <button type="button" className="mode-btn" onClick={onResetStartNetWorth}>
             Use account total
           </button>

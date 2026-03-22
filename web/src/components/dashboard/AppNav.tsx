@@ -20,10 +20,10 @@ export function AppNav({
   const avatarUrl = user?.user_metadata?.["avatar_url"] as string | undefined;
 
   return (
-    <nav className="app-nav">
+    <nav className="sticky top-0 z-20 w-full h-[var(--app-nav-height)] flex items-center justify-between px-6 bg-[var(--bg-main)] border-b border-line">
       <button
         type="button"
-        className="app-nav-brand"
+        className="flex items-center gap-[0.6rem] bg-none border-0 px-2 py-1 cursor-pointer rounded-md transition-opacity hover:opacity-75"
         onClick={onGoHome}
         aria-label="Go to home"
       >
@@ -36,7 +36,7 @@ export function AppNav({
         <span className="app-nav-wordmark">Currant</span>
       </button>
 
-      <div className="app-nav-actions">
+      <div className="flex items-center gap-1">
         <button
           type="button"
           className="app-nav-icon-btn"

@@ -97,8 +97,8 @@ export function Sidebar({
   currency: string;
 }) {
   return (
-    <aside className="sidebar">
-      <nav className="nav-list" aria-label="Dashboard navigation">
+    <aside className="flex-none w-[260px] h-full overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(61,36,56,0.15)_transparent] bg-sidebar border-r border-line p-4 flex flex-col gap-[0.85rem]">
+      <nav className="grid gap-[0.18rem]" aria-label="Dashboard navigation">
         {NAV_TABS.map((tab) => {
           const Icon = TAB_ICONS[tab];
           return (
@@ -116,36 +116,36 @@ export function Sidebar({
         })}
       </nav>
 
-      <section className="sidebar-card">
-        <p className="sidebar-label">Accounts</p>
-        <ul className="sidebar-list">
+      <section className="border border-line rounded-md p-3 bg-surface">
+        <p className="uppercase tracking-[0.14em] text-[0.64rem] text-muted font-bold mb-2">Accounts</p>
+        <ul className="m-0 p-0 list-none">
           {accountSummary.byBucket.slice(0, 6).map((item) => (
-            <li key={item.bucket}>
+            <li key={item.bucket} className="flex items-center justify-between gap-2 text-[0.82rem] py-[0.36rem] border-b border-line text-ink-soft last:border-b-0">
               <span>{item.bucket}</span>
-              <strong>{formatCurrency(item.total, currency)}</strong>
+              <strong className="text-[0.82rem] text-ink">{formatCurrency(item.total, currency)}</strong>
             </li>
           ))}
         </ul>
-        <div className="sidebar-total">
+        <div className="mt-2 flex items-center justify-between font-bold text-ink">
           <span>Net Worth</span>
           <strong>{formatCurrency(accountSummary.netWorth, currency)}</strong>
         </div>
       </section>
 
-      <section className="sidebar-card">
-        <p className="sidebar-label">Goals</p>
-        <ul className="goal-mini-list">
+      <section className="border border-line rounded-md p-3 bg-surface">
+        <p className="uppercase tracking-[0.14em] text-[0.64rem] text-muted font-bold mb-2">Goals</p>
+        <ul className="m-0 p-0 list-none grid gap-[0.52rem]">
           {goals.slice(0, 4).map((goal) => (
             <li key={goal.id}>
-              <div>
-                <span>{goal.name || "Untitled Goal"}</span>
-                <small>
+              <div className="grid gap-[0.2rem]">
+                <span className="text-[0.82rem] font-semibold text-ink">{goal.name || "Untitled Goal"}</span>
+                <small className="text-muted text-[0.72rem]">
                   {Math.round(goal.progress * 100)}% ·{" "}
                   {formatCurrency(Math.round(goal.currentValue), currency)} /{" "}
                   {formatCurrency(Math.round(goal.target), currency)}
                 </small>
               </div>
-              <div className="goal-mini-track">
+              <div className="mt-[0.28rem] h-[6px] rounded-full bg-[var(--accent-ring)] overflow-hidden">
                 <div
                   className="goal-mini-fill"
                   style={{ width: `${Math.round(goal.progress * 100)}%` }}

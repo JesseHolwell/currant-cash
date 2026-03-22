@@ -82,11 +82,11 @@ function WizardShell({
   const meta = STEPS[step];
 
   return (
-    <div className="onboarding-backdrop">
-      <div className="onboarding-card">
+    <div className="flex-1 flex items-start justify-center px-4 pt-10 pb-16">
+      <div className="w-full max-w-[680px] flex flex-col">
         {/* Progress */}
-        <div className="onboarding-progress">
-          <div className="onboarding-progress-track">
+        <div className="flex items-center gap-3 mb-10">
+          <div className="flex-1 flex gap-1">
             {STEPS.map((s, i) => (
               <div
                 key={s.label}
@@ -94,32 +94,48 @@ function WizardShell({
               />
             ))}
           </div>
-          <span className="onboarding-step-label">
+          <span className="text-[0.72rem] font-semibold tracking-[0.06em] text-muted whitespace-nowrap">
             STEP {step + 1} OF {totalSteps}
           </span>
-          <span className="onboarding-tab-label">{meta.label.toUpperCase()}</span>
+          <span className="text-[0.72rem] font-bold tracking-[0.08em] text-accent whitespace-nowrap">
+            {meta.label.toUpperCase()}
+          </span>
         </div>
 
         {/* Header */}
-        <div className="onboarding-header">
-          <h1 className="onboarding-title">{meta.title}</h1>
-          <p className="onboarding-subtitle">{meta.subtitle}</p>
+        <div className="text-center mb-8">
+          <h1 className="font-display text-[clamp(1.75rem,4vw,2.5rem)] font-bold text-ink m-0 mb-2 leading-[1.15]">
+            {meta.title}
+          </h1>
+          <p className="text-ink-soft text-[0.95rem] m-0 max-w-[480px] mx-auto">
+            {meta.subtitle}
+          </p>
         </div>
 
         {/* Body */}
-        <div className="onboarding-body">{children}</div>
+        <div className="bg-surface border border-line rounded-xl p-7 mb-5 shadow-soft">
+          {children}
+        </div>
 
         {/* Navigation */}
-        <div className="onboarding-nav">
+        <div className="flex items-center justify-between mb-4">
           {!hideBack && step > 0 ? (
-            <button type="button" className="onboarding-btn-ghost" onClick={onBack}>
+            <button
+              type="button"
+              className="bg-none border-none text-muted text-[0.875rem] cursor-pointer py-2 px-0 transition-colors duration-150 hover:text-ink-soft"
+              onClick={onBack}
+            >
               ← Back
             </button>
           ) : (
             <span />
           )}
-          <div className="onboarding-nav-right">
-            <button type="button" className="onboarding-btn-skip" onClick={onSkip}>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              className="bg-none border-none text-ink-soft text-[0.875rem] cursor-pointer py-2 px-0 underline underline-offset-[3px] transition-colors duration-150 hover:text-ink"
+              onClick={onSkip}
+            >
               Skip for now
             </button>
             <button
@@ -134,9 +150,9 @@ function WizardShell({
         </div>
 
         {/* Why this matters */}
-        <div className="onboarding-why">
-          <span className="onboarding-why-icon" aria-hidden="true">ℹ</span>
-          <p>
+        <div className="flex items-start gap-[0.6rem] bg-accent-soft border border-accent rounded-lg px-4 py-[0.875rem] mt-1">
+          <span className="text-base text-accent shrink-0 mt-px" aria-hidden="true">ℹ</span>
+          <p className="m-0 text-[0.82rem] text-ink-soft leading-[1.5]">
             <strong>Why this matters:</strong> {meta.why}
           </p>
         </div>
@@ -180,10 +196,13 @@ function AboutYouStep({
   const age = birthYear > 0 ? CURRENT_YEAR - birthYear : "";
 
   return (
-    <div className="onboarding-about">
-      <div className="onboarding-field-grid">
+    <div className="flex flex-col gap-5">
+      <div className="grid grid-cols-2 gap-4 max-[540px]:grid-cols-1">
         <label className="onboarding-field">
-          <span className="onboarding-field-label">What should we call you? <span className="onboarding-optional">optional</span></span>
+          <span className="onboarding-field-label">
+            What should we call you?{" "}
+            <span className="text-[0.72rem] font-normal text-muted normal-case tracking-normal ml-[0.3rem]">optional</span>
+          </span>
           <input
             type="text"
             autoComplete="given-name"
@@ -195,7 +214,8 @@ function AboutYouStep({
 
         <label className="onboarding-field">
           <span className="onboarding-field-label">
-            Currency <span className="onboarding-required">required</span>
+            Currency{" "}
+            <span className="text-[0.72rem] font-semibold text-accent normal-case tracking-normal ml-[0.3rem]">required</span>
           </span>
           <select value={currency} onChange={(e) => onCurrencyChange(e.target.value)}>
             {CURRENCY_OPTIONS.map((o) => (
@@ -207,7 +227,8 @@ function AboutYouStep({
 
       <label className="onboarding-field">
         <span className="onboarding-field-label">
-          How old are you? <span className="onboarding-optional">optional</span>
+          How old are you?{" "}
+          <span className="text-[0.72rem] font-normal text-muted normal-case tracking-normal ml-[0.3rem]">optional</span>
         </span>
         <span className="onboarding-field-hint">Used for FIRE retirement projections.</span>
         <input
@@ -246,8 +267,8 @@ function IncomeStep({ payrollDraft, onPayrollDraftChange, currency }: IncomeStep
       : null;
 
   return (
-    <div className="onboarding-income">
-      <div className="onboarding-field-grid">
+    <div className="flex flex-col gap-5">
+      <div className="grid grid-cols-2 gap-4 max-[540px]:grid-cols-1">
         <label className="onboarding-field">
           <span className="onboarding-field-label">Net monthly pay</span>
           <span className="onboarding-field-hint">Amount that arrives in your bank each pay.</span>
@@ -283,7 +304,7 @@ function IncomeStep({ payrollDraft, onPayrollDraftChange, currency }: IncomeStep
         </label>
       </div>
 
-      <div className="onboarding-field-row">
+      <div className="grid grid-cols-2 gap-4 max-[540px]:grid-cols-1">
         <label className="onboarding-field">
           <span className="onboarding-field-label">Pay frequency</span>
           <select
@@ -314,9 +335,9 @@ function IncomeStep({ payrollDraft, onPayrollDraftChange, currency }: IncomeStep
       </div>
 
       {monthlyNet !== null && (
-        <div className="onboarding-derived-stat">
+        <div className="flex items-center justify-between bg-accent-soft border border-accent rounded-md px-4 py-[0.65rem] text-[0.85rem] text-ink-soft">
           <span>Estimated monthly take-home</span>
-          <strong>{formatCurrency(monthlyNet, currency)}</strong>
+          <strong className="text-accent text-base font-bold">{formatCurrency(monthlyNet, currency)}</strong>
         </div>
       )}
     </div>
@@ -347,12 +368,12 @@ function AccountsStep({
   const netWorth = assets - liabilities;
 
   return (
-    <div className="onboarding-accounts">
-      <div className="onboarding-accounts-table">
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col">
         <div className="onboarding-accounts-thead">
           <span>Account name</span>
           <span>Type</span>
-          <span className="onboarding-col-right">Current balance</span>
+          <span className="text-right">Current balance</span>
           <span />
         </div>
 
@@ -382,7 +403,7 @@ function AccountsStep({
               ))}
               <option value="__liability__">Liability / Debt</option>
             </select>
-            <div className="onboarding-currency-input onboarding-col-right">
+            <div className="onboarding-currency-input text-right">
               <span>$</span>
               <input
                 type="number"
@@ -410,14 +431,14 @@ function AccountsStep({
         </button>
       </div>
 
-      <div className="onboarding-net-worth-banner">
+      <div className="flex items-center justify-between bg-accent-soft border border-accent rounded-md px-4 py-3 mt-1">
         <div>
-          <span className="onboarding-net-worth-label">Real-time snapshot</span>
-          <span className="onboarding-net-worth-sub">Calculated across all entries</span>
+          <span className="block text-[0.72rem] font-bold tracking-[0.06em] uppercase text-accent">Real-time snapshot</span>
+          <span className="block text-[0.78rem] text-muted">Calculated across all entries</span>
         </div>
-        <div className="onboarding-net-worth-right">
-          <span className="onboarding-net-worth-label">Total net worth</span>
-          <strong className="onboarding-net-worth-value">{formatCurrency(netWorth, currency)}</strong>
+        <div className="text-right">
+          <span className="block text-[0.72rem] font-bold tracking-[0.06em] uppercase text-accent">Total net worth</span>
+          <strong className="text-[1.4rem] font-bold text-accent font-display">{formatCurrency(netWorth, currency)}</strong>
         </div>
       </div>
     </div>
@@ -438,17 +459,17 @@ type GoalsStepProps = {
 
 function GoalsStep({ goals, accountEntries, onAddGoal, onUpdateGoal, onRemoveGoal, inferredMonthlyExpenses, currency }: GoalsStepProps) {
   return (
-    <div className="onboarding-goals">
+    <div className="flex flex-col">
       {goals.length === 0 ? (
-        <div className="onboarding-empty-goals">
+        <div className="text-muted text-[0.875rem] py-4 text-center">
           <p>No goals yet. Add your first savings target below.</p>
         </div>
       ) : (
-        <div className="onboarding-goals-list">
+        <div className="flex flex-col gap-3">
           {goals.map((goal) => (
-            <div key={goal.id} className="onboarding-goal-card">
-              <div className="onboarding-goal-row">
-                <div className="onboarding-field">
+            <div key={goal.id} className="border border-line rounded-md p-4 bg-surface">
+              <div className="flex items-start gap-2 mb-3">
+                <div className="onboarding-field flex-1">
                   <span className="onboarding-field-label">Goal name</span>
                   <input
                     type="text"
@@ -467,7 +488,7 @@ function GoalsStep({ goals, accountEntries, onAddGoal, onUpdateGoal, onRemoveGoa
                 </button>
               </div>
 
-              <div className="onboarding-goal-fields">
+              <div className="grid grid-cols-2 gap-3">
                 <label className="onboarding-field">
                   <span className="onboarding-field-label">Current</span>
                   <div className="onboarding-currency-input">
@@ -499,7 +520,7 @@ function GoalsStep({ goals, accountEntries, onAddGoal, onUpdateGoal, onRemoveGoa
               </div>
 
               {goal.target > 0 && (
-                <div className="onboarding-goal-progress">
+                <div className="mt-3 h-[6px] rounded-full bg-[rgba(139,41,66,0.12)] overflow-hidden">
                   <div
                     className="onboarding-goal-fill"
                     style={{ width: `${Math.min(100, Math.round(goal.progress * 100))}%` }}
@@ -516,11 +537,11 @@ function GoalsStep({ goals, accountEntries, onAddGoal, onUpdateGoal, onRemoveGoa
       </button>
 
       {inferredMonthlyExpenses > 0 ? (
-        <p className="onboarding-tip">
+        <p className="flex items-start gap-[0.4rem] mt-4 text-[0.82rem] text-ink-soft">
           <span aria-hidden="true">💡</span> A 3-month emergency fund is the recommended minimum. Based on your average monthly expenses of {formatCurrency(inferredMonthlyExpenses, currency)}, that&rsquo;s <strong>{formatCurrency(inferredMonthlyExpenses * 3, currency)}</strong>.
         </p>
       ) : (
-        <p className="onboarding-tip">
+        <p className="flex items-start gap-[0.4rem] mt-4 text-[0.82rem] text-ink-soft">
           <span aria-hidden="true">💡</span> Upload your transactions first and we&rsquo;ll suggest an emergency fund target based on your actual spending.
         </p>
       )}
@@ -541,9 +562,9 @@ function UploadStep({ batches, statusMessage, errorMessage, onUpload }: UploadSt
   const totalTransactions = batches.reduce((s, b) => s + b.transactionCount, 0);
 
   return (
-    <div className="onboarding-upload">
+    <div className="flex flex-col gap-4">
       <label className="onboarding-dropzone">
-        <div className="onboarding-dropzone-icon" aria-hidden="true">
+        <div className="text-accent mb-1" aria-hidden="true">
           <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
             <rect x="6" y="10" width="28" height="24" rx="3" stroke="currentColor" strokeWidth="1.5" fill="none" opacity="0.4" />
             <path d="M13 17h14M13 22h9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -551,11 +572,11 @@ function UploadStep({ batches, statusMessage, errorMessage, onUpload }: UploadSt
             <path d="M30 7v6M27 10h6" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round" />
           </svg>
         </div>
-        <span className="onboarding-dropzone-title">Drag &amp; Drop your CSV file</span>
-        <span className="onboarding-dropzone-sub">or click to browse from your computer</span>
-        <div className="onboarding-dropzone-formats">
-          <span>CSV</span>
-          <span>XLSX</span>
+        <span className="text-[0.95rem] font-semibold text-ink">Drag &amp; Drop your CSV file</span>
+        <span className="text-[0.82rem] text-muted">or click to browse from your computer</span>
+        <div className="flex gap-[0.4rem] mt-1">
+          <span className="border border-line-strong rounded-sm px-2 py-[0.15rem] text-[0.75rem] font-semibold text-muted tracking-[0.04em]">CSV</span>
+          <span className="border border-line-strong rounded-sm px-2 py-[0.15rem] text-[0.75rem] font-semibold text-muted tracking-[0.04em]">XLSX</span>
         </div>
         <input
           type="file"
@@ -565,29 +586,28 @@ function UploadStep({ batches, statusMessage, errorMessage, onUpload }: UploadSt
         />
       </label>
 
-      {errorMessage && <p className="onboarding-error">{errorMessage}</p>}
+      {errorMessage && <p className="text-danger text-[0.85rem] mt-2">{errorMessage}</p>}
 
       {batches.length > 0 ? (
-        <div className="onboarding-upload-success">
-          <span className="onboarding-success-icon" aria-hidden="true">✓</span>
+        <div className="flex items-center gap-[0.6rem] bg-[rgba(61,139,79,0.08)] border border-[rgba(61,139,79,0.25)] rounded-md px-[0.875rem] py-[0.65rem] text-[0.875rem] text-ink">
+          <span className="text-base text-accent-leaf font-bold shrink-0" aria-hidden="true">✓</span>
           <div>
             <strong>{batches.length} file{batches.length > 1 ? "s" : ""} uploaded</strong>
-            <span className="onboarding-muted"> — {totalTransactions.toLocaleString()} transactions imported</span>
+            <span className="text-muted text-[0.82rem]"> — {totalTransactions.toLocaleString()} transactions imported</span>
           </div>
         </div>
       ) : statusMessage ? (
-        <p className="onboarding-muted">{statusMessage}</p>
+        <p className="text-muted text-[0.82rem]">{statusMessage}</p>
       ) : null}
 
-      <div className="onboarding-upload-institutions">
-        <span className="onboarding-muted">Compatible with institutions like</span>
-        <div className="onboarding-institution-list">
-          <span>Chase</span>
-          <span>Barclays</span>
-          <span>HSBC</span>
-          <span>Commonwealth</span>
-          <span>ANZ</span>
-          <span>Revolut</span>
+      <div className="flex flex-col items-center gap-[0.4rem]">
+        <span className="text-muted text-[0.82rem]">Compatible with institutions like</span>
+        <div className="flex flex-wrap gap-x-4 gap-y-2 justify-center">
+          {["Chase", "Barclays", "HSBC", "Commonwealth", "ANZ", "Revolut"].map((name) => (
+            <span key={name} className="text-[0.78rem] font-bold tracking-[0.08em] text-line-strong uppercase">
+              {name}
+            </span>
+          ))}
         </div>
       </div>
     </div>
@@ -606,36 +626,36 @@ function CategorizeStep({ batches, onGoToCategorize }: CategorizeStepProps) {
   const hasTransactions = totalTransactions > 0;
 
   return (
-    <div className="onboarding-categorize">
+    <div className="flex flex-col gap-5">
       {hasTransactions ? (
         <>
-          <div className="onboarding-categorize-summary">
-            <div className="onboarding-categorize-stat">
-              <strong>{totalTransactions.toLocaleString()}</strong>
-              <span>transactions imported</span>
+          <div className="flex gap-4 justify-center">
+            <div className="flex flex-col items-center gap-[0.2rem]">
+              <strong className="text-[2rem] font-bold font-display text-accent">{totalTransactions.toLocaleString()}</strong>
+              <span className="text-[0.82rem] text-muted">transactions imported</span>
             </div>
           </div>
 
-          <div className="onboarding-categorize-options">
+          <div className="flex flex-col gap-3">
             <button
               type="button"
-              className="onboarding-categorize-card is-primary"
+              className="flex items-start gap-4 p-5 border-[1.5px] border-accent rounded-lg bg-accent-soft text-left cursor-pointer transition-colors duration-150 hover:bg-[rgba(139,41,66,0.15)]"
               onClick={onGoToCategorize}
             >
-              <span className="onboarding-categorize-card-icon" aria-hidden="true">✦</span>
+              <span className="text-[1.25rem] shrink-0 text-accent mt-[2px]" aria-hidden="true">✦</span>
               <div>
-                <strong>Set up rules manually</strong>
-                <p>Head to the Categories tab to define keyword rules and categorise your spending.</p>
+                <strong className="block text-[0.95rem] text-ink mb-[0.3rem]">Set up rules manually</strong>
+                <p className="m-0 text-[0.82rem] text-ink-soft leading-[1.4]">Head to the Categories tab to define keyword rules and categorise your spending.</p>
               </div>
             </button>
           </div>
 
-          <p className="onboarding-tip">
+          <p className="flex items-start gap-[0.4rem] mt-0 text-[0.82rem] text-ink-soft">
             <span aria-hidden="true">💡</span> You can skip this now and categorise later — your transactions are already saved.
           </p>
         </>
       ) : (
-        <div className="onboarding-categorize-empty">
+        <div className="text-center py-4 text-ink-soft text-[0.875rem] leading-[1.6]">
           <p>No transactions uploaded yet. You can upload a CSV any time from the <strong>Imports</strong> tab, then head to <strong>Categories</strong> to set up your rules.</p>
         </div>
       )}
@@ -740,7 +760,7 @@ export function OnboardingWizard({
   const isFirstStep = step === 0;
 
   return (
-    <div className="onboarding-shell">
+    <div className="flex flex-col min-h-screen bg-[var(--bg-main)]">
       <AppNav
         user={user}
         isDark={isDark}
@@ -751,65 +771,65 @@ export function OnboardingWizard({
       />
       <WizardShell
         step={step}
-      totalSteps={TOTAL_STEPS}
-      onBack={goBack}
-      onSkip={skip}
-      onNext={goNext}
-      nextLabel={isLastStep ? "Finish setup" : "Next"}
-      hideBack={isFirstStep}
-    >
-      {step === 0 && (
-        <AboutYouStep
-          displayName={displayName}
-          onDisplayNameChange={onDisplayNameChange}
-          birthYear={birthYear}
-          onBirthYearChange={onBirthYearChange}
-          currency={currency}
-          onCurrencyChange={onCurrencyChange}
-        />
-      )}
-      {step === 1 && (
-        <IncomeStep
-          payrollDraft={payrollDraft}
-          onPayrollDraftChange={onPayrollDraftChange}
-          currency={currency}
-        />
-      )}
-      {step === 2 && (
-        <AccountsStep
-          accountEntries={accountEntries}
-          onAddAccount={onAddAccount}
-          onUpdateAccount={onUpdateAccount}
-          onRemoveAccount={onRemoveAccount}
-          currency={currency}
-        />
-      )}
-      {step === 3 && (
-        <UploadStep
-          batches={batches}
-          statusMessage={transactionDataStatus}
-          errorMessage={transactionError}
-          onUpload={onUpload}
-        />
-      )}
-      {step === 4 && (
-        <CategorizeStep
-          batches={batches}
-          onGoToCategorize={handleCategorizeAndGo}
-        />
-      )}
-      {step === 5 && (
-        <GoalsStep
-          goals={goals}
-          accountEntries={accountEntries}
-          onAddGoal={onAddGoal}
-          onUpdateGoal={onUpdateGoal}
-          onRemoveGoal={onRemoveGoal}
-          inferredMonthlyExpenses={inferredMonthlyExpenses}
-          currency={currency}
-        />
-      )}
-    </WizardShell>
+        totalSteps={TOTAL_STEPS}
+        onBack={goBack}
+        onSkip={skip}
+        onNext={goNext}
+        nextLabel={isLastStep ? "Finish setup" : "Next"}
+        hideBack={isFirstStep}
+      >
+        {step === 0 && (
+          <AboutYouStep
+            displayName={displayName}
+            onDisplayNameChange={onDisplayNameChange}
+            birthYear={birthYear}
+            onBirthYearChange={onBirthYearChange}
+            currency={currency}
+            onCurrencyChange={onCurrencyChange}
+          />
+        )}
+        {step === 1 && (
+          <IncomeStep
+            payrollDraft={payrollDraft}
+            onPayrollDraftChange={onPayrollDraftChange}
+            currency={currency}
+          />
+        )}
+        {step === 2 && (
+          <AccountsStep
+            accountEntries={accountEntries}
+            onAddAccount={onAddAccount}
+            onUpdateAccount={onUpdateAccount}
+            onRemoveAccount={onRemoveAccount}
+            currency={currency}
+          />
+        )}
+        {step === 3 && (
+          <UploadStep
+            batches={batches}
+            statusMessage={transactionDataStatus}
+            errorMessage={transactionError}
+            onUpload={onUpload}
+          />
+        )}
+        {step === 4 && (
+          <CategorizeStep
+            batches={batches}
+            onGoToCategorize={handleCategorizeAndGo}
+          />
+        )}
+        {step === 5 && (
+          <GoalsStep
+            goals={goals}
+            accountEntries={accountEntries}
+            onAddGoal={onAddGoal}
+            onUpdateGoal={onUpdateGoal}
+            onRemoveGoal={onRemoveGoal}
+            inferredMonthlyExpenses={inferredMonthlyExpenses}
+            currency={currency}
+          />
+        )}
+      </WizardShell>
     </div>
   );
 }

@@ -136,11 +136,11 @@ export function ExpensesTab({
 
   return (
     <>
-      <section className="panel controls-panel expenses-controls">
-        <div className="control-groups">
-          <div className="control-block">
-            <p className="control-label">Start From</p>
-            <div className="mode-toggle">
+      <section className="border border-line rounded-md p-4 bg-surface shadow-soft min-w-0 grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2 items-start">
+        <div className="flex flex-wrap gap-[0.7rem]">
+          <div className="grid gap-[0.34rem]">
+            <p className="m-0 text-[0.72rem] uppercase tracking-[0.1em] text-muted font-bold">Start From</p>
+            <div className="inline-flex items-center gap-[0.3rem]">
               <button
                 type="button"
                 className={isIncomeFlow ? "mode-btn active" : "mode-btn"}
@@ -159,9 +159,9 @@ export function ExpensesTab({
           </div>
 
           {isIncomeFlow ? (
-            <div className="control-block">
-              <p className="control-label">Income Basis</p>
-              <div className="mode-toggle">
+            <div className="grid gap-[0.34rem]">
+              <p className="m-0 text-[0.72rem] uppercase tracking-[0.1em] text-muted font-bold">Income Basis</p>
+              <div className="inline-flex items-center gap-[0.3rem]">
                 <button
                   type="button"
                   className={incomeBasisMode === "modeled" ? "mode-btn active" : "mode-btn"}
@@ -181,9 +181,9 @@ export function ExpensesTab({
             </div>
           ) : null}
 
-          <div className="control-block">
-            <p className="control-label">Breakdown</p>
-            <div className="mode-toggle">
+          <div className="grid gap-[0.34rem]">
+            <p className="m-0 text-[0.72rem] uppercase tracking-[0.1em] text-muted font-bold">Breakdown</p>
+            <div className="inline-flex items-center gap-[0.3rem]">
               <button
                 type="button"
                 className={merchantDetailMode === "summary" ? "mode-btn active" : "mode-btn"}
@@ -201,11 +201,12 @@ export function ExpensesTab({
             </div>
           </div>
         </div>
-        <div className="timeline-control">
-          <label htmlFor="timeline-period">Timeline</label>
+        <div className="inline-flex items-center gap-2">
+          <label htmlFor="timeline-period" className="text-[0.72rem] uppercase tracking-[0.1em] text-muted font-bold">Timeline</label>
           <select
             id="timeline-period"
             value={timelinePeriod}
+            className="border border-line-strong bg-surface text-ink rounded-sm px-[0.6rem] py-[0.45rem] text-[0.83rem] focus:outline-none focus:border-[var(--accent-border)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
             onChange={(event) => onTimelinePeriodChange(event.target.value as TimelinePeriod)}
           >
             {timelineOptions.map((option) => (
@@ -215,83 +216,83 @@ export function ExpensesTab({
             ))}
           </select>
         </div>
-        <p className="controls-helper">
+        <p className="col-span-full m-0 text-muted text-[0.78rem]">
           {controlsDescription} {breakdownDescription}
         </p>
       </section>
 
-      <section className="stats">
+      <section className="grid grid-cols-4 gap-[0.65rem]">
         {incomeMode === "expenses" ? (
           <>
-            <article>
-              <h2>Total Spend</h2>
-              <p>{formatCurrency(viz.totalSpend, currency)}</p>
+            <article className="border border-line rounded-md px-4 py-[0.9rem] bg-surface shadow-soft hover:border-line-strong transition-colors">
+              <h2 className="text-[0.72rem] uppercase tracking-[0.12em] text-muted font-bold">Total Spend</h2>
+              <p className="font-mono text-ink font-semibold tracking-[-0.03em] mt-[0.38rem] text-[clamp(1.2rem,1.8vw,1.55rem)]">{formatCurrency(viz.totalSpend, currency)}</p>
               {momChange && (
                 <span className={`stat-trend ${momChange.up ? "stat-trend--up" : "stat-trend--down"}`}>
                   {momChange.up ? "↑" : "↓"} {momChange.pct}% from last month
                 </span>
               )}
             </article>
-            <article>
-              <h2>Categories</h2>
-              <p>{viz.categoryStats.length}</p>
+            <article className="border border-line rounded-md px-4 py-[0.9rem] bg-surface shadow-soft hover:border-line-strong transition-colors">
+              <h2 className="text-[0.72rem] uppercase tracking-[0.12em] text-muted font-bold">Categories</h2>
+              <p className="font-mono text-ink font-semibold tracking-[-0.03em] mt-[0.38rem] text-[clamp(1.2rem,1.8vw,1.55rem)]">{viz.categoryStats.length}</p>
             </article>
-            <article>
-              <h2>Subcategories</h2>
-              <p>{viz.subcategoryCount}</p>
+            <article className="border border-line rounded-md px-4 py-[0.9rem] bg-surface shadow-soft hover:border-line-strong transition-colors">
+              <h2 className="text-[0.72rem] uppercase tracking-[0.12em] text-muted font-bold">Subcategories</h2>
+              <p className="font-mono text-ink font-semibold tracking-[-0.03em] mt-[0.38rem] text-[clamp(1.2rem,1.8vw,1.55rem)]">{viz.subcategoryCount}</p>
             </article>
-            <article>
-              <h2>Transactions</h2>
-              <p>{viz.spendCount}</p>
+            <article className="border border-line rounded-md px-4 py-[0.9rem] bg-surface shadow-soft hover:border-line-strong transition-colors">
+              <h2 className="text-[0.72rem] uppercase tracking-[0.12em] text-muted font-bold">Transactions</h2>
+              <p className="font-mono text-ink font-semibold tracking-[-0.03em] mt-[0.38rem] text-[clamp(1.2rem,1.8vw,1.55rem)]">{viz.spendCount}</p>
             </article>
           </>
         ) : (
           <>
-            <article>
-              <h2>{incomeMode === "modeled" ? "Income (Gross)" : "Income"}</h2>
-              <p>{formatCurrency(viz.totalIncome, currency)}</p>
+            <article className="border border-line rounded-md px-4 py-[0.9rem] bg-surface shadow-soft hover:border-line-strong transition-colors">
+              <h2 className="text-[0.72rem] uppercase tracking-[0.12em] text-muted font-bold">{incomeMode === "modeled" ? "Income (Gross)" : "Income"}</h2>
+              <p className="font-mono text-ink font-semibold tracking-[-0.03em] mt-[0.38rem] text-[clamp(1.2rem,1.8vw,1.55rem)]">{formatCurrency(viz.totalIncome, currency)}</p>
             </article>
-            <article>
-              <h2>Total Spend</h2>
-              <p>{formatCurrency(viz.totalSpend, currency)}</p>
+            <article className="border border-line rounded-md px-4 py-[0.9rem] bg-surface shadow-soft hover:border-line-strong transition-colors">
+              <h2 className="text-[0.72rem] uppercase tracking-[0.12em] text-muted font-bold">Total Spend</h2>
+              <p className="font-mono text-ink font-semibold tracking-[-0.03em] mt-[0.38rem] text-[clamp(1.2rem,1.8vw,1.55rem)]">{formatCurrency(viz.totalSpend, currency)}</p>
               {momChange && (
                 <span className={`stat-trend ${momChange.up ? "stat-trend--up" : "stat-trend--down"}`}>
                   {momChange.up ? "↑" : "↓"} {momChange.pct}% from last month
                 </span>
               )}
             </article>
-            <article>
-              <h2>Savings</h2>
-              <p>{formatCurrency(viz.savings, currency)}</p>
+            <article className="border border-line rounded-md px-4 py-[0.9rem] bg-surface shadow-soft hover:border-line-strong transition-colors">
+              <h2 className="text-[0.72rem] uppercase tracking-[0.12em] text-muted font-bold">Savings</h2>
+              <p className="font-mono text-ink font-semibold tracking-[-0.03em] mt-[0.38rem] text-[clamp(1.2rem,1.8vw,1.55rem)]">{formatCurrency(viz.savings, currency)}</p>
             </article>
-            <article>
-              <h2>Uncategorized</h2>
-              <p>{uncategorizedCount}</p>
+            <article className="border border-line rounded-md px-4 py-[0.9rem] bg-surface shadow-soft hover:border-line-strong transition-colors">
+              <h2 className="text-[0.72rem] uppercase tracking-[0.12em] text-muted font-bold">Uncategorized</h2>
+              <p className="font-mono text-ink font-semibold tracking-[-0.03em] mt-[0.38rem] text-[clamp(1.2rem,1.8vw,1.55rem)]">{uncategorizedCount}</p>
             </article>
           </>
         )}
       </section>
 
-      <section className="expenses-layout">
-        <div className="canvas-panel">
-          <div className="canvas-header">
+      <section className="grid">
+        <div className="border border-line rounded-md p-[0.95rem] bg-surface shadow-soft min-w-0">
+          <div className="flex justify-between gap-3 mb-[0.8rem]">
             <div>
-              <h3>{flowTitle}</h3>
+              <h3 className="font-display text-base tracking-[-0.02em] text-ink">{flowTitle}</h3>
               {merchantDetailMode === "summary" ? (
-                <p className="mode-note">
+                <p className="text-muted text-[0.82rem] mt-[0.42rem]">
                   Summary view: top {SUMMARY_TOP_MERCHANTS_PER_GROUP} merchants per subcategory, rest grouped as Other.
                 </p>
               ) : (
-                <p className="mode-note">Detailed view: per-transaction nodes ({viz.merchantNodeCount}).</p>
+                <p className="text-muted text-[0.82rem] mt-[0.42rem]">Detailed view: per-transaction nodes ({viz.merchantNodeCount}).</p>
               )}
             </div>
-            <button type="button" className="mode-btn" onClick={() => setIsExpanded(true)}>
+            <button type="button" className="mode-btn flex-shrink-0" onClick={() => setIsExpanded(true)}>
               Expand Chart
             </button>
           </div>
 
           {viz.spendCount === 0 && viz.totalIncome === 0 ? (
-            <div className="sankey-empty">
+            <div className="py-12 px-6 text-center text-muted">
               <p>No transaction data to display. Upload a CSV on the Transaction Data tab to get started.</p>
             </div>
           ) : (
@@ -338,10 +339,10 @@ export function ExpensesTab({
       </section>
 
       {monthlyExpenseData.rows.length > 1 ? (
-        <section className="panel">
-          <h3>Month-over-Month Spend</h3>
-          <p className="mode-note">Stacked spend by category across all months.</p>
-          <div className="line-chart-wrap">
+        <section className="border border-line rounded-md p-4 bg-surface shadow-soft min-w-0">
+          <h3 className="font-display text-base tracking-[-0.02em] text-ink">Month-over-Month Spend</h3>
+          <p className="text-muted text-[0.82rem] mt-[0.42rem]">Stacked spend by category across all months.</p>
+          <div className="mt-[0.8rem] h-[320px]">
             <ResponsiveContainer width="100%" height={320}>
               <BarChart data={monthlyExpenseData.rows} margin={{ top: 12, right: 16, bottom: 8, left: 4 }} barCategoryGap="28%">
                 <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: "#9E7088", fontSize: 12 }} />

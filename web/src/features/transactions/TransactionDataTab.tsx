@@ -104,20 +104,21 @@ export function TransactionDataTab({
 
   return (
     <>
-      <section className="panel controls-panel upload-panel">
+      <section className="border border-line rounded-md p-4 bg-surface shadow-soft min-w-0 flex items-end justify-between gap-4 flex-wrap">
         <div>
-          <h3>CSV Library</h3>
-          <p className="mode-note">
+          <h3 className="font-display text-base tracking-[-0.02em] text-ink">CSV Library</h3>
+          <p className="text-muted text-[0.82rem] mt-[0.42rem]">
             CSVs are parsed and stored in this browser only. Adjust coverage dates when the export period starts or ends
             outside the first or last transaction.
           </p>
-          {errorMessage ? <p className="error">{errorMessage}</p> : null}
-          {statusMessage ? <p className="mode-note">{statusMessage}</p> : null}
+          {errorMessage ? <p className="text-danger text-sm mt-2">{errorMessage}</p> : null}
+          {statusMessage ? <p className="text-muted text-[0.82rem] mt-[0.42rem]">{statusMessage}</p> : null}
         </div>
-        <div className="mode-toggle">
-          <label className="mode-btn active upload-btn">
+        <div className="flex items-center gap-[0.4rem] flex-wrap">
+          <label className="mode-btn active cursor-pointer">
             Add CSV
             <input
+              className="hidden"
               type="file"
               accept=".csv,text/csv"
               onChange={(event) => {
@@ -132,8 +133,8 @@ export function TransactionDataTab({
       </section>
 
       {batches.length === 0 ? (
-        <section className="panel empty-state">
-          <div className="empty-state-icon" aria-hidden="true">
+        <section className="border border-line rounded-md p-4 bg-surface shadow-soft flex flex-col items-center text-center gap-3">
+          <div className="text-muted mb-1" aria-hidden="true">
             <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
               <rect x="8" y="12" width="32" height="28" rx="3" stroke="currentColor" strokeWidth="2" fill="none" opacity="0.3"/>
               <path d="M16 20h16M16 26h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
@@ -141,39 +142,39 @@ export function TransactionDataTab({
               <path d="M36 9v6M33 12h6" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round"/>
             </svg>
           </div>
-          <h3>No transaction data yet</h3>
-          <p className="mode-note">Upload a bank CSV export to get started. Your data stays in this browser — nothing is sent anywhere.</p>
-          <ol className="empty-state-steps">
+          <h3 className="m-0 text-[1.1rem] font-display text-ink">No transaction data yet</h3>
+          <p className="text-muted text-[0.82rem] mt-[0.42rem]">Upload a bank CSV export to get started. Your data stays in this browser — nothing is sent anywhere.</p>
+          <ol className="m-0 mt-1 py-0 pl-5 grid gap-[0.38rem] text-[0.83rem] text-ink-soft text-left">
             <li>Export a CSV from your bank (look for "Export transactions" or similar)</li>
-            <li>Click <strong>Add CSV</strong> above to upload it</li>
-            <li>Head to <strong>Expenses</strong> or <strong>Dashboard</strong> to see your spending</li>
+            <li>Click <strong className="text-ink">Add CSV</strong> above to upload it</li>
+            <li>Head to <strong className="text-ink">Expenses</strong> or <strong className="text-ink">Dashboard</strong> to see your spending</li>
           </ol>
         </section>
       ) : (
-        <section className="stats">
-          <article>
-            <h2>CSV Files</h2>
-            <p>{batches.length}</p>
+        <section className="grid grid-cols-4 gap-[0.65rem]">
+          <article className="border border-line rounded-md px-4 py-[0.9rem] bg-surface shadow-soft hover:border-line-strong transition-colors">
+            <h2 className="text-[0.72rem] uppercase tracking-[0.12em] text-muted font-bold">CSV Files</h2>
+            <p className="font-mono text-ink font-semibold tracking-[-0.03em] mt-[0.38rem] text-[clamp(1.2rem,1.8vw,1.55rem)]">{batches.length}</p>
           </article>
-          <article>
-            <h2>Unique Transactions</h2>
-            <p>{totalTransactionCount}</p>
+          <article className="border border-line rounded-md px-4 py-[0.9rem] bg-surface shadow-soft hover:border-line-strong transition-colors">
+            <h2 className="text-[0.72rem] uppercase tracking-[0.12em] text-muted font-bold">Unique Transactions</h2>
+            <p className="font-mono text-ink font-semibold tracking-[-0.03em] mt-[0.38rem] text-[clamp(1.2rem,1.8vw,1.55rem)]">{totalTransactionCount}</p>
           </article>
-          <article>
-            <h2>Covered Days</h2>
-            <p>{coveredDayCount}</p>
+          <article className="border border-line rounded-md px-4 py-[0.9rem] bg-surface shadow-soft hover:border-line-strong transition-colors">
+            <h2 className="text-[0.72rem] uppercase tracking-[0.12em] text-muted font-bold">Covered Days</h2>
+            <p className="font-mono text-ink font-semibold tracking-[-0.03em] mt-[0.38rem] text-[clamp(1.2rem,1.8vw,1.55rem)]">{coveredDayCount}</p>
           </article>
-          <article>
-            <h2>Covered Months</h2>
-            <p>{coverageMonths.length}</p>
+          <article className="border border-line rounded-md px-4 py-[0.9rem] bg-surface shadow-soft hover:border-line-strong transition-colors">
+            <h2 className="text-[0.72rem] uppercase tracking-[0.12em] text-muted font-bold">Covered Months</h2>
+            <p className="font-mono text-ink font-semibold tracking-[-0.03em] mt-[0.38rem] text-[clamp(1.2rem,1.8vw,1.55rem)]">{coverageMonths.length}</p>
           </article>
         </section>
       )}
 
-      <section className="panel">
-        <div className="rules-header">
-          <h3>Coverage Calendar</h3>
-          <p className="mode-note">Days inside a batch coverage range are highlighted, even if there were no transactions.</p>
+      <section className="border border-line rounded-md p-4 bg-surface shadow-soft min-w-0">
+        <div className="flex items-center justify-between gap-3 mb-2">
+          <h3 className="font-display text-base tracking-[-0.02em] text-ink">Coverage Calendar</h3>
+          <p className="text-muted text-[0.82rem] mt-[0.42rem]">Days inside a batch coverage range are highlighted, even if there were no transactions.</p>
         </div>
         <div className="coverage-calendar">
             {coverageMonths.map((month) => (
@@ -215,56 +216,58 @@ export function TransactionDataTab({
           </div>
       </section>
 
-      <section className="panel">
-        <div className="rules-header">
-          <h3>Uploaded CSVs</h3>
-          <p className="mode-note">Coverage dates drive the calendar and future period comparisons.</p>
+      <section className="border border-line rounded-md p-4 bg-surface shadow-soft min-w-0">
+        <div className="flex items-center justify-between gap-3 mb-2">
+          <h3 className="font-display text-base tracking-[-0.02em] text-ink">Uploaded CSVs</h3>
+          <p className="text-muted text-[0.82rem] mt-[0.42rem]">Coverage dates drive the calendar and future period comparisons.</p>
         </div>
         {batches.length === 0 ? (
-          <p className="mode-note">No CSVs added yet.</p>
+          <p className="text-muted text-[0.82rem] mt-[0.42rem]">No CSVs added yet.</p>
         ) : (
-          <ul className="batch-list">
+          <ul className="list-none m-0 pt-3 p-0 grid gap-[0.6rem]">
             {batches.map((batch) => (
-              <li key={batch.id} className="batch-item">
-                <div className="batch-header">
+              <li key={batch.id} className="border border-line rounded-md p-3 hover:border-line-strong transition-colors">
+                <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h4>{batch.fileName}</h4>
-                    <p className="mode-note">Imported {formatDateTime(batch.importedAt)}</p>
+                    <h4 className="m-0 font-display text-[0.95rem] text-ink">{batch.fileName}</h4>
+                    <p className="text-muted text-[0.82rem] mt-[0.42rem]">Imported {formatDateTime(batch.importedAt)}</p>
                   </div>
                   <button type="button" className="mode-btn" onClick={() => onDeleteBatch(batch.id)}>
                     Delete
                   </button>
                 </div>
 
-                <div className="batch-stats">
+                <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[0.8rem] text-muted">
                   <span>{batch.transactionCount} transactions</span>
                   <span>{batch.warningCount} warnings</span>
                   <span>Observed {formatShortDate(batch.observedStart)} to {formatShortDate(batch.observedEnd)}</span>
                 </div>
 
-                <div className="batch-range-editors">
-                  <label>
+                <div className="mt-[0.65rem] grid grid-cols-2 gap-[0.5rem]">
+                  <label className="grid gap-[0.24rem] text-[0.75rem] text-ink-soft font-semibold">
                     Coverage start
                     <input
                       type="date"
                       value={batch.coverageStart}
+                      className="border border-line-strong bg-surface text-ink rounded-sm px-[0.6rem] py-[0.45rem] text-[0.83rem] focus:outline-none focus:border-[var(--accent-border)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
                       onChange={(event) => onUpdateBatchCoverage(batch.id, { coverageStart: event.target.value })}
                     />
                   </label>
-                  <label>
+                  <label className="grid gap-[0.24rem] text-[0.75rem] text-ink-soft font-semibold">
                     Coverage end
                     <input
                       type="date"
                       value={batch.coverageEnd}
+                      className="border border-line-strong bg-surface text-ink rounded-sm px-[0.6rem] py-[0.45rem] text-[0.83rem] focus:outline-none focus:border-[var(--accent-border)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
                       onChange={(event) => onUpdateBatchCoverage(batch.id, { coverageEnd: event.target.value })}
                     />
                   </label>
                 </div>
 
                 {batch.warningCount > 0 ? (
-                  <details className="batch-warnings">
-                    <summary>Skipped row warnings ({batch.warningCount})</summary>
-                    <ul>
+                  <details className="mt-[0.7rem] border-t border-line pt-[0.5rem] text-[0.8rem] text-muted">
+                    <summary className="cursor-pointer font-bold">Skipped row warnings ({batch.warningCount})</summary>
+                    <ul className="mt-2 pl-[1.1rem]">
                       {batch.warnings.map((warning, index) => (
                         <li key={`${batch.id}-warning-${index}`}>{warning}</li>
                       ))}

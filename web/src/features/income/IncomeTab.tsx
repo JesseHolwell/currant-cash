@@ -33,6 +33,8 @@ function generateId(): string {
   return `field_${Math.random().toString(36).slice(2, 9)}`;
 }
 
+const inputCls = "border border-line-strong bg-surface text-ink rounded-sm px-[0.6rem] py-[0.45rem] text-[0.83rem] focus:outline-none focus:border-[var(--accent-border)] focus:shadow-[0_0_0_3px_var(--accent-ring)] w-full";
+
 export function IncomeTab({
   currency,
   payrollDraft,
@@ -106,59 +108,59 @@ export function IncomeTab({
 
   return (
     <>
-      <section className="stats">
-        <article>
-          <h2>Pay Schedule</h2>
-          <p>{payFrequency.label}</p>
-          <small>{payFrequency.periodsPerYear} pay periods per year</small>
+      <section className="grid grid-cols-4 gap-[0.65rem]">
+        <article className="border border-line rounded-md px-4 py-[0.9rem] bg-surface shadow-soft hover:border-line-strong transition-colors">
+          <h2 className="text-[0.72rem] uppercase tracking-[0.12em] text-muted font-bold">Pay Schedule</h2>
+          <p className="font-mono text-ink font-semibold tracking-[-0.03em] mt-[0.38rem] text-[clamp(1.2rem,1.8vw,1.55rem)]">{payFrequency.label}</p>
+          <small className="text-[0.68rem] text-muted font-normal mt-[0.2rem] inline-block">{payFrequency.periodsPerYear} pay periods per year</small>
         </article>
-        <article>
-          <h2>Monthly Take-home</h2>
-          <p>{formatCurrency(monthlyTakeHome, currency)}</p>
-          <small>Estimated from your per-pay net value</small>
+        <article className="border border-line rounded-md px-4 py-[0.9rem] bg-surface shadow-soft hover:border-line-strong transition-colors">
+          <h2 className="text-[0.72rem] uppercase tracking-[0.12em] text-muted font-bold">Monthly Take-home</h2>
+          <p className="font-mono text-ink font-semibold tracking-[-0.03em] mt-[0.38rem] text-[clamp(1.2rem,1.8vw,1.55rem)]">{formatCurrency(monthlyTakeHome, currency)}</p>
+          <small className="text-[0.68rem] text-muted font-normal mt-[0.2rem] inline-block">Estimated from your per-pay net value</small>
         </article>
-        <article>
-          <h2>Annual Package</h2>
-          <p>{formatCurrency(annualPackage, currency)}</p>
-          <small>Gross salary plus employer contributions</small>
+        <article className="border border-line rounded-md px-4 py-[0.9rem] bg-surface shadow-soft hover:border-line-strong transition-colors">
+          <h2 className="text-[0.72rem] uppercase tracking-[0.12em] text-muted font-bold">Annual Package</h2>
+          <p className="font-mono text-ink font-semibold tracking-[-0.03em] mt-[0.38rem] text-[clamp(1.2rem,1.8vw,1.55rem)]">{formatCurrency(annualPackage, currency)}</p>
+          <small className="text-[0.68rem] text-muted font-normal mt-[0.2rem] inline-block">Gross salary plus employer contributions</small>
         </article>
-        <article>
-          <h2>Matched Salary Credits</h2>
-          <p>{matchedPayCount}</p>
-          <small>Transactions found using employer name matching</small>
+        <article className="border border-line rounded-md px-4 py-[0.9rem] bg-surface shadow-soft hover:border-line-strong transition-colors">
+          <h2 className="text-[0.72rem] uppercase tracking-[0.12em] text-muted font-bold">Matched Salary Credits</h2>
+          <p className="font-mono text-ink font-semibold tracking-[-0.03em] mt-[0.38rem] text-[clamp(1.2rem,1.8vw,1.55rem)]">{matchedPayCount}</p>
+          <small className="text-[0.68rem] text-muted font-normal mt-[0.2rem] inline-block">Transactions found using employer name matching</small>
         </article>
       </section>
 
-      <section className="panel income-panel">
-        <div className="income-header">
-          <div>
-            <h3>Payroll Configuration</h3>
-            <p className="mode-note">Enter the per-pay values used to recognise and model salary transactions.</p>
-          </div>
+      <section className="border border-line rounded-md p-4 bg-surface shadow-soft min-w-0 grid gap-4">
+        <div>
+          <h3 className="font-display text-base tracking-[-0.02em] text-ink">Payroll Configuration</h3>
+          <p className="text-muted text-[0.82rem] mt-[0.42rem]">Enter the per-pay values used to recognise and model salary transactions.</p>
         </div>
 
-        <section className="income-section">
-          <div className="income-section-heading">
-            <h4>Employer Matching</h4>
-            <p>Enter your company name as it appears in your transactions. This is only used to match salary credits in your records.</p>
+        <div className="border border-line rounded-md p-4">
+          <div className="mb-3">
+            <h4 className="font-display text-[0.95rem] text-ink m-0">Employer Matching</h4>
+            <p className="text-ink-soft text-[0.8rem] mt-[0.18rem]">Enter your company name as it appears in your transactions. This is only used to match salary credits in your records.</p>
           </div>
-          <div className="income-config-grid">
-            <label className="income-field-card income-config-card">
-              <span className="income-field-label">Employer name</span>
-              <span className="income-field-hint">Use the employer name or descriptor shown on your salary transactions.</span>
+          <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(220px,0.8fr)] gap-[0.65rem]">
+            <label className="grid gap-[0.34rem] border border-line rounded-md p-3 bg-surface hover:border-line-strong transition-colors content-start">
+              <span className="text-[0.84rem] text-ink font-semibold">Employer name</span>
+              <span className="text-muted text-[0.78rem] min-h-[2.2em]">Use the employer name or descriptor shown on your salary transactions.</span>
               <input
                 type="text"
                 autoComplete="organization"
                 value={payrollDraft.employerKeywords}
                 placeholder="Acme Pty Ltd"
+                className={inputCls}
                 onChange={(event) => onPayrollDraftChange({ employerKeywords: event.target.value })}
               />
             </label>
-            <label className="income-field-card income-config-card">
-              <span className="income-field-label">Pay frequency</span>
-              <span className="income-field-hint">Used to convert per-pay values into monthly and annual totals.</span>
+            <label className="grid gap-[0.34rem] border border-line rounded-md p-3 bg-surface hover:border-line-strong transition-colors content-start">
+              <span className="text-[0.84rem] text-ink font-semibold">Pay frequency</span>
+              <span className="text-muted text-[0.78rem] min-h-[2.2em]">Used to convert per-pay values into monthly and annual totals.</span>
               <select
                 value={payrollDraft.payFrequency}
+                className={inputCls}
                 onChange={(event) => onPayrollDraftChange({ payFrequency: event.target.value as PayrollDraft["payFrequency"] })}
               >
                 {PAY_FREQUENCY_OPTIONS.map((option) => (
@@ -169,62 +171,64 @@ export function IncomeTab({
               </select>
             </label>
           </div>
-          <p className="mode-note">
+          <p className="text-muted text-[0.82rem] mt-[0.42rem]">
             {payrollDraft.employerKeywords.trim()
               ? `Currently matching ${matchedPayCount} salary credit${matchedPayCount === 1 ? "" : "s"} from your uploaded transaction records.`
               : "Add an employer name to enable salary matching."}
           </p>
-        </section>
+        </div>
 
-        <section className="income-section">
-          <div className="income-section-heading">
-            <h4>Per Pay Values</h4>
-            <p>These should reflect a normal pay run, not a yearly total.</p>
+        <div className="border border-line rounded-md p-4">
+          <div className="mb-3">
+            <h4 className="font-display text-[0.95rem] text-ink m-0">Per Pay Values</h4>
+            <p className="text-ink-soft text-[0.8rem] mt-[0.18rem]">These should reflect a normal pay run, not a yearly total.</p>
           </div>
-          <div className="income-field-grid">
-            <label className="income-field-card">
-              <span className="income-field-label">Net pay</span>
-              <span className="income-field-hint">Amount deposited to your account each pay.</span>
+          <div className="grid grid-cols-3 gap-[0.65rem]">
+            <label className="grid gap-[0.34rem] border border-line rounded-md p-3 bg-surface hover:border-line-strong transition-colors">
+              <span className="text-[0.84rem] text-ink font-semibold">Net pay</span>
+              <span className="text-muted text-[0.78rem] min-h-[2.2em]">Amount deposited to your account each pay.</span>
               <input
                 type="number"
                 inputMode="decimal"
                 min="0"
                 step="0.01"
                 value={payrollDraft.netPay}
+                className={inputCls}
                 onChange={(event) => onPayrollDraftChange({ netPay: Number(event.target.value) || 0 })}
               />
             </label>
-            <label className="income-field-card">
-              <span className="income-field-label">Gross pay</span>
-              <span className="income-field-hint">Salary before deductions.</span>
+            <label className="grid gap-[0.34rem] border border-line rounded-md p-3 bg-surface hover:border-line-strong transition-colors">
+              <span className="text-[0.84rem] text-ink font-semibold">Gross pay</span>
+              <span className="text-muted text-[0.78rem] min-h-[2.2em]">Salary before deductions.</span>
               <input
                 type="number"
                 inputMode="decimal"
                 min="0"
                 step="0.01"
                 value={payrollDraft.grossPay}
+                className={inputCls}
                 onChange={(event) => onPayrollDraftChange({ grossPay: Number(event.target.value) || 0 })}
               />
             </label>
           </div>
-        </section>
+        </div>
 
         {KIND_ORDER.map((kind) => {
           const meta = FIELD_KIND_META[kind];
           const fields = payrollDraft.fields.filter((f) => f.kind === kind);
           return (
-            <section key={kind} className="income-section">
-              <div className="income-section-heading">
-                <h4>{meta.label}</h4>
-                <p>{meta.hint}</p>
+            <div key={kind} className="border border-line rounded-md p-4">
+              <div className="mb-3">
+                <h4 className="font-display text-[0.95rem] text-ink m-0">{meta.label}</h4>
+                <p className="text-ink-soft text-[0.8rem] mt-[0.18rem]">{meta.hint}</p>
               </div>
               {fields.length > 0 && (
-                <div className="income-field-grid">
+                <div className="grid grid-cols-3 gap-[0.65rem] mb-3">
                   {fields.map((field) => (
-                    <div key={field.id} className="income-field-card income-field-editable">
-                      <div className="income-field-label-row">
+                    <div key={field.id} className="grid gap-[0.34rem] border border-line rounded-md p-3 bg-surface hover:border-line-strong transition-colors content-start">
+                      <div className="flex items-center gap-[0.4rem]">
                         <input
-                          className="income-field-label-input"
+                          className="flex-1 text-[0.84rem] bg-transparent border-0 border-b border-line text-ink focus:outline-none focus:border-b-accent py-[0.1rem]"
                           type="text"
                           value={field.label}
                           onChange={(event) => updateField(field.id, { label: event.target.value })}
@@ -232,20 +236,21 @@ export function IncomeTab({
                         />
                         <button
                           type="button"
-                          className="income-field-remove"
+                          className="flex-shrink-0 inline-flex items-center justify-center w-5 h-5 rounded-full border border-line text-muted text-base leading-none cursor-pointer hover:border-line-strong hover:text-ink bg-transparent"
                           onClick={() => removeField(field.id)}
                           aria-label={`Remove ${field.label}`}
                         >
                           ×
                         </button>
                       </div>
-                      <span className="income-field-hint">Per-pay amount</span>
+                      <span className="text-muted text-[0.78rem]">Per-pay amount</span>
                       <input
                         type="number"
                         inputMode="decimal"
                         min="0"
                         step="0.01"
                         value={field.amount}
+                        className={inputCls}
                         onChange={(event) => updateField(field.id, { amount: Number(event.target.value) || 0 })}
                       />
                     </div>
@@ -254,25 +259,25 @@ export function IncomeTab({
               )}
               <button
                 type="button"
-                className="income-add-field-btn"
+                className="mt-2 inline-flex items-center gap-[0.35rem] border border-line rounded-sm px-3 py-[0.35rem] text-[0.8rem] text-muted bg-transparent cursor-pointer hover:border-line-strong hover:text-ink transition-colors"
                 onClick={() => addField(kind)}
               >
                 + {meta.addLabel}
               </button>
-            </section>
+            </div>
           );
         })}
 
-        <section className="income-section">
-          <div className="income-section-heading">
-            <h4>Annual Income Breakdown</h4>
-            <p>Based on your {payFrequency.label.toLowerCase()} pay cycle and the per-pay values above.</p>
+        <div className="border border-line rounded-md p-4">
+          <div className="mb-3">
+            <h4 className="font-display text-[0.95rem] text-ink m-0">Annual Income Breakdown</h4>
+            <p className="text-ink-soft text-[0.8rem] mt-[0.18rem]">Based on your {payFrequency.label.toLowerCase()} pay cycle and the per-pay values above.</p>
           </div>
           {breakdownData.length === 0 ? (
-            <p className="mode-note">Add your pay values to see an annual breakdown.</p>
+            <p className="text-muted text-[0.82rem] mt-[0.42rem]">Add your pay values to see an annual breakdown.</p>
           ) : (
-            <div className="income-breakdown-layout">
-              <div className="income-breakdown-chart">
+            <div className="grid grid-cols-[minmax(280px,0.9fr)_minmax(260px,1fr)] gap-[0.65rem]">
+              <div className="min-h-[300px] border border-line rounded-md bg-surface">
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
                     <Pie
@@ -293,26 +298,26 @@ export function IncomeTab({
                 </ResponsiveContainer>
               </div>
 
-              <div className="income-breakdown-summary">
-                <div className="income-breakdown-totals">
-                  <article>
-                    <span>Gross salary</span>
-                    <strong>{formatCurrency(annualGross, currency)}</strong>
+              <div className="grid gap-[0.8rem] content-start">
+                <div className="grid grid-cols-2 gap-[0.65rem]">
+                  <article className="grid gap-[0.18rem] border border-line rounded-md p-3 bg-surface">
+                    <span className="text-muted text-[0.74rem] uppercase tracking-[0.1em]">Gross salary</span>
+                    <strong className="text-ink text-[1.18rem] font-mono font-semibold">{formatCurrency(annualGross, currency)}</strong>
                   </article>
-                  <article>
-                    <span>Effective tax rate</span>
-                    <strong>{(effectiveTaxRate * 100).toFixed(1)}%</strong>
+                  <article className="grid gap-[0.18rem] border border-line rounded-md p-3 bg-surface">
+                    <span className="text-muted text-[0.74rem] uppercase tracking-[0.1em]">Effective tax rate</span>
+                    <strong className="text-ink text-[1.18rem] font-mono font-semibold">{(effectiveTaxRate * 100).toFixed(1)}%</strong>
                   </article>
                 </div>
-                <ul className="income-breakdown-list">
+                <ul className="list-none m-0 p-0 grid gap-[0.38rem]">
                   {breakdownData.map((entry) => {
                     const percent = breakdownTotal > 0 ? (entry.value / breakdownTotal) * 100 : 0;
                     return (
-                      <li key={entry.name}>
-                        <span className="income-breakdown-dot" style={{ backgroundColor: entry.color }} />
+                      <li key={entry.name} className="grid grid-cols-[auto_minmax(0,1fr)] gap-[0.6rem] items-center border border-line rounded-md p-[0.55rem] hover:border-line-strong transition-colors">
+                        <span className="w-3 h-3 rounded-full flex-shrink-0 self-start mt-[0.25rem]" style={{ backgroundColor: entry.color }} />
                         <div>
-                          <strong>{entry.name}</strong>
-                          <small>{formatCurrency(entry.value, currency)} · {percent.toFixed(1)}%</small>
+                          <strong className="block text-ink text-[0.85rem] font-semibold">{entry.name}</strong>
+                          <small className="text-ink-soft text-[0.8rem]">{formatCurrency(entry.value, currency)} · {percent.toFixed(1)}%</small>
                         </div>
                       </li>
                     );
@@ -321,7 +326,7 @@ export function IncomeTab({
               </div>
             </div>
           )}
-        </section>
+        </div>
       </section>
     </>
   );

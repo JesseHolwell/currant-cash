@@ -85,10 +85,21 @@ export function LandingPage({
   }, []);
 
   return (
-    <div className="landing">
+    // min-h-screen flex flex-col items-center, bg from --bg-main token
+    <div className="min-h-screen flex flex-col items-center bg-bg text-ink">
       {/* ── Nav header ── */}
+      {/*
+        Keep landing-nav / landing-nav--scrolled as CSS classes:
+        they have a transition on padding, backdrop-filter, box-shadow, and
+        border-color that is impractical to replicate inline.
+      */}
       <nav className={`landing-nav${scrolled ? " landing-nav--scrolled" : ""}`}>
-        <div className="landing-nav-brand">
+        {/* brand left: flex row, vertically centred, gap */}
+        <div className="flex items-center gap-2.5">
+          {/*
+            brand-mark / brand-leaf / brand-berry* are intricate SVG-like
+            pseudo-element shapes defined in CSS — keep as CSS classes.
+          */}
           <div
             className="brand-mark"
             aria-hidden="true"
@@ -103,6 +114,11 @@ export function LandingPage({
             <span className="brand-berry brand-berry-left" />
             <span className="brand-berry brand-berry-right" />
           </div>
+          {/*
+            landing-nav-wordmark keeps its CSS class because it uses a
+            gradient background-clip text technique with --berry-highlight
+            which can't be expressed cleanly in Tailwind arbitrary values.
+          */}
           <span
             className="landing-nav-wordmark"
             style={{
@@ -113,7 +129,9 @@ export function LandingPage({
             Currant
           </span>
         </div>
-        <div className="landing-nav-actions">
+
+        {/* nav actions: flex row, vertically centred, gap */}
+        <div className="flex items-center gap-2">
           {onBack ? (
             <button
               type="button"
@@ -123,12 +141,22 @@ export function LandingPage({
               ← Back to dashboard
             </button>
           ) : null}
-          <button type="button" className="landing-nav-login" onClick={onLogIn}>
-            Log in
-          </button>
+          {/* Log in — plain text button */}
           <button
             type="button"
-            className="landing-btn-primary landing-nav-signup"
+            className="px-4 py-2 bg-transparent border-none text-[0.9375rem] font-medium text-ink-soft cursor-pointer rounded-md transition-colors duration-150 hover:text-ink"
+            onClick={onLogIn}
+          >
+            Log in
+          </button>
+          {/*
+            landing-btn-primary keeps its CSS class because it carries a
+            box-shadow with the berry colour and hover lift animation.
+            landing-nav-signup only adjusts padding/font-size — inline it.
+          */}
+          <button
+            type="button"
+            className="landing-btn-primary px-[1.125rem] py-2 text-[0.9375rem]"
             onClick={onSignUp}
           >
             Sign up
@@ -137,7 +165,12 @@ export function LandingPage({
       </nav>
 
       {/* ── Hero ── */}
-      <header className="landing-hero">
+      {/* width: min(720px, 92vw), centred, flex col, text-center, gap */}
+      <header className="w-[min(720px,92vw)] mx-auto mt-14 mb-16 flex flex-col items-center text-center gap-5">
+        {/*
+          landing-hero-brand keeps its CSS class: clamp font-size,
+          gradient background-clip text, and will-change.
+        */}
         <h1
           className="landing-hero-brand"
           aria-hidden="true"
@@ -148,15 +181,21 @@ export function LandingPage({
         >
           Currant
         </h1>
-        <p className="landing-tagline">
+
+        {/* Tagline */}
+        <p className="m-0 text-[1.375rem] font-semibold text-ink tracking-[-0.02em]">
           Financial Health, Naturally Preserved.
         </p>
-        <p className="landing-description">
+
+        {/* Description */}
+        <p className="m-0 text-base text-ink-soft leading-[1.65] max-w-[560px]">
           An offline-first dashboard for your bank CSVs. Track net worth,
           expenses, and FIRE projections without ever creating an account or
           linking a bank.
         </p>
-        <div className="landing-cta-group">
+
+        {/* CTA group */}
+        <div className="flex flex-wrap justify-center gap-3 mt-2">
           <button
             type="button"
             className="landing-btn-primary"
@@ -164,6 +203,7 @@ export function LandingPage({
           >
             Continue for free
           </button>
+          {/* landing-btn-secondary keeps its CSS class: accent border colour + hover fill */}
           <button
             type="button"
             className="landing-btn-secondary"
@@ -175,45 +215,73 @@ export function LandingPage({
       </header>
 
       {/* ── Feature Highlights ── */}
-      <section className="landing-section">
-        <h2 className="landing-section-title">Everything you need</h2>
-        <div className="landing-features">
+      {/* width: min(1000px, 92vw), centred, bottom margin */}
+      <section className="w-[min(1000px,92vw)] mx-auto mb-20">
+        {/* Section title: Fraunces, 1.75rem, -0.03em tracking */}
+        <h2 className="mt-0 mb-5 font-display text-[1.75rem] font-semibold tracking-[-0.03em] text-ink">
+          Everything you need
+        </h2>
+
+        {/* Features grid: auto-fill minmax(280px, 1fr) */}
+        <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(280px,1fr))]">
           {FEATURES.map((feature) => (
-            <div key={feature.title} className="landing-feature-card">
-              <span className="landing-feature-icon" aria-hidden="true">
+            <div
+              key={feature.title}
+              className="bg-[var(--panel-strong)] border border-line rounded-lg px-6 py-5 flex flex-col gap-2 shadow-soft"
+            >
+              <span className="text-2xl leading-none" aria-hidden="true">
                 {feature.icon}
               </span>
-              <h3 className="landing-feature-title">{feature.title}</h3>
-              <p className="landing-feature-desc">{feature.description}</p>
+              <h3 className="m-0 text-base font-bold tracking-[-0.02em] text-ink">
+                {feature.title}
+              </h3>
+              <p className="m-0 text-[0.875rem] text-ink-soft leading-[1.6]">
+                {feature.description}
+              </p>
             </div>
           ))}
         </div>
       </section>
 
       {/* ── Free vs Premium ── */}
-      <section className="landing-section">
-        <h2 className="landing-section-title">Free vs Premium</h2>
-        <p className="landing-section-subtitle">
+      <section className="w-[min(1000px,92vw)] mx-auto mb-20">
+        <h2 className="mt-0 mb-5 font-display text-[1.75rem] font-semibold tracking-[-0.03em] text-ink">
+          Free vs Premium
+        </h2>
+        <p className="mt-[-0.75rem] mb-6 text-ink-soft text-[0.9375rem]">
           The free tier is fully featured offline. Premium adds cloud sync and
           AI.
         </p>
-        <div className="landing-pricing">
-          <table className="landing-comparison-table">
-            <thead>
+
+        {/* Scrollable table wrapper */}
+        <div className="overflow-x-auto rounded-lg border border-line shadow-soft">
+          <table className="w-full border-collapse text-[0.9rem] bg-[var(--panel-strong)] rounded-lg overflow-hidden">
+            <thead className="bg-sidebar border-b border-line">
               <tr>
-                <th className="landing-col-feature">Feature</th>
-                <th className="landing-col-tier">Free</th>
-                <th className="landing-col-tier landing-col-premium">
+                {/* Feature column header: 60% wide, uppercase label */}
+                <th className="w-3/5 px-4 py-3 text-left font-semibold text-[0.8rem] tracking-[0.08em] uppercase text-muted">
+                  Feature
+                </th>
+                {/* Tier column headers: centred, bold */}
+                <th className="px-4 py-3 text-center font-bold text-[0.875rem] text-ink">
+                  Free
+                </th>
+                <th className="px-4 py-3 text-center font-bold text-[0.875rem] text-accent">
                   Premium
                 </th>
               </tr>
             </thead>
             <tbody>
               {COMPARISON.map((row) => (
-                <tr key={row.feature}>
-                  <td>{row.feature}</td>
-                  <td className="landing-cell-check">{row.free ? "✓" : "—"}</td>
-                  <td className="landing-cell-check landing-cell-premium">
+                <tr
+                  key={row.feature}
+                  className="border-b border-line last:border-b-0 hover:bg-[var(--accent-soft)]"
+                >
+                  <td className="px-4 py-3 text-left">{row.feature}</td>
+                  <td className="px-4 py-3 text-center text-[0.9rem] font-semibold text-ink-soft">
+                    {row.free ? "✓" : "—"}
+                  </td>
+                  <td className="px-4 py-3 text-center text-[0.9rem] font-semibold text-accent">
                     {row.premium ? "✓" : "—"}
                   </td>
                 </tr>
@@ -224,9 +292,11 @@ export function LandingPage({
       </section>
 
       {/* ── Bottom CTA ── */}
-      <section className="landing-section landing-section-bottom">
-        <h2 className="landing-section-title">Ready to start?</h2>
-        <div className="landing-cta-group">
+      <section className="w-[min(1000px,92vw)] mx-auto mb-16 flex flex-col items-center text-center gap-6">
+        <h2 className="mt-0 mb-5 font-display text-[1.75rem] font-semibold tracking-[-0.03em] text-ink">
+          Ready to start?
+        </h2>
+        <div className="flex flex-wrap justify-center gap-3 mt-2">
           <button
             type="button"
             className="landing-btn-primary"
@@ -244,7 +314,8 @@ export function LandingPage({
         </div>
       </section>
 
-      <footer className="landing-footer">
+      {/* Footer */}
+      <footer className="w-full text-center px-4 pt-6 pb-8 text-muted text-[0.8125rem] border-t border-line">
         <p>
           © {new Date().getFullYear()} Currant · Built for financial clarity
         </p>

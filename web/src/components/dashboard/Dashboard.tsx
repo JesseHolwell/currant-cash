@@ -303,7 +303,7 @@ export function Dashboard({
   const activeTabMeta = TAB_META[activeTab];
 
   return (
-    <div className="app-frame">
+    <div className="flex flex-col h-screen overflow-hidden">
       <AppNav
         user={user}
         isDark={isDark}
@@ -313,7 +313,7 @@ export function Dashboard({
         onGoToSettings={() => onTabChange("settings")}
       />
 
-      <main className="dashboard-shell">
+      <main className="flex-1 w-full flex flex-row overflow-hidden animate-[rise_400ms_cubic-bezier(0.2,0.95,0.35,1)]">
         <Sidebar
           tabMeta={TAB_META}
           activeTab={activeTab}
@@ -323,206 +323,206 @@ export function Dashboard({
           currency={derived.meta.currency}
         />
 
-      <section className="workspace">
-        {isSampleMode ? (
-          <div className="sample-banner">
-            <span className="sample-banner-text">
-              You&apos;re previewing sample data &mdash; no changes will be saved.
-            </span>
-            <button type="button" className="sample-banner-cta" onClick={onExitSampleMode}>
-              {sampleBannerLabel} &rarr;
-            </button>
-          </div>
-        ) : null}
-        <WorkspaceHeader
-          title={activeTabMeta.title}
-          subtitle={activeTabMeta.subtitle}
-          generatedLabel={derived.subtitle}
-          isSampleMode={isSampleMode}
-        />
-
-        {activeTab === "imports" ? (
-          <TransactionDataTab
-            batches={transactionBatches}
-            totalTransactionCount={derived.transactions.length}
-            statusMessage={transactionDataStatus}
-            errorMessage={error}
-            onUpload={onCsvUpload}
-            onUpdateBatchCoverage={onUpdateBatchCoverage}
-            onDeleteBatch={onDeleteBatch}
-            onDeleteAllBatches={onDeleteAllBatches}
+        <section className="flex-1 min-w-0 overflow-y-auto px-6 py-5 pb-10 grid gap-[0.85rem] content-start">
+          {isSampleMode ? (
+            <div className="sample-banner">
+              <span className="sample-banner-text">
+                You&apos;re previewing sample data &mdash; no changes will be saved.
+              </span>
+              <button type="button" className="sample-banner-cta" onClick={onExitSampleMode}>
+                {sampleBannerLabel} &rarr;
+              </button>
+            </div>
+          ) : null}
+          <WorkspaceHeader
+            title={activeTabMeta.title}
+            subtitle={activeTabMeta.subtitle}
+            generatedLabel={derived.subtitle}
+            isSampleMode={isSampleMode}
           />
-        ) : null}
 
-        {activeTab === "dashboard" ? (
-          <DashboardOverviewTab
-            currency={derived.meta.currency}
-            accountSummary={derived.accountSummary}
-            startNetWorth={derived.startNetWorth}
-            monthlyForecastDelta={derived.monthlyForecastDelta}
-            isMonthlyDeltaOverridden={forecastMonthlyDelta !== null}
-            inferredMonthCount={derived.inferredMonthCount}
-            forecastPoints={derived.forecastPoints}
-            maxGoalTarget={derived.maxGoalTarget}
-            accountHistorySeries={derived.accountHistorySeries}
-            accountHistoryChartData={derived.accountHistoryChartData}
-            expensePieData={derived.expensePieData}
-            accountEntries={accountEntries}
-            savingsRate={derived.fireInsightsData.savingsRate}
-            monthlySavings={derived.fireInsightsData.monthlySavings}
-            projectedFireAge={derived.fireInsightsData.projectedFireAge}
-            yearsToFire={derived.fireInsightsData.yearsToFire}
-            currentAge={fireCurrentAge}
-            onGoToFire={() => onTabChange("fireInsights")}
-          />
-        ) : null}
+          {activeTab === "imports" ? (
+            <TransactionDataTab
+              batches={transactionBatches}
+              totalTransactionCount={derived.transactions.length}
+              statusMessage={transactionDataStatus}
+              errorMessage={error}
+              onUpload={onCsvUpload}
+              onUpdateBatchCoverage={onUpdateBatchCoverage}
+              onDeleteBatch={onDeleteBatch}
+              onDeleteAllBatches={onDeleteAllBatches}
+            />
+          ) : null}
 
-        {activeTab === "accounts" ? (
-          <AccountsTab
-            currency={derived.meta.currency}
-            accountSummary={derived.accountSummary}
-            accountEntries={accountEntries}
-            accountHistorySnapshots={derived.accountHistorySorted}
-            inferredMonthlyNetFlow={derived.inferredMonthlyNetFlow}
-            forecastStartNetWorth={forecastStartNetWorth}
-            forecastMonthlyDelta={forecastMonthlyDelta}
-            onAddAccount={onAddAccount}
-            onUpdateAccount={onUpdateAccount}
-            onRemoveAccount={onRemoveAccount}
-            onAddAccountHistorySnapshot={onAddAccountHistorySnapshot}
-            onUpdateAccountHistoryMonth={onUpdateAccountHistoryMonth}
-            onUpdateAccountHistoryBalance={onUpdateAccountHistoryBalance}
-            onRemoveAccountHistorySnapshot={onRemoveAccountHistorySnapshot}
-            onForecastStartNetWorthChange={onForecastStartNetWorthChange}
-            onForecastMonthlyDeltaChange={onForecastMonthlyDeltaChange}
-            onResetStartNetWorth={onResetStartNetWorth}
-            onResetMonthlyDelta={onResetMonthlyDelta}
-          />
-        ) : null}
+          {activeTab === "dashboard" ? (
+            <DashboardOverviewTab
+              currency={derived.meta.currency}
+              accountSummary={derived.accountSummary}
+              startNetWorth={derived.startNetWorth}
+              monthlyForecastDelta={derived.monthlyForecastDelta}
+              isMonthlyDeltaOverridden={forecastMonthlyDelta !== null}
+              inferredMonthCount={derived.inferredMonthCount}
+              forecastPoints={derived.forecastPoints}
+              maxGoalTarget={derived.maxGoalTarget}
+              accountHistorySeries={derived.accountHistorySeries}
+              accountHistoryChartData={derived.accountHistoryChartData}
+              expensePieData={derived.expensePieData}
+              accountEntries={accountEntries}
+              savingsRate={derived.fireInsightsData.savingsRate}
+              monthlySavings={derived.fireInsightsData.monthlySavings}
+              projectedFireAge={derived.fireInsightsData.projectedFireAge}
+              yearsToFire={derived.fireInsightsData.yearsToFire}
+              currentAge={fireCurrentAge}
+              onGoToFire={() => onTabChange("fireInsights")}
+            />
+          ) : null}
 
-        {activeTab === "goals" ? (
-          <GoalsTab
-            currency={derived.meta.currency}
-            goals={derived.resolvedGoals}
-            accountEntries={accountEntries}
-            inferredMonthlyExpenses={derived.inferredMonthlyExpenses}
-            onAddGoal={onAddGoal}
-            onUpdateGoal={onUpdateGoal}
-            onRemoveGoal={onRemoveGoal}
-          />
-        ) : null}
+          {activeTab === "accounts" ? (
+            <AccountsTab
+              currency={derived.meta.currency}
+              accountSummary={derived.accountSummary}
+              accountEntries={accountEntries}
+              accountHistorySnapshots={derived.accountHistorySorted}
+              inferredMonthlyNetFlow={derived.inferredMonthlyNetFlow}
+              forecastStartNetWorth={forecastStartNetWorth}
+              forecastMonthlyDelta={forecastMonthlyDelta}
+              onAddAccount={onAddAccount}
+              onUpdateAccount={onUpdateAccount}
+              onRemoveAccount={onRemoveAccount}
+              onAddAccountHistorySnapshot={onAddAccountHistorySnapshot}
+              onUpdateAccountHistoryMonth={onUpdateAccountHistoryMonth}
+              onUpdateAccountHistoryBalance={onUpdateAccountHistoryBalance}
+              onRemoveAccountHistorySnapshot={onRemoveAccountHistorySnapshot}
+              onForecastStartNetWorthChange={onForecastStartNetWorthChange}
+              onForecastMonthlyDeltaChange={onForecastMonthlyDeltaChange}
+              onResetStartNetWorth={onResetStartNetWorth}
+              onResetMonthlyDelta={onResetMonthlyDelta}
+            />
+          ) : null}
 
-        {activeTab === "income" ? (
-          <IncomeTab
-            currency={derived.meta.currency}
-            payrollDraft={payrollDraft}
-            matchedPayCount={derived.incomeModel.payEventCount}
-            onPayrollDraftChange={onPayrollDraftChange}
-          />
-        ) : null}
+          {activeTab === "goals" ? (
+            <GoalsTab
+              currency={derived.meta.currency}
+              goals={derived.resolvedGoals}
+              accountEntries={accountEntries}
+              inferredMonthlyExpenses={derived.inferredMonthlyExpenses}
+              onAddGoal={onAddGoal}
+              onUpdateGoal={onUpdateGoal}
+              onRemoveGoal={onRemoveGoal}
+            />
+          ) : null}
 
-        {activeTab === "settings" ? (
-          <SettingsTab
-            statusMessage={settingsStatus}
-            errorMessage={settingsError}
-            displayName={displayName}
-            onDisplayNameChange={onDisplayNameChange}
-            birthYear={birthYear}
-            onBirthYearChange={onBirthYearChange}
-            currency={derived.meta.currency}
-            onCurrencyChange={onCurrencyChange}
-            isSignedIn={!!user}
-            userEmail={userEmail}
-            onSignOut={onSignOut}
-            onDeleteAllData={onDeleteAllData}
-            onExportAllData={onExportAllData}
-            onImportData={onImportData}
-          />
-        ) : null}
+          {activeTab === "income" ? (
+            <IncomeTab
+              currency={derived.meta.currency}
+              payrollDraft={payrollDraft}
+              matchedPayCount={derived.incomeModel.payEventCount}
+              onPayrollDraftChange={onPayrollDraftChange}
+            />
+          ) : null}
 
-        {activeTab === "expenses" ? (
-          <ExpensesTab
-            currency={derived.meta.currency}
-            flowStartMode={flowStartMode}
-            onFlowStartModeChange={onFlowStartModeChange}
-            incomeBasisMode={incomeBasisMode}
-            onIncomeBasisModeChange={onIncomeBasisModeChange}
-            incomeModelEnabled={Boolean(derived.incomeModel?.enabled)}
-            merchantDetailMode={merchantDetailMode}
-            onMerchantDetailModeChange={onMerchantDetailModeChange}
-            timelinePeriod={timelinePeriod}
-            onTimelinePeriodChange={onTimelinePeriodChange}
-            timelineOptions={derived.timelineOptions}
-            viz={derived.viz}
-            uncategorizedCount={derived.uncategorizedInPeriod.length}
-            flowTitle={derived.flowTitle}
-            chartHeight={derived.chartHeight}
-            chartLeftMargin={derived.chartLeftMargin}
-            chartRightMargin={derived.chartRightMargin}
-            nodePadding={derived.nodePadding}
-            monthlyExpenseData={derived.monthlyExpenseData}
-          />
-        ) : null}
+          {activeTab === "settings" ? (
+            <SettingsTab
+              statusMessage={settingsStatus}
+              errorMessage={settingsError}
+              displayName={displayName}
+              onDisplayNameChange={onDisplayNameChange}
+              birthYear={birthYear}
+              onBirthYearChange={onBirthYearChange}
+              currency={derived.meta.currency}
+              onCurrencyChange={onCurrencyChange}
+              isSignedIn={!!user}
+              userEmail={userEmail}
+              onSignOut={onSignOut}
+              onDeleteAllData={onDeleteAllData}
+              onExportAllData={onExportAllData}
+              onImportData={onImportData}
+            />
+          ) : null}
 
-        {activeTab === "categories" ? (
-          <CategoriesTab
-            currency={derived.meta.currency}
-            timelinePeriod={timelinePeriod}
-            onTimelinePeriodChange={onTimelinePeriodChange}
-            timelineOptions={derived.timelineOptions}
-            uncategorizedCount={derived.uncategorizedInPeriod.length}
-            categoryDefinitions={categoryDefinitions}
-            onAddCategoryDefinition={onAddCategoryDefinition}
-            onResetCategoryDefinitions={onResetCategoryDefinitions}
-            onUpdateCategoryDefinition={onUpdateCategoryDefinition}
-            onRemoveCategoryDefinition={onRemoveCategoryDefinition}
-            onAddCategorySubcategory={onAddCategorySubcategory}
-            onUpdateCategorySubcategory={onUpdateCategorySubcategory}
-            onRemoveCategorySubcategory={onRemoveCategorySubcategory}
-            rulesFilter={rulesFilter}
-            onRulesFilterChange={onRulesFilterChange}
-            onClearAllRules={onClearAllRules}
-            visibleEditableTransactions={derived.visibleEditableTransactions}
-            draftFor={draftFor}
-            onUpdateDraft={onUpdateDraft}
-            onSaveRule={onSaveRule}
-            onClearRule={onClearRule}
-            subcategoryOptionsByGroup={derived.subcategoryOptionsByGroup}
-            categoryGroupOptions={derived.categoryGroupOptions}
-            isSignedIn={!!user}
-            openaiApiKey={openaiApiKey}
-            aiSuggestions={aiSuggestions}
-            onRunAiSuggestions={onRunAiSuggestions}
-            onAcceptAiSuggestion={onAcceptAiSuggestion}
-            onAcceptAllAiSuggestions={onAcceptAllAiSuggestions}
-            onRejectAiSuggestion={onRejectAiSuggestion}
-            onDismissAiSuggestions={onDismissAiSuggestions}
-            onOpenApiKeyModal={onShowApiKeyModal}
-            onSignIn={onSignIn}
-          />
-        ) : null}
+          {activeTab === "expenses" ? (
+            <ExpensesTab
+              currency={derived.meta.currency}
+              flowStartMode={flowStartMode}
+              onFlowStartModeChange={onFlowStartModeChange}
+              incomeBasisMode={incomeBasisMode}
+              onIncomeBasisModeChange={onIncomeBasisModeChange}
+              incomeModelEnabled={Boolean(derived.incomeModel?.enabled)}
+              merchantDetailMode={merchantDetailMode}
+              onMerchantDetailModeChange={onMerchantDetailModeChange}
+              timelinePeriod={timelinePeriod}
+              onTimelinePeriodChange={onTimelinePeriodChange}
+              timelineOptions={derived.timelineOptions}
+              viz={derived.viz}
+              uncategorizedCount={derived.uncategorizedInPeriod.length}
+              flowTitle={derived.flowTitle}
+              chartHeight={derived.chartHeight}
+              chartLeftMargin={derived.chartLeftMargin}
+              chartRightMargin={derived.chartRightMargin}
+              nodePadding={derived.nodePadding}
+              monthlyExpenseData={derived.monthlyExpenseData}
+            />
+          ) : null}
 
-        {activeTab === "fireInsights" ? (
-          <FireInsightsTab
-            currency={derived.meta.currency}
-            currentNetWorth={derived.accountSummary.netWorth}
-            monthlyExpenses={derived.inferredMonthlyExpenses}
-            monthlySavings={derived.fireInsightsData.monthlySavings}
-            currentAge={fireCurrentAge}
-            annualReturn={fireAnnualReturn}
-            fireMultiplier={fireMultiplier}
-            onCurrentAgeChange={onFireCurrentAgeChange}
-            onAnnualReturnChange={onFireAnnualReturnChange}
-            onFireMultiplierChange={onFireMultiplierChange}
-            fireNumber={derived.fireInsightsData.fireNumber}
-            leanFireNumber={derived.fireInsightsData.leanFireNumber}
-            coastFireNumber={derived.fireInsightsData.coastFireNumber}
-            yearsToFire={derived.fireInsightsData.yearsToFire}
-            projectedFireAge={derived.fireInsightsData.projectedFireAge}
-            savingsRate={derived.fireInsightsData.savingsRate}
-            projectionData={derived.fireInsightsData.projectionData}
-          />
-        ) : null}
+          {activeTab === "categories" ? (
+            <CategoriesTab
+              currency={derived.meta.currency}
+              timelinePeriod={timelinePeriod}
+              onTimelinePeriodChange={onTimelinePeriodChange}
+              timelineOptions={derived.timelineOptions}
+              uncategorizedCount={derived.uncategorizedInPeriod.length}
+              categoryDefinitions={categoryDefinitions}
+              onAddCategoryDefinition={onAddCategoryDefinition}
+              onResetCategoryDefinitions={onResetCategoryDefinitions}
+              onUpdateCategoryDefinition={onUpdateCategoryDefinition}
+              onRemoveCategoryDefinition={onRemoveCategoryDefinition}
+              onAddCategorySubcategory={onAddCategorySubcategory}
+              onUpdateCategorySubcategory={onUpdateCategorySubcategory}
+              onRemoveCategorySubcategory={onRemoveCategorySubcategory}
+              rulesFilter={rulesFilter}
+              onRulesFilterChange={onRulesFilterChange}
+              onClearAllRules={onClearAllRules}
+              visibleEditableTransactions={derived.visibleEditableTransactions}
+              draftFor={draftFor}
+              onUpdateDraft={onUpdateDraft}
+              onSaveRule={onSaveRule}
+              onClearRule={onClearRule}
+              subcategoryOptionsByGroup={derived.subcategoryOptionsByGroup}
+              categoryGroupOptions={derived.categoryGroupOptions}
+              isSignedIn={!!user}
+              openaiApiKey={openaiApiKey}
+              aiSuggestions={aiSuggestions}
+              onRunAiSuggestions={onRunAiSuggestions}
+              onAcceptAiSuggestion={onAcceptAiSuggestion}
+              onAcceptAllAiSuggestions={onAcceptAllAiSuggestions}
+              onRejectAiSuggestion={onRejectAiSuggestion}
+              onDismissAiSuggestions={onDismissAiSuggestions}
+              onOpenApiKeyModal={onShowApiKeyModal}
+              onSignIn={onSignIn}
+            />
+          ) : null}
+
+          {activeTab === "fireInsights" ? (
+            <FireInsightsTab
+              currency={derived.meta.currency}
+              currentNetWorth={derived.accountSummary.netWorth}
+              monthlyExpenses={derived.inferredMonthlyExpenses}
+              monthlySavings={derived.fireInsightsData.monthlySavings}
+              currentAge={fireCurrentAge}
+              annualReturn={fireAnnualReturn}
+              fireMultiplier={fireMultiplier}
+              onCurrentAgeChange={onFireCurrentAgeChange}
+              onAnnualReturnChange={onFireAnnualReturnChange}
+              onFireMultiplierChange={onFireMultiplierChange}
+              fireNumber={derived.fireInsightsData.fireNumber}
+              leanFireNumber={derived.fireInsightsData.leanFireNumber}
+              coastFireNumber={derived.fireInsightsData.coastFireNumber}
+              yearsToFire={derived.fireInsightsData.yearsToFire}
+              projectedFireAge={derived.fireInsightsData.projectedFireAge}
+              savingsRate={derived.fireInsightsData.savingsRate}
+              projectionData={derived.fireInsightsData.projectionData}
+            />
+          ) : null}
         </section>
       </main>
 

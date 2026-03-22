@@ -163,13 +163,13 @@ function FireInsightBanner({
   }
   const yrs = Math.ceil(yearsToFire);
   return (
-    <div className="fire-insight-banner">
-      <div className="fire-insight-banner-icon">🔥</div>
-      <div className="fire-insight-banner-body">
-        <h3 className="fire-insight-banner-title">
+    <div className="border border-line rounded-md p-4 bg-surface shadow-soft flex items-start gap-4">
+      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[rgba(196,132,62,0.12)] flex items-center justify-center text-xl">🔥</div>
+      <div className="flex-1">
+        <h3 className="font-display text-[0.98rem] text-ink m-0 mb-[0.35rem]">
           At this rate, you could retire at {Math.ceil(projectedFireAge)}.
         </h3>
-        <p className="fire-insight-banner-desc">
+        <p className="m-0 text-[0.78rem] text-muted">
           That's {yrs} {yrs === 1 ? "year" : "years"} from now, based on your current saving patterns.
         </p>
       </div>
@@ -279,29 +279,29 @@ export function DashboardTab({
         yearsToFire={yearsToFire}
       />
 
-      <section className="stats">
-        <article>
-          <h2>Current Net Worth</h2>
-          <p>{formatCurrency(startNetWorth, currency)}</p>
+      <section className="grid grid-cols-4 gap-[0.65rem]">
+        <article className="border border-line rounded-md px-4 py-[0.9rem] bg-surface shadow-soft hover:border-line-strong transition-colors">
+          <h2 className="text-[0.72rem] uppercase tracking-[0.12em] text-muted font-bold">Current Net Worth</h2>
+          <p className="font-mono text-ink font-semibold tracking-[-0.03em] mt-[0.38rem] text-[clamp(1.2rem,1.8vw,1.55rem)]">{formatCurrency(startNetWorth, currency)}</p>
         </article>
-        <article>
-          <h2>Monthly Delta</h2>
-          <p>{formatCurrency(monthlyForecastDelta, currency)}</p>
+        <article className="border border-line rounded-md px-4 py-[0.9rem] bg-surface shadow-soft hover:border-line-strong transition-colors">
+          <h2 className="text-[0.72rem] uppercase tracking-[0.12em] text-muted font-bold">Monthly Delta</h2>
+          <p className="font-mono text-ink font-semibold tracking-[-0.03em] mt-[0.38rem] text-[clamp(1.2rem,1.8vw,1.55rem)]">{formatCurrency(monthlyForecastDelta, currency)}</p>
         </article>
-        <article>
-          <h2>Assets</h2>
-          <p>{formatCurrency(accountSummary.assets, currency)}</p>
+        <article className="border border-line rounded-md px-4 py-[0.9rem] bg-surface shadow-soft hover:border-line-strong transition-colors">
+          <h2 className="text-[0.72rem] uppercase tracking-[0.12em] text-muted font-bold">Assets</h2>
+          <p className="font-mono text-ink font-semibold tracking-[-0.03em] mt-[0.38rem] text-[clamp(1.2rem,1.8vw,1.55rem)]">{formatCurrency(accountSummary.assets, currency)}</p>
         </article>
-        <article>
-          <h2>Liabilities</h2>
-          <p>{formatCurrency(accountSummary.liabilities, currency)}</p>
+        <article className="border border-line rounded-md px-4 py-[0.9rem] bg-surface shadow-soft hover:border-line-strong transition-colors">
+          <h2 className="text-[0.72rem] uppercase tracking-[0.12em] text-muted font-bold">Liabilities</h2>
+          <p className="font-mono text-ink font-semibold tracking-[-0.03em] mt-[0.38rem] text-[clamp(1.2rem,1.8vw,1.55rem)]">{formatCurrency(accountSummary.liabilities, currency)}</p>
         </article>
       </section>
 
-      <section className="panel">
-        <h3>Account Trend</h3>
-        <p className="mode-note">Stacked area view by account over time.</p>
-        <div className="line-chart-wrap account-area-wrap">
+      <section className="border border-line rounded-md p-4 bg-surface shadow-soft min-w-0">
+        <h3 className="font-display text-base tracking-[-0.02em] text-ink">Account Trend</h3>
+        <p className="text-muted text-[0.82rem] mt-[0.42rem]">Stacked area view by account over time.</p>
+        <div className="mt-[0.68rem] h-[360px]">
           <ResponsiveContainer width="100%" height={360}>
             <AreaChart
               data={accountHistoryChartData}
@@ -358,9 +358,9 @@ export function DashboardTab({
         </div>
       </section>
 
-      <section className="panel">
-        <h3>Forecast</h3>
-        <div className="line-chart-wrap">
+      <section className="border border-line rounded-md p-4 bg-surface shadow-soft min-w-0">
+        <h3 className="font-display text-base tracking-[-0.02em] text-ink">Forecast</h3>
+        <div className="mt-[0.8rem] h-[360px]">
           <ResponsiveContainer width="100%" height={360}>
             <LineChart
               data={forecastPoints}
@@ -436,11 +436,11 @@ export function DashboardTab({
       </section>
 
       {(expensePieData.length > 0 || accountEntries.length > 0) ? (
-        <section className="panel pie-row-panel">
+        <section className="border border-line rounded-md p-4 bg-surface shadow-soft min-w-0 grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))]">
           {accountEntries.length > 0 ? (
-            <div className="pie-chart-block">
-              <h3>Asset Allocation</h3>
-              <div className="pie-wrap">
+            <div>
+              <h3 className="font-display text-base tracking-[-0.02em] text-ink mb-2">Asset Allocation</h3>
+              <div className="h-[320px]">
                 <ResponsiveContainer width="100%" height={320}>
                   <PieChart>
                     <Pie
@@ -477,9 +477,9 @@ export function DashboardTab({
             </div>
           ) : null}
           {expensePieData.length > 0 ? (
-            <div className="pie-chart-block">
-              <h3>Expense Breakdown</h3>
-              <div className="pie-wrap">
+            <div>
+              <h3 className="font-display text-base tracking-[-0.02em] text-ink mb-2">Expense Breakdown</h3>
+              <div className="h-[320px]">
                 <ResponsiveContainer width="100%" height={320}>
                   <PieChart>
                     <Pie
