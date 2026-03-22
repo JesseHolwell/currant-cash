@@ -3205,6 +3205,228 @@ textarea {
   }
 }
 
+/* ─── FIRE Insight Cards ─────────────────────────────────────────────── */
+
+.fire-insight-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin-bottom: 0.65rem;
+}
+
+.fire-insight-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-soft);
+  display: flex;
+  flex-direction: column;
+}
+
+.fire-insight-card-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.fire-insight-card-icon--savings {
+  background: rgba(61, 139, 79, 0.12);
+}
+
+.fire-insight-card-icon--fire {
+  background: rgba(196, 132, 62, 0.12);
+}
+
+.fire-insight-card-title {
+  margin: 0 0 0.2rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ink);
+  font-family: "Fraunces", Georgia, serif;
+  letter-spacing: -0.02em;
+}
+
+.fire-insight-card-subtitle {
+  margin: 0 0 1rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.fire-insight-card-note {
+  margin: 0.75rem 0 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+/* Savings Rate Gauge */
+
+.fire-savings-gauge-wrap {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  margin: 0 auto;
+}
+
+.fire-savings-gauge {
+  width: 160px;
+  height: 160px;
+}
+
+.fire-savings-gauge-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+}
+
+.fire-savings-gauge-pct {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.fire-savings-gauge-status {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+
+/* FIRE Timeline */
+
+.fire-timeline-age {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  margin: 0.5rem 0 1rem;
+}
+
+.fire-timeline-age-num {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.fire-timeline-age-unit {
+  font-size: 1rem;
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+
+.fire-timeline-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.fire-timeline-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--berry-deep);
+  max-width: 100%;
+  transition: width 300ms ease;
+}
+
+.fire-timeline-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 1rem;
+}
+
+.fire-timeline-adjust-btn {
+  display: block;
+  width: 100%;
+  padding: 0.6rem 1rem;
+  background: var(--accent-soft);
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: background 150ms ease;
+  margin-top: auto;
+}
+
+.fire-timeline-adjust-btn:hover {
+  background: var(--accent-glow);
+}
+
+/* FIRE Insight Banner */
+
+.fire-insight-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: var(--berry-deep);
+  border-radius: var(--radius-md);
+  margin-bottom: 0.65rem;
+}
+
+.fire-insight-banner-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+.fire-insight-banner-body {
+  flex: 1;
+}
+
+.fire-insight-banner-title {
+  margin: 0 0 0.35rem;
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #F7F3E8;
+  line-height: 1.3;
+}
+
+.fire-insight-banner-desc {
+  margin: 0;
+  font-size: 0.78rem;
+  color: rgba(247, 243, 232, 0.65);
+  line-height: 1.5;
+}
+
+@media (max-width: 900px) {
+  .fire-insight-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ── Error Boundary ─────────────────────────────────────────── */
 
 .error-boundary-fallback {

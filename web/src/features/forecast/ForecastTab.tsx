@@ -34,6 +34,149 @@ function GoalCrossoverBadge({ viewBox, label }: { viewBox?: { x: number; y: numb
   );
 }
 
+function SavingsRateCard({
+  savingsRate,
+  monthlySavings,
+  currency,
+}: {
+  savingsRate: number | null;
+  monthlySavings: number;
+  currency: string;
+}) {
+  const r = 50, cx = 60, cy = 60;
+  const circumference = 2 * Math.PI * r;
+  const arcLength = circumference * 0.75;
+  const rate = savingsRate ?? 0;
+  const progressLength = arcLength * Math.min(1, Math.max(0, rate / 100));
+
+  const statusLabel =
+    savingsRate === null ? null
+    : savingsRate >= 20 ? "OPTIMAL"
+    : savingsRate >= 10 ? "GOOD"
+    : "LOW";
+
+  return (
+    <div className="fire-insight-card">
+      <div className="fire-insight-card-icon fire-insight-card-icon--savings">🐷</div>
+      <h3 className="fire-insight-card-title">Savings Rate</h3>
+      <p className="fire-insight-card-subtitle">Percentage of income retained</p>
+      <div className="fire-savings-gauge-wrap">
+        <svg viewBox="0 0 120 120" className="fire-savings-gauge">
+          <circle
+            r={r} cx={cx} cy={cy}
+            fill="none"
+            stroke="var(--line)"
+            strokeWidth={8}
+            strokeDasharray={`${arcLength.toFixed(1)} ${(circumference - arcLength).toFixed(1)}`}
+            strokeLinecap="round"
+            transform={`rotate(135, ${cx}, ${cy})`}
+          />
+          {savingsRate !== null && (
+            <circle
+              r={r} cx={cx} cy={cy}
+              fill="none"
+              stroke="#3D8B4F"
+              strokeWidth={8}
+              strokeDasharray={`${progressLength.toFixed(1)} ${(circumference - progressLength).toFixed(1)}`}
+              strokeLinecap="round"
+              transform={`rotate(135, ${cx}, ${cy})`}
+            />
+          )}
+        </svg>
+        <div className="fire-savings-gauge-center">
+          <span className="fire-savings-gauge-pct">
+            {savingsRate !== null ? `${Math.round(rate)}%` : "—"}
+          </span>
+          {statusLabel && (
+            <span className="fire-savings-gauge-status">{statusLabel}</span>
+          )}
+        </div>
+      </div>
+      <p className="fire-insight-card-note">
+        {savingsRate !== null
+          ? `${formatCurrency(Math.round(Math.abs(monthlySavings)), currency)}/month in savings`
+          : "Configure Income tab to calculate"}
+      </p>
+    </div>
+  );
+}
+
+function FireTimelineCard({
+  currentAge,
+  projectedFireAge,
+  onAdjustClick,
+}: {
+  currentAge: number;
+  projectedFireAge: number | null;
+  onAdjustClick: () => void;
+}) {
+  const targetAge = projectedFireAge !== null ? Math.ceil(projectedFireAge) : null;
+  const progress = targetAge !== null ? Math.min(1, currentAge / targetAge) : 0;
+
+  return (
+    <div className="fire-insight-card">
+      <div className="fire-insight-card-icon fire-insight-card-icon--fire">🔥</div>
+      <h3 className="fire-insight-card-title">FIRE Timeline</h3>
+      <p className="fire-insight-card-subtitle">Estimated retirement age</p>
+      {targetAge !== null ? (
+        <>
+          <div className="fire-timeline-age">
+            <span className="fire-timeline-age-num">{targetAge}</span>
+            <span className="fire-timeline-age-unit"> Years Old</span>
+          </div>
+          <div className="fire-timeline-track">
+            <div
+              className="fire-timeline-fill"
+              style={{ width: `${Math.round(progress * 100)}%` }}
+            />
+          </div>
+          <div className="fire-timeline-labels">
+            <span>Current: {currentAge}</span>
+            <span>Target: {targetAge}</span>
+          </div>
+        </>
+      ) : (
+        <p className="fire-insight-card-note">
+          Add transaction data to see your timeline
+        </p>
+      )}
+      <button
+        type="button"
+        className="fire-timeline-adjust-btn"
+        onClick={onAdjustClick}
+      >
+        Adjust Simulations
+      </button>
+    </div>
+  );
+}
+
+function FireInsightBanner({
+  projectedFireAge,
+  yearsToFire,
+}: {
+  projectedFireAge: number | null;
+  yearsToFire: number | null;
+}) {
+  if (projectedFireAge === null || yearsToFire === null || yearsToFire <= 0) {
+    return null;
+  }
+  const yrs = Math.ceil(yearsToFire);
+  return (
+    <div className="fire-insight-banner">
+      <div className="fire-insight-banner-icon">🔥</div>
+      <div className="fire-insight-banner-body">
+        <h3 className="fire-insight-banner-title">
+          At this rate, you could retire at {Math.ceil(projectedFireAge)}.
+        </h3>
+        <p className="fire-insight-banner-desc">
+          That's {yrs} {yrs === 1 ? "year" : "years"} from now, based on your current saving patterns.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 const ALLOCATION_COLORS = [
   "#C4856A", "#7BA3A8", "#8B7BAD", "#A8B87B", "#AD7B8B",
   "#7BA88B", "#B8A87B", "#7B8BAD", "#A87B7B", "#7BADB8",
@@ -91,6 +234,12 @@ export function ForecastTab({
   accountHistoryChartData,
   expensePieData,
   accountEntries,
+  savingsRate,
+  monthlySavings,
+  projectedFireAge,
+  yearsToFire,
+  currentAge,
+  onGoToFire,
 }: {
   currency: string;
   accountSummary: AccountSummary;
@@ -104,9 +253,32 @@ export function ForecastTab({
   accountHistoryChartData: AccountHistoryChartRow[];
   expensePieData: ExpensePieDatum[];
   accountEntries: AccountEntry[];
+  savingsRate: number | null;
+  monthlySavings: number;
+  projectedFireAge: number | null;
+  yearsToFire: number | null;
+  currentAge: number;
+  onGoToFire: () => void;
 }) {
   return (
     <>
+      <div className="fire-insight-cards">
+        <SavingsRateCard
+          savingsRate={savingsRate}
+          monthlySavings={monthlySavings}
+          currency={currency}
+        />
+        <FireTimelineCard
+          currentAge={currentAge}
+          projectedFireAge={projectedFireAge}
+          onAdjustClick={onGoToFire}
+        />
+      </div>
+      <FireInsightBanner
+        projectedFireAge={projectedFireAge}
+        yearsToFire={yearsToFire}
+      />
+
       <section className="stats">
         <article>
           <h2>Current Net Worth</h2>

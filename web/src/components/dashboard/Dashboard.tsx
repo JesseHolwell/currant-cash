@@ -368,6 +368,12 @@ export function Dashboard({
             accountHistoryChartData={derived.accountHistoryChartData}
             expensePieData={derived.expensePieData}
             accountEntries={accountEntries}
+            savingsRate={derived.fireInsightsData.savingsRate}
+            monthlySavings={derived.fireInsightsData.monthlySavings}
+            projectedFireAge={derived.fireInsightsData.projectedFireAge}
+            yearsToFire={derived.fireInsightsData.yearsToFire}
+            currentAge={fireCurrentAge}
+            onGoToFire={() => onTabChange("fireInsights")}
           />
         ) : null}
 
