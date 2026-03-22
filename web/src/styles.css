@@ -209,6 +209,13 @@ textarea {
   font-weight: 700;
   color: var(--accent);
   overflow: hidden;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity 0.15s;
+}
+
+.app-nav-avatar:hover {
+  opacity: 0.8;
 }
 
 .app-nav-avatar img {
@@ -4161,6 +4168,20 @@ textarea {
 }
 
 /* ─── Settings — Profile section ─────────────────────────────────────── */
+
+.settings-signed-in-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.settings-signed-in-as {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
 
 .settings-profile-grid {
   display: grid;

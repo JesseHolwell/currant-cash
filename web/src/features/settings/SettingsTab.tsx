@@ -1,4 +1,4 @@
-import { useRef, type ChangeEvent } from "react";
+import { useRef, useState, type ChangeEvent } from "react";
 
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -24,9 +24,10 @@ export function SettingsTab({
   onCurrencyChange,
   isSignedIn,
   userEmail,
+  onSignOut,
   onDeleteAllData,
   onExportAllData,
-  onImportData
+  onImportData,
 }: {
   statusMessage: string | null;
   errorMessage: string | null;
@@ -38,13 +39,17 @@ export function SettingsTab({
   onCurrencyChange: (currency: string) => void;
   isSignedIn: boolean;
   userEmail: string | null;
+  onSignOut: () => void;
   onDeleteAllData: () => Promise<void>;
   onExportAllData: () => void;
   onImportData: (file: File) => Promise<void>;
 }) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [birthYearDraft, setBirthYearDraft] = useState<string>(birthYear > 0 ? String(birthYear) : "");
 
-  async function handleFileChange(event: ChangeEvent<HTMLInputElement>): Promise<void> {
+  async function handleFileChange(
+    event: ChangeEvent<HTMLInputElement>,
+  ): Promise<void> {
     const file = event.target.files?.[0];
     if (!file) {
       return;
@@ -59,8 +64,19 @@ export function SettingsTab({
     <>
       <section className="panel settings-panel">
         <h3>Profile</h3>
-        {userEmail && <p className="settings-signed-in-as">Signed in as <strong>{userEmail}</strong></p>}
-        <p className="mode-note">Used to personalise the app and power FIRE calculations.</p>
+        {userEmail && (
+          <div className="settings-signed-in-row">
+            <p className="settings-signed-in-as">
+              Signed in as <strong>{userEmail}</strong>
+            </p>
+            <button type="button" className="mode-btn" onClick={onSignOut}>
+              Sign out
+            </button>
+          </div>
+        )}
+        <p className="mode-note">
+          Used to personalise the app and power calculations.
+        </p>
 
         <div className="settings-profile-grid">
           <label className="settings-profile-field">
@@ -76,9 +92,14 @@ export function SettingsTab({
 
           <label className="settings-profile-field">
             <span className="settings-field-label">Currency</span>
-            <select value={currency} onChange={(e) => onCurrencyChange(e.target.value)}>
+            <select
+              value={currency}
+              onChange={(e) => onCurrencyChange(e.target.value)}
+            >
               {CURRENCY_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
               ))}
             </select>
           </label>
@@ -91,10 +112,13 @@ export function SettingsTab({
               min={1920}
               max={CURRENT_YEAR - 10}
               placeholder="e.g. 1990"
-              value={birthYear > 0 ? birthYear : ""}
-              onChange={(e) => {
-                const val = Number(e.target.value);
-                onBirthYearChange(val >= 1920 && val <= CURRENT_YEAR - 10 ? val : 0);
+              value={birthYearDraft}
+              onChange={(e) => setBirthYearDraft(e.target.value)}
+              onBlur={() => {
+                const val = Number(birthYearDraft);
+                onBirthYearChange(
+                  val >= 1920 && val <= CURRENT_YEAR - 10 ? val : 0,
+                );
               }}
             />
             {currentAge !== null && (
@@ -123,8 +147,10 @@ export function SettingsTab({
         <section className="settings-note">
           <h3>Browser Storage</h3>
           <p>
-            Everything in Currant lives in this browser only. No data is sent to a server. If you clear browser storage,
-            switch browsers, or use a fresh profile, your data will be lost unless you export a backup first.
+            Everything in Currant lives in this browser only. No data is sent to
+            a server. If you clear browser storage, switch browsers, or use a
+            fresh profile, your data will be lost unless you export a backup
+            first.
           </p>
         </section>
 
@@ -142,7 +168,9 @@ export function SettingsTab({
             <button
               type="button"
               className="mode-btn mode-btn--danger"
-              onClick={() => { void onDeleteAllData(); }}
+              onClick={() => {
+                void onDeleteAllData();
+              }}
             >
               Delete All My Data
             </button>
@@ -150,8 +178,15 @@ export function SettingsTab({
 
           <article className="settings-action-card">
             <h4>Export All My Data</h4>
-            <p>Download a JSON backup containing your CSV batches, rules, accounts, goals, payroll config, and forecast settings.</p>
-            <button type="button" className="mode-btn active" onClick={onExportAllData}>
+            <p>
+              Download a JSON backup containing your CSV batches, rules,
+              accounts, goals, payroll config, and forecast settings.
+            </p>
+            <button
+              type="button"
+              className="mode-btn active"
+              onClick={onExportAllData}
+            >
               Export All My Data
             </button>
           </article>
@@ -159,7 +194,11 @@ export function SettingsTab({
           <article className="settings-action-card">
             <h4>Import Data</h4>
             <p>Restore a previously exported JSON backup into this browser.</p>
-            <button type="button" className="mode-btn" onClick={() => fileInputRef.current?.click()}>
+            <button
+              type="button"
+              className="mode-btn"
+              onClick={() => fileInputRef.current?.click()}
+            >
               Import Data
             </button>
             <input

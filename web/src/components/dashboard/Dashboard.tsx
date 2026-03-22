@@ -306,7 +306,6 @@ export function Dashboard({
         user={user}
         isDark={isDark}
         onToggleTheme={onToggleTheme}
-        onSignOut={onSignOut}
         onSignIn={onSignIn}
         onGoHome={onGoHome}
         onGoToSettings={() => onTabChange("settings")}
@@ -426,6 +425,7 @@ export function Dashboard({
             onCurrencyChange={onCurrencyChange}
             isSignedIn={!!user}
             userEmail={userEmail}
+            onSignOut={onSignOut}
             onDeleteAllData={onDeleteAllData}
             onExportAllData={onExportAllData}
             onImportData={onImportData}

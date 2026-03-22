@@ -5,7 +5,6 @@ export function AppNav({
   user,
   isDark,
   onToggleTheme,
-  onSignOut,
   onSignIn,
   onGoHome,
   onGoToSettings,
@@ -13,7 +12,6 @@ export function AppNav({
   user: User | null;
   isDark: boolean;
   onToggleTheme: () => void;
-  onSignOut: () => void;
   onSignIn: () => void;
   onGoHome: () => void;
   onGoToSettings: () => void;
@@ -48,39 +46,48 @@ export function AppNav({
         >
           {isDark ? "☀" : "☾"}
         </button>
-        <button
-          type="button"
-          className="app-nav-icon-btn"
-          onClick={onGoToSettings}
-          aria-label="Settings"
-          title="Settings"
-        >
-          ⚙
-        </button>
         {isSupabaseConfigured ? (
           user ? (
-            <div className="app-nav-user">
-              <div className="app-nav-avatar" aria-hidden="true">
-                {avatarUrl ? <img src={avatarUrl} alt="" /> : avatarInitial}
-              </div>
-<button
-                type="button"
-                className="app-nav-sign-out"
-                onClick={onSignOut}
-              >
-                Sign out
-              </button>
-            </div>
-          ) : (
             <button
               type="button"
-              className="app-nav-sign-in"
-              onClick={onSignIn}
+              className="app-nav-avatar"
+              onClick={onGoToSettings}
+              aria-label="Settings"
+              title="Settings"
             >
-              Sign in
+              {avatarUrl ? <img src={avatarUrl} alt="" /> : avatarInitial}
             </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="app-nav-icon-btn"
+                onClick={onGoToSettings}
+                aria-label="Settings"
+                title="Settings"
+              >
+                ⚙
+              </button>
+              <button
+                type="button"
+                className="app-nav-sign-in"
+                onClick={onSignIn}
+              >
+                Sign in
+              </button>
+            </>
           )
-        ) : null}
+        ) : (
+          <button
+            type="button"
+            className="app-nav-icon-btn"
+            onClick={onGoToSettings}
+            aria-label="Settings"
+            title="Settings"
+          >
+            ⚙
+          </button>
+        )}
       </div>
     </nav>
   );

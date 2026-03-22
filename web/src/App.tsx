@@ -838,7 +838,6 @@ export default function App() {
         user={user}
         isDark={isDark}
         onToggleTheme={toggleTheme}
-        onSignOut={handleSignOut}
         onSignIn={() => setShowAuthModal(true)}
         onGoHome={() => setShowLanding(true)}
         displayName={user?.user_metadata?.["full_name"] as string ?? displayName}

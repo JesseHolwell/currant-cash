@@ -653,7 +653,6 @@ export type OnboardingWizardProps = {
   user: User | null;
   isDark: boolean;
   onToggleTheme: () => void;
-  onSignOut: () => void;
   onSignIn: () => void;
   onGoHome: () => void;
   // Profile (step 0)
@@ -693,7 +692,6 @@ export function OnboardingWizard({
   user,
   isDark,
   onToggleTheme,
-  onSignOut,
   onSignIn,
   onGoHome,
   displayName,
@@ -747,7 +745,6 @@ export function OnboardingWizard({
         user={user}
         isDark={isDark}
         onToggleTheme={onToggleTheme}
-        onSignOut={onSignOut}
         onSignIn={onSignIn}
         onGoHome={onGoHome}
         onGoToSettings={() => { /* no-op during onboarding */ }}
