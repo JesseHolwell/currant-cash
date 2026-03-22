@@ -1,3 +1,4 @@
+import './Dashboard.css';
 import type { User } from "@supabase/supabase-js";
 import { AccountsTab } from "../../features/accounts/AccountsTab";
 import { GoalsTab } from "../../features/goals/GoalsTab";

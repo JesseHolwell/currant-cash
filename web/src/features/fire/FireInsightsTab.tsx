@@ -1,3 +1,5 @@
+import '../dashboard/DashboardTab.css';
+import './FireInsightsTab.css';
 import {
   CartesianGrid,
   Line,

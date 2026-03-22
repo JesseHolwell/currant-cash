@@ -1,0 +1,196 @@
+/* ─── Stats trend badges ──────────────────────────────────────────────── */
+
+.stat-trend {
+  display: inline-block;
+  margin: 0.3rem 0 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+}
+
+.stat-trend--up {
+  color: #9B3040;
+  background: rgba(139, 41, 66, 0.1);
+}
+
+.stat-trend--down {
+  color: #3D7A52;
+  background: rgba(61, 138, 79, 0.1);
+}
+
+/* ─── Coverage calendar ───────────────────────────────────────────────── */
+
+.coverage-calendar {
+  margin-top: 0.72rem;
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 0.5rem;
+}
+
+.coverage-calendar::-webkit-scrollbar {
+  height: 4px;
+}
+
+.coverage-calendar::-webkit-scrollbar-track {
+  background: rgba(61, 36, 56, 0.06);
+  border-radius: 2px;
+}
+
+.coverage-calendar::-webkit-scrollbar-thumb {
+  background: rgba(139, 41, 66, 0.3);
+  border-radius: 2px;
+}
+
+.coverage-month-card {
+  flex: 0 0 160px;
+  scroll-snap-align: start;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 0.65rem 0.75rem;
+  background: var(--bg-surface);
+}
+
+.coverage-month-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.coverage-month-header h4 {
+  margin: 0;
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 0.88rem;
+  color: var(--ink);
+}
+
+.coverage-month-stat {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  font-family: "JetBrains Mono", monospace;
+  white-space: nowrap;
+}
+
+.coverage-month-bar {
+  margin-top: 0.35rem;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(139, 41, 66, 0.12);
+  overflow: hidden;
+}
+
+.coverage-month-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+.coverage-weekdays,
+.coverage-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.14rem;
+}
+
+.coverage-weekdays {
+  margin-top: 0.5rem;
+  color: var(--muted);
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.coverage-weekdays span {
+  display: grid;
+  place-items: center;
+}
+
+.coverage-grid {
+  margin-top: 0.2rem;
+}
+
+.coverage-day {
+  height: 12px;
+  border-radius: 3px;
+  border: 1px solid var(--line);
+  background: rgba(61, 36, 56, 0.03);
+}
+
+.coverage-day.is-covered {
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+}
+
+.coverage-day.is-placeholder {
+  border-color: transparent;
+  background: transparent;
+}
+
+/* ─── Sankey ──────────────────────────────────────────────────────────── */
+
+.sankey-stage {
+  position: relative;
+}
+
+.sankey-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 105;
+  border: 0;
+  background: rgba(5, 8, 12, 0.6);
+  cursor: zoom-out;
+  animation: sankeyBackdropIn 180ms ease-out;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.sankey-stage.is-expanded {
+  position: fixed;
+  inset: 0.95rem;
+  z-index: 110;
+  background: #0e1117;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line-strong);
+  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.8);
+  padding: 0.85rem;
+  animation: sankeyExpandIn 240ms cubic-bezier(0.2, 0.95, 0.33, 1);
+}
+
+.sankey-stage-toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.sankey-stage.is-expanded .chart {
+  margin-top: 0.5rem;
+}
+
+@keyframes sankeyExpandIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.982);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes sankeyBackdropIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ─── Responsive ──────────────────────────────────────────────────────── */
+
+@media (max-width: 820px) {
+  .coverage-calendar {
+    gap: 0.4rem;
+  }
+}

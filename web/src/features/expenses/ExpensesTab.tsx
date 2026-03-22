@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import './ExpensesTab.css';
 import { Bar, BarChart, ResponsiveContainer, Sankey, Tooltip, XAxis, YAxis } from "recharts";
 import { SUMMARY_TOP_MERCHANTS_PER_GROUP, formatCurrency, formatTimelineLabel } from "../../domain";
 import type {

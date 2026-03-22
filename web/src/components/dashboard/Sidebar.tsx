@@ -1,3 +1,4 @@
+import './Sidebar.css';
 import { formatCurrency } from "../../domain";
 import type { DashboardTab, ResolvedGoalEntry } from "../../domain";
 

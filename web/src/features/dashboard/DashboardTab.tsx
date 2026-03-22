@@ -1,3 +1,4 @@
+import './DashboardTab.css';
 import {
   Area,
   AreaChart,

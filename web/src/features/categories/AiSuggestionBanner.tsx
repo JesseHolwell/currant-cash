@@ -1,3 +1,5 @@
+import './AiSuggestionBanner.css';
+
 export type AiBannerAuthState =
   | "unauthenticated"
   | "no-key"

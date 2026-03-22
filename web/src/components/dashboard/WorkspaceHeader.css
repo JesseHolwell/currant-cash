@@ -1,0 +1,15 @@
+/* ── Sample mode badge on workspace header ── */
+
+.sample-mode-badge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, hsl(350, 60%, 18%), hsl(350, 50%, 26%));
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  vertical-align: middle;
+  line-height: 1;
+}

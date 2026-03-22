@@ -1,0 +1,217 @@
+/* ─── Nav buttons ─────────────────────────────────────────────────────── */
+
+.nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--ink-soft);
+  border-radius: 8px;
+  padding: 0.55rem 0.75rem;
+  text-align: left;
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+  letter-spacing: -0.01em;
+}
+
+.nav-btn svg {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.nav-btn:hover {
+  background: rgba(61, 36, 56, 0.06);
+  color: var(--ink);
+}
+
+.nav-btn:hover svg {
+  opacity: 0.9;
+}
+
+.nav-btn.active {
+  background: rgba(139, 41, 66, 0.10);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.nav-btn.active svg {
+  opacity: 1;
+}
+
+.goal-mini-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-strong), var(--accent));
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
+/* ─── Theme toggle button ─────────────────────────────────────────────── */
+
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.55rem 0.72rem;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 150ms ease;
+  letter-spacing: -0.01em;
+}
+
+.theme-toggle:hover {
+  background: rgba(139, 41, 66, 0.08);
+  color: var(--ink);
+  border-color: var(--accent-border);
+}
+
+.theme-toggle-icon {
+  flex: 0 0 1rem;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+/* ── Sidebar user section ── */
+
+.sidebar-user {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+
+.sidebar-user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.sidebar-user-avatar {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.sidebar-user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sidebar-user-email {
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.sidebar-user-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.sidebar-action-btn {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink-soft);
+  border-radius: var(--radius-md);
+  padding: 0.4rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.sidebar-action-btn:hover {
+  background: var(--fill-hover);
+  color: var(--ink);
+}
+
+.sidebar-sign-out-btn {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink-soft);
+  border-radius: var(--radius-md);
+  padding: 0.4rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.sidebar-sign-out-btn:hover {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.sidebar-sign-in-prompt {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.sidebar-free-label {
+  font-size: 0.7rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.sidebar-sign-in-btn {
+  border: 1px solid var(--accent-border);
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-radius: var(--radius-md);
+  padding: 0.4rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: background 120ms ease;
+}
+
+.sidebar-sign-in-btn:hover {
+  background: rgba(139, 41, 66, 0.15);
+}
+
+/* ─── Responsive ──────────────────────────────────────────────────────── */
+
+@media (max-width: 1320px) {
+  .nav-btn {
+    white-space: nowrap;
+    flex: 0 0 auto;
+  }
+}
+
+@media (max-width: 820px) {
+  .nav-btn {
+    padding: 0.46rem 0.62rem;
+    font-size: 0.76rem;
+  }
+}

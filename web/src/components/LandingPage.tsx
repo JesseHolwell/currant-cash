@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import './LandingPage.css';
 
 type LandingPageProps = {
   onContinueFree: () => void;

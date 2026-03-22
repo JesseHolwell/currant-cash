@@ -1,3 +1,4 @@
+import './OnboardingWizard.css';
 import type { User } from "@supabase/supabase-js";
 import type {
   AccountEntry,

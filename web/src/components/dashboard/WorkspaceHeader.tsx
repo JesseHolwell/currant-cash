@@ -1,3 +1,5 @@
+import './WorkspaceHeader.css';
+
 export function WorkspaceHeader({
   title,
   subtitle,

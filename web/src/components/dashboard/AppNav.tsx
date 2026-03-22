@@ -1,3 +1,4 @@
+import './AppNav.css';
 import type { User } from "@supabase/supabase-js";
 import { isSupabaseConfigured } from "../../lib/supabase";
 

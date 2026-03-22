@@ -1,0 +1,824 @@
+/* ─── Onboarding Wizard ───────────────────────────────────────────────── */
+
+.onboarding-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--bg-main);
+}
+
+.onboarding-backdrop {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 2.5rem 1rem 4rem;
+}
+
+.onboarding-card {
+  width: 100%;
+  max-width: 680px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Progress bar */
+.onboarding-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 2.5rem;
+}
+
+.onboarding-progress-track {
+  flex: 1;
+  display: flex;
+  gap: 4px;
+}
+
+.onboarding-progress-segment {
+  flex: 1;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--line-strong);
+  transition: background 300ms ease;
+}
+
+.onboarding-progress-segment.is-active {
+  background: var(--accent);
+}
+
+.onboarding-step-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.onboarding-tab-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+/* Header */
+.onboarding-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.onboarding-title {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 0.5rem;
+  line-height: 1.15;
+}
+
+.onboarding-subtitle {
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+  margin: 0;
+  max-width: 480px;
+  margin-inline: auto;
+}
+
+/* Body */
+.onboarding-body {
+  background: var(--bg-surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  padding: 1.75rem;
+  margin-bottom: 1.25rem;
+  box-shadow: var(--shadow-soft);
+}
+
+/* Navigation */
+.onboarding-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.onboarding-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.onboarding-btn-ghost {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 0.5rem 0;
+  transition: color 150ms ease;
+}
+
+.onboarding-btn-ghost:hover {
+  color: var(--ink-soft);
+}
+
+.onboarding-btn-skip {
+  background: none;
+  border: none;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 0.5rem 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 150ms ease;
+}
+
+.onboarding-btn-skip:hover {
+  color: var(--ink);
+}
+
+.onboarding-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 0.65rem 1.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms ease, transform 100ms ease;
+}
+
+.onboarding-btn-primary:hover {
+  background: var(--accent-strong);
+}
+
+.onboarding-btn-primary:active {
+  transform: scale(0.98);
+}
+
+.onboarding-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Why this matters */
+.onboarding-why {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-lg);
+  padding: 0.875rem 1rem;
+  margin-top: 0.25rem;
+}
+
+.onboarding-why-icon {
+  font-size: 1rem;
+  color: var(--accent);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.onboarding-why p {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+
+/* ─── Shared field styles ─────────────────────────────────────────────── */
+
+.onboarding-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.onboarding-field-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.onboarding-field-hint {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.onboarding-field input,
+.onboarding-field select {
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  color: var(--ink);
+  font-size: 0.9rem;
+  transition: border-color 150ms ease;
+  width: 100%;
+}
+
+.onboarding-field input:focus,
+.onboarding-field select:focus {
+  outline: none;
+  border-color: var(--accent-border);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+.onboarding-currency-input {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--bg-surface);
+  transition: border-color 150ms ease;
+}
+
+.onboarding-currency-input:focus-within {
+  border-color: var(--accent-border);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+.onboarding-currency-input > span {
+  padding: 0 0.6rem 0 0.75rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 500;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.onboarding-currency-input input {
+  border: none;
+  background: transparent;
+  padding: 0.55rem 0.75rem 0.55rem 0;
+  color: var(--ink);
+  font-size: 0.9rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.onboarding-currency-input input:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+/* Remove spinner on number inputs in onboarding */
+.onboarding-body input[type="number"]::-webkit-inner-spin-button,
+.onboarding-body input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+}
+
+.onboarding-add-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: none;
+  border: 1.5px dashed var(--line-strong);
+  border-radius: var(--radius-md);
+  color: var(--accent);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.55rem 1rem;
+  margin-top: 0.75rem;
+  width: 100%;
+  justify-content: center;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+.onboarding-add-row:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+}
+
+.onboarding-row-remove {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0.25rem 0.4rem;
+  border-radius: var(--radius-sm);
+  line-height: 1;
+  transition: color 150ms ease, background 150ms ease;
+}
+
+.onboarding-row-remove:hover {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.onboarding-muted {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.onboarding-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin: 1rem 0 0;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
+.onboarding-error {
+  color: var(--danger);
+  font-size: 0.85rem;
+  margin: 0.5rem 0 0;
+}
+
+/* ─── Step 1: Income ──────────────────────────────────────────────────── */
+
+.onboarding-income {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.onboarding-field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.onboarding-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 540px) {
+  .onboarding-field-grid,
+  .onboarding-field-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.onboarding-derived-stat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-md);
+  padding: 0.65rem 1rem;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.onboarding-derived-stat strong {
+  color: var(--accent);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+/* ─── Step 2: Accounts ────────────────────────────────────────────────── */
+
+.onboarding-accounts {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.onboarding-accounts-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.onboarding-accounts-thead {
+  display: grid;
+  grid-template-columns: minmax(140px, 2fr) minmax(120px, 1.2fr) minmax(100px, 1fr) 28px;
+  gap: 0.5rem;
+  padding: 0 0.5rem 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.onboarding-col-right {
+  text-align: right;
+}
+
+.onboarding-accounts-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 2fr) minmax(120px, 1.2fr) minmax(100px, 1fr) 28px;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  margin-bottom: 0.35rem;
+  background: var(--bg-surface);
+  transition: border-color 150ms ease;
+}
+
+.onboarding-accounts-row:hover {
+  border-color: var(--line-strong);
+}
+
+.onboarding-accounts-row input,
+.onboarding-accounts-row select {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink);
+  font-size: 0.875rem;
+  width: 100%;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.onboarding-accounts-row input:hover,
+.onboarding-accounts-row select:hover {
+  border-color: var(--line);
+  background: var(--bg-main);
+}
+
+.onboarding-accounts-row input:focus,
+.onboarding-accounts-row select:focus {
+  outline: none;
+  border-color: var(--accent-border);
+  background: var(--bg-surface);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+.onboarding-accounts-row .onboarding-currency-input {
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.onboarding-accounts-row .onboarding-currency-input:hover {
+  border-color: var(--line);
+  background: var(--bg-main);
+}
+
+.onboarding-accounts-row .onboarding-currency-input:focus-within {
+  border-color: var(--accent-border);
+  background: var(--bg-surface);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+.onboarding-accounts-row .onboarding-currency-input input {
+  padding: 0.4rem 0.4rem 0.4rem 0;
+  font-size: 0.875rem;
+  text-align: right;
+}
+
+.onboarding-accounts-row .onboarding-currency-input > span {
+  font-size: 0.875rem;
+}
+
+.onboarding-net-worth-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  margin-top: 0.25rem;
+}
+
+.onboarding-net-worth-right {
+  text-align: right;
+}
+
+.onboarding-net-worth-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.onboarding-net-worth-sub {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.onboarding-net-worth-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--accent);
+  font-family: "Fraunces", Georgia, serif;
+}
+
+/* ─── Step 3: Goals ───────────────────────────────────────────────────── */
+
+.onboarding-goals {
+  display: flex;
+  flex-direction: column;
+}
+
+.onboarding-empty-goals {
+  color: var(--muted);
+  font-size: 0.875rem;
+  padding: 1rem 0;
+  text-align: center;
+}
+
+.onboarding-goals-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.onboarding-goal-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  background: var(--bg-surface);
+}
+
+.onboarding-goal-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.onboarding-goal-row .onboarding-field {
+  flex: 1;
+}
+
+.onboarding-goal-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.onboarding-goal-progress {
+  margin-top: 0.75rem;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(139, 41, 66, 0.12);
+  overflow: hidden;
+}
+
+.onboarding-goal-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-strong), var(--accent));
+  transition: width 400ms ease;
+}
+
+/* ─── Step 4: Upload ──────────────────────────────────────────────────── */
+
+.onboarding-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.onboarding-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  border: 2px dashed var(--accent-border);
+  border-radius: var(--radius-lg);
+  padding: 2.5rem 1.5rem;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease;
+  text-align: center;
+  position: relative;
+}
+
+.onboarding-dropzone:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.onboarding-file-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+
+.onboarding-dropzone-icon {
+  color: var(--accent);
+  margin-bottom: 0.25rem;
+}
+
+.onboarding-dropzone-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.onboarding-dropzone-sub {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.onboarding-dropzone-formats {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.25rem;
+}
+
+.onboarding-dropzone-formats span {
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  padding: 0.15rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}
+
+.onboarding-upload-success {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: rgba(61, 139, 79, 0.08);
+  border: 1px solid rgba(61, 139, 79, 0.25);
+  border-radius: var(--radius-md);
+  padding: 0.65rem 0.875rem;
+  font-size: 0.875rem;
+  color: var(--ink);
+}
+
+.onboarding-success-icon {
+  font-size: 1rem;
+  color: var(--accent-leaf);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.onboarding-upload-institutions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.onboarding-institution-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  justify-content: center;
+}
+
+.onboarding-institution-list span {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--line-strong);
+  text-transform: uppercase;
+}
+
+/* ─── Step 5: Categorize ──────────────────────────────────────────────── */
+
+.onboarding-categorize {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.onboarding-categorize-summary {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.onboarding-categorize-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.onboarding-categorize-stat strong {
+  font-size: 2rem;
+  font-weight: 700;
+  font-family: "Fraunces", Georgia, serif;
+  color: var(--accent);
+}
+
+.onboarding-categorize-stat span {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.onboarding-categorize-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.onboarding-categorize-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.onboarding-categorize-card:hover {
+  border-color: var(--accent-border);
+  background: var(--accent-soft);
+}
+
+.onboarding-categorize-card.is-primary {
+  border-color: var(--accent-border);
+  background: var(--accent-soft);
+}
+
+.onboarding-categorize-card.is-primary:hover {
+  background: rgba(139, 41, 66, 0.15);
+}
+
+.onboarding-categorize-card-icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+  color: var(--accent);
+  margin-top: 2px;
+}
+
+.onboarding-categorize-card strong {
+  display: block;
+  font-size: 0.95rem;
+  color: var(--ink);
+  margin-bottom: 0.3rem;
+}
+
+.onboarding-categorize-card p {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  line-height: 1.4;
+}
+
+.onboarding-categorize-empty {
+  text-align: center;
+  padding: 1rem 0;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+/* ─── Dark mode adjustments ───────────────────────────────────────────── */
+
+[data-theme="dark"] .onboarding-accounts-row input,
+[data-theme="dark"] .onboarding-accounts-row select {
+  background: transparent;
+}
+
+[data-theme="dark"] .onboarding-accounts-row .onboarding-currency-input {
+  background: transparent;
+}
+
+/* ─── Onboarding — About You step ────────────────────────────────────── */
+
+.onboarding-about {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.onboarding-optional {
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--muted);
+  text-transform: none;
+  letter-spacing: 0;
+  margin-left: 0.3rem;
+}
+
+.onboarding-required {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: none;
+  letter-spacing: 0;
+  margin-left: 0.3rem;
+}
