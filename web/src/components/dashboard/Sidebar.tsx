@@ -12,7 +12,7 @@ type TabMeta = Record<
 >;
 
 const TAB_ICONS: Partial<Record<DashboardTab, () => React.ReactElement>> = {
-  forecast: () => (
+  dashboard: () => (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
       <rect x="1" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity="0.9"/>
       <rect x="9" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity="0.5"/>
@@ -68,7 +68,7 @@ const TAB_ICONS: Partial<Record<DashboardTab, () => React.ReactElement>> = {
 };
 
 const NAV_TABS: DashboardTab[] = [
-  "forecast",
+  "dashboard",
   "expenses",
   "fireInsights",
   "income",

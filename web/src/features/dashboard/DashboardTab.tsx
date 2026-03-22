@@ -221,7 +221,7 @@ type AccountHistoryChartRow = {
   [key: string]: string | number;
 };
 
-export function ForecastTab({
+export function DashboardTab({
   currency,
   accountSummary,
   startNetWorth,

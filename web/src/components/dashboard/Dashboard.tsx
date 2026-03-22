@@ -5,7 +5,7 @@ import { CategoriesTab } from "../../features/categories/CategoriesTab";
 import { ApiKeyModal } from "../../features/categories/ApiKeyModal";
 import { ExpensesTab } from "../../features/expenses/ExpensesTab";
 import { FireInsightsTab } from "../../features/fire/FireInsightsTab";
-import { ForecastTab } from "../../features/forecast/ForecastTab";
+import { DashboardTab as DashboardOverviewTab } from "../../features/dashboard/DashboardTab";
 import { IncomeTab } from "../../features/income/IncomeTab";
 import { SettingsTab } from "../../features/settings/SettingsTab";
 import { TransactionDataTab } from "../../features/transactions/TransactionDataTab";
@@ -153,7 +153,7 @@ interface DashboardProps {
 }
 
 const TAB_META: Record<DashboardTab, { label: string; title: string; subtitle: string }> = {
-  forecast: {
+  dashboard: {
     label: "Dashboard",
     title: "Dashboard",
     subtitle: "Track your net worth trajectory and account trends."
@@ -354,8 +354,8 @@ export function Dashboard({
           />
         ) : null}
 
-        {activeTab === "forecast" ? (
-          <ForecastTab
+        {activeTab === "dashboard" ? (
+          <DashboardOverviewTab
             currency={derived.meta.currency}
             accountSummary={derived.accountSummary}
             startNetWorth={derived.startNetWorth}

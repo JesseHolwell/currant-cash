@@ -117,7 +117,7 @@ export default function App() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(0);
 
-  const [activeTab, setActiveTab] = useState<DashboardTab>("forecast");
+  const [activeTab, setActiveTab] = useState<DashboardTab>("dashboard");
   const [flowStartMode, setFlowStartMode] = useState<FlowStartMode>("income");
   const [incomeBasisMode, setIncomeBasisMode] = useState<IncomeBasisMode>("raw");
   const [merchantDetailMode, setMerchantDetailMode] = useState<MerchantDetailMode>("summary");
@@ -195,7 +195,7 @@ export default function App() {
     if (user && isSampleMode) {
       sessionStorage.removeItem(SAMPLE_MODE_KEY);
       setIsSampleMode(false);
-      setActiveTab("forecast");
+      setActiveTab("dashboard");
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
@@ -761,7 +761,7 @@ export default function App() {
       setBypassAuth(true);
     }
     setShowLanding(false);
-    setActiveTab("forecast");
+    setActiveTab("dashboard");
   }
 
   const hasExistingData = !!user || !!localStorage.getItem(ONBOARDING_COMPLETE_KEY);
@@ -802,7 +802,7 @@ export default function App() {
     if (goToTab) {
       setActiveTab(goToTab as DashboardTab);
     } else {
-      setActiveTab("forecast");
+      setActiveTab("dashboard");
     }
   }
 
