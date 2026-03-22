@@ -829,7 +829,7 @@ export default function App() {
         onSignUp={signInWithGoogle}
         onLogIn={signInWithGoogle}
         onPreviewSample={handleEnterSampleMode}
-        onBack={showLanding ? () => setShowLanding(false) : undefined}
+        onBack={showLanding && hasExistingData ? () => setShowLanding(false) : undefined}
       />
     );
   }
