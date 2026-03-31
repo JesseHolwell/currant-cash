@@ -1,3 +1,4 @@
+import { domainProfile } from "./config/profile";
 import type {
   AccountEntry,
   BuildVizResult,
@@ -6,7 +7,8 @@ import type {
   PayrollDraft,
 } from "./types";
 
-export const EXCLUDED_CATEGORIES = new Set(["Transfers", "Income"]);
+export const EXCLUDED_CATEGORIES = new Set(["Transfers", "Income", "Ignored"]);
+export const EXCLUDED_INCOME_CATEGORIES = new Set(["Transfers", "Ignored"]);
 
 export const CATEGORY_COLORS = [
   "#8B2942", // Currant Red
@@ -56,122 +58,15 @@ export const EMPTY_MANUAL_RULES: ManualRulesState = {
 export const CATEGORY_GROUP_ALIAS_MAP = new Map<string, string>([
   ["food", "Food & Drink"],
   ["mobility", "Transport"],
-  ["recurring payments", "Subscriptions"],
+  ["recurring payments", "Subscriptions & Tech"],
 ]);
 
-export const INCOME_SOURCE_ALIASES = [
-  { label: "CAPE SPORTS Salary", needles: ["cape bionics", "cape sports"] },
-  { label: "Spotify Credits", needles: ["spotify"] },
-];
-
-export const MERCHANT_ALIASES = [
-  { label: "Uber Eats", needles: ["uber eats", "uber *eats"] },
-  { label: "Uber One", needles: ["uber one"] },
-  { label: "Spotify", needles: ["spotify"] },
-  { label: "Coles", needles: ["coles"] },
-  { label: "Woolworths", needles: ["woolworths"] },
-  { label: "McDonald's", needles: ["mcdonald"] },
-];
-
-export const DEFAULT_CATEGORY_SETUP: Array<{
-  category: string;
-  subcategories: Array<{ name: string; keywords: string[] }>;
-}> = [
-  {
-    category: "Food & Drink",
-    subcategories: [
-      { name: "Groceries", keywords: [] },
-      { name: "Deliveries", keywords: [] },
-      { name: "Restaurants", keywords: [] },
-    ],
-  },
-  { category: "Transport", subcategories: [{ name: "Transport", keywords: [] }] },
-  {
-    category: "Lifestyle",
-    subcategories: [
-      { name: "Shopping", keywords: [] },
-      { name: "Gifts", keywords: [] },
-      { name: "Hobbies", keywords: [] },
-    ],
-  },
-  {
-    category: "Subscriptions",
-    subcategories: [
-      { name: "Memberships", keywords: [] },
-      { name: "Subscriptions", keywords: [] },
-      { name: "Interest", keywords: [] },
-    ],
-  },
-  { category: "Health", subcategories: [{ name: "Health", keywords: [] }] },
-  {
-    category: "Life",
-    subcategories: [
-      { name: "Rent", keywords: [] },
-      { name: "Phone", keywords: [] },
-      { name: "Internet", keywords: [] },
-    ],
-  },
-  { category: "Transfers", subcategories: [{ name: "Transfers", keywords: [] }] },
-  { category: "Income", subcategories: [{ name: "Income", keywords: [] }] },
-  { category: "Uncategorized", subcategories: [{ name: "Uncategorized", keywords: [] }] },
-];
-
-export const DEFAULT_ACCOUNT_ENTRIES: AccountEntry[] = [
-  {
-    id: "acct_everyday",
-    name: "Everyday Account",
-    bucket: "Bank",
-    kind: "asset",
-    value: 4850,
-  },
-  {
-    id: "acct_savings",
-    name: "High Interest Savings",
-    bucket: "Bank",
-    kind: "asset",
-    value: 18200,
-  },
-  {
-    id: "acct_crypto",
-    name: "Crypto",
-    bucket: "Crypto",
-    kind: "asset",
-    value: 6000,
-  },
-  {
-    id: "acct_shares",
-    name: "Shares",
-    bucket: "Stocks",
-    kind: "asset",
-    value: 12100,
-  },
-  {
-    id: "acct_mortgage",
-    name: "Credit",
-    bucket: "Debt",
-    kind: "liability",
-    value: 3000,
-  },
-];
-
-export const DEFAULT_GOALS: GoalEntry[] = [
-  {
-    id: "goal_emergency",
-    name: "Emergency Fund",
-    target: 15000,
-    current: 0,
-    trackingMode: "accounts",
-    accountIds: ["acct_savings"],
-  },
-  {
-    id: "goal_home_deposit",
-    name: "Home Loan Deposit",
-    target: 100000,
-    current: 0,
-    trackingMode: "netWorth",
-    accountIds: [],
-  },
-];
+export const APP_SUPPORT_URL = domainProfile.supportUrl;
+export const INCOME_SOURCE_ALIASES = domainProfile.incomeSourceAliases;
+export const MERCHANT_ALIASES = domainProfile.merchantAliases;
+export const DEFAULT_CATEGORY_SETUP = domainProfile.defaultCategorySetup;
+export const DEFAULT_ACCOUNT_ENTRIES: AccountEntry[] = domainProfile.defaultAccountEntries;
+export const DEFAULT_GOALS: GoalEntry[] = domainProfile.defaultGoals;
 
 export const DEFAULT_PAYROLL_FIELDS: PayrollDraft["fields"] = [
   { id: "income_tax", label: "Income tax", amount: 0, kind: "pre_tax_deduction" },

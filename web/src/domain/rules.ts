@@ -1,5 +1,7 @@
 import {
   CATEGORY_GROUP_ALIAS_MAP,
+  EXCLUDED_CATEGORIES,
+  EXCLUDED_INCOME_CATEGORIES,
   INCOME_SOURCE_ALIASES,
   MERCHANT_ALIASES
 } from "./constants";
@@ -46,6 +48,14 @@ export function resolveSubcategoryBucket(transaction: RawTransaction): string {
   return resolveCategoryGroupBucket(transaction);
 }
 
+export function isExcludedFromSpendAnalytics(transaction: RawTransaction): boolean {
+  return EXCLUDED_CATEGORIES.has(resolveCategoryGroupBucket(transaction));
+}
+
+export function isExcludedFromIncomeAnalytics(transaction: RawTransaction): boolean {
+  return EXCLUDED_INCOME_CATEGORIES.has(resolveCategoryGroupBucket(transaction));
+}
+
 export function groupSubcategoryKey(group: string, subcategory: string): string {
   return `${group}\u0000${subcategory}`;
 }
@@ -90,6 +100,11 @@ export function applyManualRules(transactions: RawTransaction[], rules: ManualRu
       ...transaction,
       similarityKey,
       manualSource: directRule ? "id" : similarityRule ? "similar" : undefined,
+      classificationSource: directRule
+        ? "manual-id"
+        : similarityRule
+          ? "manual-similar"
+          : transaction.classificationSource,
       manualNickname: cleanRule?.nickname,
       manualCategoryGroup: cleanRule?.categoryGroup,
       manualCategory: cleanRule?.category,

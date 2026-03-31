@@ -1,6 +1,6 @@
 import Papa from "papaparse";
 import { categoryTaxonomyFromDefinitions } from "./taxonomy";
-import type { CategoryDefinition, RawTransaction } from "./types";
+import type { CategoryDefinition, RawTransaction, TransactionBatch } from "./types";
 import { normalizeForMatch, toTitleLabel } from "./utils";
 
 type CsvBankRow = {
@@ -19,12 +19,22 @@ type CsvImportResult = {
   warnings: string[];
 };
 
+export type TransactionCategorization = {
+  category: string;
+  categoryGroup: string;
+  categoryReason: string;
+};
+
 type CategoryMatcher = {
   group: string;
   subcategory: string;
   needle: string;
   source: "group" | "label" | "keyword";
 };
+
+function canAutoClassifyCreditTo(group: string): boolean {
+  return group === "Transfers" || group === "Ignored";
+}
 
 function canonicalMoneyToken(value: string | undefined): string {
   if (!value) {
@@ -196,15 +206,11 @@ function inferCategory(
   direction: RawTransaction["direction"],
   lookup: Map<string, { group: string; subcategory: string }>,
   matchers: CategoryMatcher[]
-): { category: string; categoryGroup: string; categoryReason: string } {
-  if (direction === "credit") {
-    return { category: "Income", categoryGroup: "Income", categoryReason: "fallback:credit" };
-  }
-
+): TransactionCategorization {
   const normalizedSourceCategory = normalizeForMatch(sourceCategory);
   if (normalizedSourceCategory) {
     const fromLookup = lookup.get(normalizedSourceCategory);
-    if (fromLookup) {
+    if (fromLookup && (direction !== "credit" || canAutoClassifyCreditTo(fromLookup.group))) {
       return {
         category: fromLookup.subcategory,
         categoryGroup: fromLookup.group,
@@ -235,7 +241,10 @@ function inferCategory(
     if (!matcher.needle || matcher.needle.length < minLength) {
       continue;
     }
-    if (narrativeNormalized.includes(matcher.needle)) {
+    if (
+      narrativeNormalized.includes(matcher.needle)
+      && (direction !== "credit" || canAutoClassifyCreditTo(matcher.group))
+    ) {
       return {
         category: matcher.subcategory,
         categoryGroup: matcher.group,
@@ -246,11 +255,74 @@ function inferCategory(
     }
   }
 
+  if (direction === "credit") {
+    return { category: "Income", categoryGroup: "Income", categoryReason: "fallback:credit" };
+  }
+
   return {
     category: "Uncategorized",
     categoryGroup: "Uncategorized",
     categoryReason: "fallback:uncategorized"
   };
+}
+
+function createTransactionCategorizer(categoryDefinitions: CategoryDefinition[]) {
+  const lookup = buildSubcategoryLookup(categoryDefinitions);
+  const matchers = buildCategoryMatchers(categoryDefinitions);
+  return (
+    narrative: string,
+    sourceCategory: string,
+    direction: RawTransaction["direction"]
+  ): TransactionCategorization => inferCategory(narrative, sourceCategory, direction, lookup, matchers);
+}
+
+export function categorizeTransaction(
+  narrative: string,
+  sourceCategory: string,
+  direction: RawTransaction["direction"],
+  categoryDefinitions: CategoryDefinition[]
+): TransactionCategorization {
+  return createTransactionCategorizer(categoryDefinitions)(narrative, sourceCategory, direction);
+}
+
+export function reapplyCategoryDefinitionsToTransaction(
+  transaction: RawTransaction,
+  categoryDefinitions: CategoryDefinition[]
+): RawTransaction {
+  const categorize = createTransactionCategorizer(categoryDefinitions);
+  const categorization = categorize(
+    transaction.narrative,
+    transaction.sourceCategory ?? "",
+    transaction.direction
+  );
+
+  return {
+    ...transaction,
+    category: categorization.category || transaction.category || toTitleLabel(transaction.sourceCategory ?? "") || "Uncategorized",
+    categoryGroup: categorization.categoryGroup,
+    categoryReason: categorization.categoryReason,
+    classificationSource: "reprocessed-auto"
+  };
+}
+
+export function reapplyCategoryDefinitionsToBatches(
+  batches: TransactionBatch[],
+  categoryDefinitions: CategoryDefinition[]
+): TransactionBatch[] {
+  const categorize = createTransactionCategorizer(categoryDefinitions);
+  return batches.map((batch) => ({
+    ...batch,
+    transactions: batch.transactions.map((transaction) => {
+      const categorization = categorize(transaction.narrative, transaction.sourceCategory ?? "", transaction.direction);
+      return {
+        ...transaction,
+        category: categorization.category || transaction.category || toTitleLabel(transaction.sourceCategory ?? "") || "Uncategorized",
+        categoryGroup: categorization.categoryGroup,
+        categoryReason: categorization.categoryReason,
+        classificationSource: "reprocessed-auto"
+      };
+    })
+  }));
 }
 
 export function parseBankCsvToTransactions(csvRaw: string, categoryDefinitions: CategoryDefinition[]): CsvImportResult {
@@ -265,8 +337,7 @@ export function parseBankCsvToTransactions(csvRaw: string, categoryDefinitions: 
   }
 
   const warnings: string[] = [];
-  const subcategoryLookup = buildSubcategoryLookup(categoryDefinitions);
-  const categoryMatchers = buildCategoryMatchers(categoryDefinitions);
+  const categorize = createTransactionCategorizer(categoryDefinitions);
   const transactions: RawTransaction[] = [];
   const seenTransactionIds = new Set<string>();
 
@@ -286,7 +357,7 @@ export function parseBankCsvToTransactions(csvRaw: string, categoryDefinitions: 
 
       const normalizedDate = parseDate(dateValue);
       const sourceCategory = (row.Categories ?? "").trim();
-      const categorization = inferCategory(narrative, sourceCategory, direction, subcategoryLookup, categoryMatchers);
+      const categorization = categorize(narrative, sourceCategory, direction);
       const transactionId = hashString(buildTransactionFingerprint(row, normalizedDate, narrative));
 
       if (seenTransactionIds.has(transactionId)) {
@@ -301,11 +372,13 @@ export function parseBankCsvToTransactions(csvRaw: string, categoryDefinitions: 
         accountId: (row["Bank Account"] ?? "uploaded-account").trim() || "uploaded-account",
         merchant: inferMerchant(narrative),
         narrative,
+        sourceCategory,
         amount,
         direction,
         category: categorization.category || toTitleLabel(sourceCategory) || "Uncategorized",
         categoryGroup: categorization.categoryGroup,
-        categoryReason: categorization.categoryReason
+        categoryReason: categorization.categoryReason,
+        classificationSource: "imported-auto"
       });
     } catch (error) {
       warnings.push(`Skipped row ${index + 2}: ${error instanceof Error ? error.message : String(error)}`);

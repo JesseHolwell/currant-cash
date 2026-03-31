@@ -22,8 +22,6 @@ export type SampleDataset = {
   accountHistory: AccountHistorySnapshot[];
   goals: GoalEntry[];
   payrollDraft: PayrollDraft;
-  forecastStartNetWorth: number | null;
-  forecastMonthlyDelta: number | null;
   fireCurrentAge: number;
   fireAnnualReturn: number;
   fireMultiplier: number;
@@ -383,8 +381,6 @@ export const SAMPLE_DATASET: SampleDataset = {
   accountHistory: SAMPLE_ACCOUNT_HISTORY,
   goals: SAMPLE_GOALS,
   payrollDraft: SAMPLE_PAYROLL_DRAFT,
-  forecastStartNetWorth: null,
-  forecastMonthlyDelta: null,
   fireCurrentAge: 28,
   fireAnnualReturn: 7,
   fireMultiplier: 25,

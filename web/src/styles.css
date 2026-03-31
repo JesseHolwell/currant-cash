@@ -91,6 +91,13 @@
   --berry-deep: #5C1A2A;
   --berry-highlight: #C47090;
 
+  /* Data viz */
+  --chart-1: #8B2942;
+  --chart-2: #3D8B4F;
+  --chart-3: #C4843E;
+  --chart-4: #5C1A2A;
+  --chart-5: #C47090;
+
   /* Status */
   --danger: #DC2626;
   --danger-soft: rgba(220, 38, 38, 0.10);
@@ -222,7 +229,7 @@ select {
 
 .account-row {
   display: grid;
-  grid-template-columns: minmax(180px, 1.3fr) minmax(120px, 0.8fr) minmax(160px, 0.75fr) minmax(120px, 0.6fr) auto;
+  grid-template-columns: minmax(180px, 1.3fr) minmax(120px, 0.8fr) minmax(160px, 0.75fr) auto;
   gap: 0.45rem;
   align-items: center;
   border: 1px solid var(--line);
@@ -265,28 +272,28 @@ select {
   pointer-events: none;
 }
 
-.sankey-chip {
-  fill: rgba(247, 243, 232, 0.88);
-  stroke: rgba(61, 36, 56, 0.16);
+.sankey-label-card {
+  fill: rgba(247, 243, 232, 0.94);
+  stroke: rgba(61, 36, 56, 0.14);
+  stroke-width: 1px;
+}
+
+.sankey-label-accent {
+  opacity: 0.95;
 }
 
 .sankey-label-main {
-  font-size: 10.5px;
+  font-size: 10.75px;
   font-weight: 700;
-  fill: #3D2438;
-  paint-order: stroke;
-  stroke: rgba(247, 243, 232, 0.85);
-  stroke-width: 2.5px;
-  stroke-linejoin: round;
+  letter-spacing: -0.01em;
+  fill: #2B1827;
 }
 
 .sankey-label-sub {
-  font-size: 9.5px;
-  fill: #6B445C;
-  paint-order: stroke;
-  stroke: rgba(247, 243, 232, 0.85);
-  stroke-width: 2px;
-  stroke-linejoin: round;
+  font-size: 9.25px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  fill: #7A5B69;
 }
 
 /* ─── Animations ──────────────────────────────────────────────────────── */
@@ -367,6 +374,12 @@ select {
     --berry-deep: #8B2942;
     --berry-highlight: #E08098;
 
+    --chart-1: #C4547A;
+    --chart-2: #5DAB6F;
+    --chart-3: #D4944E;
+    --chart-4: #E08098;
+    --chart-5: #B0899E;
+
     --danger: #F87171;
     --danger-soft: rgba(248, 113, 113, 0.15);
 
@@ -406,6 +419,12 @@ select {
   --accent-leaf: #5DAB6F;
   --berry-deep: #8B2942;
   --berry-highlight: #E08098;
+
+  --chart-1: #C4547A;
+  --chart-2: #5DAB6F;
+  --chart-3: #D4944E;
+  --chart-4: #E08098;
+  --chart-5: #B0899E;
 
   --danger: #F87171;
   --danger-soft: rgba(248, 113, 113, 0.15);

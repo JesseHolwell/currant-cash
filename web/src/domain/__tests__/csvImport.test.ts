@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { parseBankCsvToTransactions } from "../csvImport";
-import type { CategoryDefinition } from "../types";
+import { parseBankCsvToTransactions, reapplyCategoryDefinitionsToBatches } from "../csvImport";
+import type { CategoryDefinition, TransactionBatch } from "../types";
 
 const NO_CATEGORIES: CategoryDefinition[] = [];
 
@@ -11,6 +11,16 @@ const FOOD_CATEGORIES: CategoryDefinition[] = [
     subcategories: [
       { id: "sub-groceries", name: "Groceries", keywords: ["woolworths", "coles", "aldi"] },
       { id: "sub-dining", name: "Dining", keywords: ["mcdonald", "uber eats"] }
+    ]
+  }
+];
+
+const IGNORED_CATEGORIES: CategoryDefinition[] = [
+  {
+    id: "cat-ignored",
+    category: "Ignored",
+    subcategories: [
+      { id: "sub-ignored", name: "Ignored", keywords: ["westpac low"] }
     ]
   }
 ];
@@ -53,10 +63,23 @@ describe("parseBankCsvToTransactions", () => {
     expect(transactions[0].categoryGroup).toBe("Income");
   });
 
+  it("allows credit transactions to auto-classify to Ignored when keywords match", () => {
+    const csv = makeCsv(["12345678,01/03/2024,Westpac Low,,1452.00,500.00,,"]);
+    const { transactions } = parseBankCsvToTransactions(csv, IGNORED_CATEGORIES);
+    expect(transactions[0].categoryGroup).toBe("Ignored");
+  });
+
   it("uses the Categories CSV column when it matches a known category", () => {
     const csv = makeCsv(["12345678,01/03/2024,Unknown Merchant,30.00,,200.00,Food,"]);
     const { transactions } = parseBankCsvToTransactions(csv, FOOD_CATEGORIES);
     expect(transactions[0].categoryGroup).toBe("Food");
+  });
+
+  it("stores source category metadata for future reprocessing", () => {
+    const csv = makeCsv(["12345678,01/03/2024,Unknown Merchant,30.00,,200.00,Food,"]);
+    const { transactions } = parseBankCsvToTransactions(csv, FOOD_CATEGORIES);
+    expect(transactions[0].sourceCategory).toBe("Food");
+    expect(transactions[0].classificationSource).toBe("imported-auto");
   });
 
   it("deduplicates identical bank rows and emits a warning", () => {
@@ -113,5 +136,27 @@ describe("parseBankCsvToTransactions", () => {
     const csv = makeCsv(["12345678,01/03/2024,DEPOSIT-OSKO PAYMENT 99999 John Smith,0,,1000.00,,"]);
     const { transactions } = parseBankCsvToTransactions(csv, NO_CATEGORIES);
     expect(transactions[0].merchant).not.toMatch(/OSKO/i);
+  });
+
+  it("reapplies updated category definitions to previously imported transactions", () => {
+    const csv = makeCsv(["12345678,01/03/2024,Unknown Merchant,30.00,,200.00,Food,"]);
+    const { transactions } = parseBankCsvToTransactions(csv, NO_CATEGORIES);
+    const batch: TransactionBatch = {
+      id: "batch-1",
+      fileName: "sample.csv",
+      importedAt: "2026-03-31T00:00:00.000Z",
+      observedStart: "2024-03-01",
+      observedEnd: "2024-03-01",
+      coverageStart: "2024-03-01",
+      coverageEnd: "2024-03-01",
+      transactionCount: transactions.length,
+      warningCount: 0,
+      warnings: [],
+      transactions
+    };
+
+    const [nextBatch] = reapplyCategoryDefinitionsToBatches([batch], FOOD_CATEGORIES);
+    expect(nextBatch.transactions[0].categoryGroup).toBe("Food");
+    expect(nextBatch.transactions[0].classificationSource).toBe("reprocessed-auto");
   });
 });

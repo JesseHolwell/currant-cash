@@ -2,9 +2,15 @@ import type { RechartsSankeyLinkPayload, RechartsSankeyNode } from "./domain";
 import { formatCurrency } from "./domain";
 
 type NodeKind = NonNullable<RechartsSankeyNode["kind"]>;
+type LabelAlign = "left" | "right" | "center";
 
 const LEFT_LABEL_KINDS = new Set<NodeKind>(["group", "subcategory", "fixed", "income"]);
 const RIGHT_LABEL_KINDS = new Set<NodeKind>(["merchant", "fixedLeaf", "savings"]);
+const LABEL_GAP = 12;
+const LABEL_PADDING_X = 10;
+const LABEL_CARD_SINGLE_HEIGHT = 24;
+const LABEL_CARD_DOUBLE_HEIGHT = 36;
+const LABEL_ACCENT_WIDTH = 4;
 
 function truncateLabel(label: string | undefined, maxChars: number): string {
   const text = (label ?? "").trim();
@@ -19,9 +25,9 @@ function shouldShowPrimaryLabel(kind: NodeKind, height: number): boolean {
     return true;
   }
   if (kind === "merchant" || kind === "fixedLeaf" || kind === "savings") {
-    return height >= 16;
+    return height >= 18;
   }
-  return height >= 13;
+  return height >= 14;
 }
 
 function shouldShowSecondaryLabel(kind: NodeKind, height: number): boolean {
@@ -29,9 +35,96 @@ function shouldShowSecondaryLabel(kind: NodeKind, height: number): boolean {
     return true;
   }
   if (kind === "merchant" || kind === "fixedLeaf" || kind === "savings") {
-    return height >= 26;
+    return height >= 30;
   }
-  return height >= 22;
+  return height >= 24;
+}
+
+function estimateTextWidth(text: string, variant: "main" | "sub"): number {
+  const widthPerCharacter = variant === "main" ? 6.6 : 5.8;
+  return Math.ceil(text.length * widthPerCharacter);
+}
+
+function truncateLabelToWidth(label: string | undefined, maxWidth: number, variant: "main" | "sub"): string {
+  const widthPerCharacter = variant === "main" ? 6.6 : 5.8;
+  const maxChars = Math.max(6, Math.floor(maxWidth / widthPerCharacter));
+  return truncateLabel(label, maxChars);
+}
+
+function getLabelTextWidthLimit(kind: NodeKind, align: LabelAlign): number {
+  if (align === "center") {
+    return 150;
+  }
+  if (align === "right") {
+    return kind === "merchant" || kind === "fixedLeaf" ? 182 : 156;
+  }
+  if (kind === "income") {
+    return 162;
+  }
+  return 146;
+}
+
+function SankeyLabelCard({
+  anchorX,
+  anchorY,
+  align,
+  color,
+  kind,
+  main,
+  sub
+}: {
+  anchorX: number;
+  anchorY: number;
+  align: LabelAlign;
+  color?: string;
+  kind: NodeKind;
+  main: string;
+  sub?: string;
+}) {
+  const maxTextWidth = getLabelTextWidthLimit(kind, align);
+  const mainLabel = truncateLabelToWidth(main, maxTextWidth, "main");
+  const subLabel = truncateLabelToWidth(sub, maxTextWidth, "sub");
+  const cardHeight = subLabel ? LABEL_CARD_DOUBLE_HEIGHT : LABEL_CARD_SINGLE_HEIGHT;
+  const textWidth = Math.max(
+    estimateTextWidth(mainLabel, "main"),
+    subLabel ? estimateTextWidth(subLabel, "sub") : 0
+  );
+  const accentInset = align === "center" ? 0 : LABEL_ACCENT_WIDTH;
+  const cardWidth = textWidth + LABEL_PADDING_X * 2 + accentInset;
+  const boxX = align === "left"
+    ? anchorX - cardWidth
+    : align === "center"
+      ? anchorX - cardWidth / 2
+      : anchorX;
+  const boxY = anchorY - cardHeight / 2;
+  const textX = align === "right" ? boxX + LABEL_ACCENT_WIDTH + LABEL_PADDING_X : boxX + LABEL_PADDING_X;
+  const mainY = boxY + (subLabel ? 13 : cardHeight / 2 + 0.5);
+  const subY = boxY + 25;
+
+  return (
+    <g className="sankey-label">
+      <rect x={boxX} y={boxY} width={cardWidth} height={cardHeight} rx={10} className="sankey-label-card" />
+      {align !== "center" ? (
+        <rect
+          x={align === "left" ? boxX + cardWidth - LABEL_ACCENT_WIDTH : boxX}
+          y={boxY}
+          width={LABEL_ACCENT_WIDTH}
+          height={cardHeight}
+          rx={10}
+          fill={color ?? "#6B445C"}
+          className="sankey-label-accent"
+        />
+      ) : null}
+      <text x={textX} y={mainY} textAnchor="start" dominantBaseline="middle" className="sankey-label-main">
+        {mainLabel}
+      </text>
+      {subLabel ? (
+        <text x={textX} y={subY} textAnchor="start" dominantBaseline="middle" className="sankey-label-sub">
+          {subLabel}
+        </text>
+      ) : null}
+    </g>
+  );
 }
 
 function resolveLinkOpacity(kind: RechartsSankeyLinkPayload["kind"]): number {
@@ -117,13 +210,11 @@ export function NodeShape(props: {
     return <g />;
   }
 
-  const mainLabel = truncateLabel(payload.labelMain ?? payload.name ?? "", kind === "merchant" ? 40 : 30);
-  const subLabel = truncateLabel(payload.labelSub, kind === "merchant" ? 34 : 28);
+  const mainLabel = (payload.labelMain ?? payload.name ?? "").trim();
+  const subLabel = (payload.labelSub ?? "").trim();
   const showPrimaryLabel = shouldShowPrimaryLabel(kind, height) && Boolean(mainLabel);
   const showSecondaryLabel = showPrimaryLabel && shouldShowSecondaryLabel(kind, height) && Boolean(subLabel);
   const accentOnLeft = kind === "group" || kind === "subcategory" || kind === "fixed" || kind === "income";
-  const rightLabelYOffset = showSecondaryLabel ? -2 : 4;
-  const leftLabelYOffset = showSecondaryLabel ? -2 : 4;
 
   return (
     <g>
@@ -141,46 +232,39 @@ export function NodeShape(props: {
       ) : null}
 
       {RIGHT_LABEL_KINDS.has(kind) && showPrimaryLabel ? (
-        <g className="sankey-label">
-          {height >= 18 ? (
-            <>
-              <rect x={x + width + 10} y={y + height / 2 - 10} width={20} height={20} rx={7} className="sankey-chip" />
-              <rect x={x + width + 17} y={y + height / 2 - 3} width={6} height={6} rx={2} fill={payload.color ?? "#6B445C"} />
-            </>
-          ) : null}
-          <text x={x + width + (height >= 18 ? 38 : 12)} y={y + height / 2 + rightLabelYOffset} textAnchor="start" className="sankey-label-main">
-            {mainLabel}
-          </text>
-          {showSecondaryLabel ? (
-            <text x={x + width + 38} y={y + height / 2 + 13} textAnchor="start" className="sankey-label-sub">
-              {subLabel}
-            </text>
-          ) : null}
-        </g>
+        <SankeyLabelCard
+          anchorX={x + width + LABEL_GAP}
+          anchorY={y + height / 2}
+          align="right"
+          color={payload.color}
+          kind={kind}
+          main={mainLabel}
+          sub={showSecondaryLabel ? subLabel : undefined}
+        />
       ) : null}
 
       {LEFT_LABEL_KINDS.has(kind) && showPrimaryLabel ? (
-        <g className="sankey-label">
-          <text x={x - 10} y={y + height / 2 + leftLabelYOffset} textAnchor="end" className="sankey-label-main">
-            {mainLabel}
-          </text>
-          {showSecondaryLabel ? (
-            <text x={x - 10} y={y + height / 2 + 13} textAnchor="end" className="sankey-label-sub">
-              {subLabel}
-            </text>
-          ) : null}
-        </g>
+        <SankeyLabelCard
+          anchorX={x - LABEL_GAP}
+          anchorY={y + height / 2}
+          align="left"
+          color={payload.color}
+          kind={kind}
+          main={mainLabel}
+          sub={showSecondaryLabel ? subLabel : undefined}
+        />
       ) : null}
 
       {kind === "total" ? (
-        <g className="sankey-label">
-          <text x={x + width / 2} y={Math.max(14, y - 15)} textAnchor="middle" className="sankey-label-main">
-            {mainLabel}
-          </text>
-          <text x={x + width / 2} y={Math.max(28, y - 1)} textAnchor="middle" className="sankey-label-sub">
-            {subLabel}
-          </text>
-        </g>
+        <SankeyLabelCard
+          anchorX={x + width / 2}
+          anchorY={Math.max(24, y - 14)}
+          align="center"
+          color={payload.color}
+          kind={kind}
+          main={mainLabel}
+          sub={subLabel}
+        />
       ) : null}
     </g>
   );

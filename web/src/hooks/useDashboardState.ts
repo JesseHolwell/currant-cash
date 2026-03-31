@@ -6,6 +6,8 @@ import {
   buildVisualization,
   categoryTaxonomyFromDefinitions,
   deriveMetaFromBatches,
+  isExcludedFromIncomeAnalytics,
+  isExcludedFromSpendAnalytics,
   isInTimeline,
   mergeTransactionsFromBatches,
   monthKey,
@@ -41,8 +43,6 @@ interface DashboardStateInput {
   merchantDetailMode: MerchantDetailMode;
   timelinePeriod: TimelinePeriod;
   rulesFilter: "needs" | "all";
-  forecastStartNetWorth: number | null;
-  forecastMonthlyDelta: number | null;
   fireCurrentAge: number;
   fireAnnualReturn: number;
   fireMultiplier: number;
@@ -63,8 +63,6 @@ export function useDashboardState({
   merchantDetailMode,
   timelinePeriod,
   rulesFilter,
-  forecastStartNetWorth,
-  forecastMonthlyDelta,
   fireCurrentAge,
   fireAnnualReturn,
   fireMultiplier,
@@ -202,12 +200,21 @@ export function useDashboardState({
     return `${transactionBatches.length} CSV file(s) | ${transactions.length} unique transaction(s)`;
   }, [transactionBatches.length, transactions.length]);
 
+  const effectiveAccountEntries = useMemo(() => {
+    if (accountHistory.length === 0) return accountEntries;
+    const latestSnapshot = [...accountHistory].sort((a, b) => b.month.localeCompare(a.month))[0];
+    return accountEntries.map((account) => {
+      const historyValue = latestSnapshot.balances[account.id];
+      return historyValue !== undefined ? { ...account, value: historyValue } : account;
+    });
+  }, [accountEntries, accountHistory]);
+
   const accountSummary = useMemo(() => {
     let assets = 0;
     let liabilities = 0;
     const buckets = new Map<string, number>();
 
-    for (const account of accountEntries) {
+    for (const account of effectiveAccountEntries) {
       const signedValue = account.kind === "asset" ? account.value : -account.value;
       if (account.kind === "asset") {
         assets += account.value;
@@ -223,11 +230,11 @@ export function useDashboardState({
       netWorth: Number((assets - liabilities).toFixed(2)),
       byBucket: [...buckets.entries()].map(([bucket, total]) => ({ bucket, total })).sort((a, b) => b.total - a.total)
     };
-  }, [accountEntries]);
+  }, [effectiveAccountEntries]);
 
   const resolvedGoals: ResolvedGoalEntry[] = useMemo(
-    () => buildResolvedGoals(goals, accountEntries, accountSummary.netWorth),
-    [goals, accountEntries, accountSummary.netWorth]
+    () => buildResolvedGoals(goals, effectiveAccountEntries, accountSummary.netWorth),
+    [goals, effectiveAccountEntries, accountSummary.netWorth]
   );
 
   const accountHistorySorted = useMemo(
@@ -285,10 +292,10 @@ export function useDashboardState({
       }
       const current = byMonth.get(month);
       if (!current) continue;
-      if (transaction.direction === "credit" && transaction.amount < 0) {
+      if (transaction.direction === "credit" && transaction.amount < 0 && !isExcludedFromIncomeAnalytics(transaction)) {
         current.credits += Math.abs(transaction.amount);
       }
-      if (transaction.direction === "debit" && transaction.amount > 0) {
+      if (transaction.direction === "debit" && transaction.amount > 0 && !isExcludedFromSpendAnalytics(transaction)) {
         current.debits += transaction.amount;
       }
     }
@@ -305,8 +312,8 @@ export function useDashboardState({
     };
   }, [effectiveTransactions]);
 
-  const startNetWorth = forecastStartNetWorth ?? accountSummary.netWorth;
-  const monthlyForecastDelta = forecastMonthlyDelta ?? inferredMonthlyNetFlow;
+  const startNetWorth = accountSummary.netWorth;
+  const monthlyForecastDelta = inferredMonthlyNetFlow;
   const maxGoalTarget = resolvedGoals.reduce((max, goal) => Math.max(max, goal.target), 0);
 
   const forecastPoints = useMemo(() => {

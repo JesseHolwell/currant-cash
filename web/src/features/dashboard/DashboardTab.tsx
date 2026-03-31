@@ -1,7 +1,10 @@
+import { useEffect, useMemo, useState } from "react";
 import './DashboardTab.css';
 import {
   Area,
   AreaChart,
+  Bar,
+  BarChart,
   CartesianGrid,
   Cell,
   Legend,
@@ -15,7 +18,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { formatCurrency } from "../../domain";
+import { formatCurrency, formatTimelineLabel } from "../../domain";
 
 function GoalCrossoverBadge({ viewBox, label }: { viewBox?: { x: number; y: number; height: number }; label: string }) {
   if (!viewBox) return null;
@@ -196,6 +199,15 @@ const ALLOCATION_COLORS = [
   "#C4856A", "#7BA3A8", "#8B7BAD", "#A8B87B", "#AD7B8B",
   "#7BA88B", "#B8A87B", "#7B8BAD", "#A87B7B", "#7BADB8",
 ];
+const PIE_SLICE_STROKE = "var(--bg-surface)";
+const EXPENSE_CHART_COLORS = [
+  "var(--chart-1)",
+  "var(--chart-2)",
+  "var(--chart-3)",
+  "var(--chart-4)",
+  "var(--chart-5)",
+];
+const EXPENSE_OVERFLOW_OPACITY = 0.72;
 
 type ExpensePieDatum = {
   name: string;
@@ -236,19 +248,84 @@ type AccountHistoryChartRow = {
   [key: string]: string | number;
 };
 
+type MonthlyCategoryConfig = {
+  category: string;
+  color: string;
+};
+
+type MonthlyExpenseData = {
+  rows: Array<{ month: string; label: string; [key: string]: string | number }>;
+  categories: MonthlyCategoryConfig[];
+};
+
+function currentMonthValue(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function addMonthsToValue(month: string, delta: number): string {
+  const [yearRaw, monthRaw] = month.split("-");
+  const year = Number(yearRaw);
+  const monthIndex = Number(monthRaw) - 1;
+  if (!Number.isFinite(year) || !Number.isFinite(monthIndex)) {
+    return currentMonthValue();
+  }
+  const nextDate = new Date(year, monthIndex + delta, 1);
+  return `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function compareMonthValues(left: string, right: string): number {
+  return left.localeCompare(right);
+}
+
+function diffMonths(startMonth: string, endMonth: string): number {
+  const [startYearRaw, startMonthRaw] = startMonth.split("-");
+  const [endYearRaw, endMonthRaw] = endMonth.split("-");
+  const startYear = Number(startYearRaw);
+  const startMonthNumber = Number(startMonthRaw);
+  const endYear = Number(endYearRaw);
+  const endMonthNumber = Number(endMonthRaw);
+  if (
+    !Number.isFinite(startYear) ||
+    !Number.isFinite(startMonthNumber) ||
+    !Number.isFinite(endYear) ||
+    !Number.isFinite(endMonthNumber)
+  ) {
+    return 0;
+  }
+  return (endYear - startYear) * 12 + (endMonthNumber - startMonthNumber);
+}
+
+function clampMonthValue(value: string, min: string, max: string): string {
+  if (!value) return min;
+  if (compareMonthValues(value, min) < 0) return min;
+  if (compareMonthValues(value, max) > 0) return max;
+  return value;
+}
+
+function buildMonthLabel(month: string): string {
+  const [yearRaw, monthRaw] = month.split("-");
+  const year = Number(yearRaw);
+  const monthIndex = Number(monthRaw) - 1;
+  const date = new Date(year, monthIndex, 1);
+  return Number.isNaN(date.getTime())
+    ? month
+    : date.toLocaleString("en-AU", { month: "short", year: "2-digit" });
+}
+
 export function DashboardTab({
   currency,
   accountSummary,
   startNetWorth,
   monthlyForecastDelta,
-  isMonthlyDeltaOverridden,
-  inferredMonthCount,
   forecastPoints,
   maxGoalTarget,
   accountHistorySeries,
   accountHistoryChartData,
   expensePieData,
+  monthlyExpenseData,
   accountEntries,
+  timelinePeriod,
   savingsRate,
   monthlySavings,
   projectedFireAge,
@@ -260,14 +337,14 @@ export function DashboardTab({
   accountSummary: AccountSummary;
   startNetWorth: number;
   monthlyForecastDelta: number;
-  isMonthlyDeltaOverridden: boolean;
-  inferredMonthCount: number;
   forecastPoints: ForecastPoint[];
   maxGoalTarget: number;
   accountHistorySeries: AccountHistorySeries[];
   accountHistoryChartData: AccountHistoryChartRow[];
   expensePieData: ExpensePieDatum[];
+  monthlyExpenseData: MonthlyExpenseData;
   accountEntries: AccountEntry[];
+  timelinePeriod: "all" | `${number}-${number}`;
   savingsRate: number | null;
   monthlySavings: number;
   projectedFireAge: number | null;
@@ -275,6 +352,133 @@ export function DashboardTab({
   currentAge: number;
   onGoToFire: () => void;
 }) {
+  const accountHistoryBounds = useMemo(() => {
+    const months = accountHistoryChartData.map((row) => row.month).filter(Boolean).sort(compareMonthValues);
+    return {
+      min: months[0] ?? "",
+      max: months[months.length - 1] ?? ""
+    };
+  }, [accountHistoryChartData]);
+
+  const forecastDefaults = useMemo(() => {
+    const baseMonth = forecastPoints[0]?.monthKey ?? currentMonthValue();
+    const defaultEndMonth = forecastPoints[forecastPoints.length - 1]?.monthKey ?? addMonthsToValue(baseMonth, 17);
+    return { baseMonth, defaultEndMonth };
+  }, [forecastPoints]);
+
+  const [accountStartMonth, setAccountStartMonth] = useState(accountHistoryBounds.min);
+  const [accountEndMonth, setAccountEndMonth] = useState(accountHistoryBounds.max);
+  const [forecastStartMonth, setForecastStartMonth] = useState(forecastDefaults.baseMonth);
+  const [forecastEndMonth, setForecastEndMonth] = useState(forecastDefaults.defaultEndMonth);
+  const [forecastCompoundingEnabled, setForecastCompoundingEnabled] = useState(false);
+  const [forecastAnnualGrowthRate, setForecastAnnualGrowthRate] = useState(5);
+
+  useEffect(() => {
+    if (!accountHistoryBounds.min || !accountHistoryBounds.max) {
+      setAccountStartMonth("");
+      setAccountEndMonth("");
+      return;
+    }
+    setAccountStartMonth((previous) => (
+      previous ? clampMonthValue(previous, accountHistoryBounds.min, accountHistoryBounds.max) : accountHistoryBounds.min
+    ));
+    setAccountEndMonth((previous) => (
+      previous ? clampMonthValue(previous, accountHistoryBounds.min, accountHistoryBounds.max) : accountHistoryBounds.max
+    ));
+  }, [accountHistoryBounds.max, accountHistoryBounds.min]);
+
+  useEffect(() => {
+    setForecastStartMonth((previous) => (
+      previous && compareMonthValues(previous, forecastDefaults.baseMonth) >= 0
+        ? previous
+        : forecastDefaults.baseMonth
+    ));
+    setForecastEndMonth((previous) => (
+      previous && compareMonthValues(previous, forecastDefaults.baseMonth) >= 0
+        ? previous
+        : forecastDefaults.defaultEndMonth
+    ));
+  }, [forecastDefaults.baseMonth, forecastDefaults.defaultEndMonth]);
+
+  const accountRange = useMemo(() => {
+    if (!accountHistoryBounds.min || !accountHistoryBounds.max) {
+      return null;
+    }
+    const clampedStart = clampMonthValue(accountStartMonth || accountHistoryBounds.min, accountHistoryBounds.min, accountHistoryBounds.max);
+    const clampedEnd = clampMonthValue(accountEndMonth || accountHistoryBounds.max, accountHistoryBounds.min, accountHistoryBounds.max);
+    return compareMonthValues(clampedStart, clampedEnd) <= 0
+      ? { start: clampedStart, end: clampedEnd }
+      : { start: clampedEnd, end: clampedStart };
+  }, [accountEndMonth, accountHistoryBounds.max, accountHistoryBounds.min, accountStartMonth]);
+
+  const visibleAccountHistoryChartData = useMemo(() => {
+    if (!accountRange) return accountHistoryChartData;
+    return accountHistoryChartData.filter((row) => (
+      compareMonthValues(row.month, accountRange.start) >= 0 &&
+      compareMonthValues(row.month, accountRange.end) <= 0
+    ));
+  }, [accountHistoryChartData, accountRange]);
+
+  const forecastRange = useMemo(() => {
+    const start = compareMonthValues(forecastStartMonth || forecastDefaults.baseMonth, forecastDefaults.baseMonth) < 0
+      ? forecastDefaults.baseMonth
+      : (forecastStartMonth || forecastDefaults.baseMonth);
+    const endCandidate = compareMonthValues(forecastEndMonth || forecastDefaults.defaultEndMonth, forecastDefaults.baseMonth) < 0
+      ? forecastDefaults.baseMonth
+      : (forecastEndMonth || forecastDefaults.defaultEndMonth);
+    return compareMonthValues(start, endCandidate) <= 0
+      ? { start, end: endCandidate }
+      : { start: endCandidate, end: start };
+  }, [
+    forecastDefaults.baseMonth,
+    forecastDefaults.defaultEndMonth,
+    forecastEndMonth,
+    forecastStartMonth
+  ]);
+
+  const forecastMonthlyGrowthRate = forecastCompoundingEnabled
+    ? Math.pow(1 + Math.max(0, forecastAnnualGrowthRate) / 100, 1 / 12) - 1
+    : 0;
+
+  const visibleForecastPoints = useMemo(() => {
+    const finalOffset = Math.max(0, diffMonths(forecastDefaults.baseMonth, forecastRange.end));
+    const points: ForecastPoint[] = [];
+    let running = startNetWorth;
+
+    for (let offset = 0; offset <= finalOffset; offset += 1) {
+      const monthKey = addMonthsToValue(forecastDefaults.baseMonth, offset);
+      if (offset > 0) {
+        running = running * (1 + forecastMonthlyGrowthRate) + monthlyForecastDelta;
+      }
+      if (
+        compareMonthValues(monthKey, forecastRange.start) >= 0 &&
+        compareMonthValues(monthKey, forecastRange.end) <= 0
+      ) {
+        points.push({
+          label: buildMonthLabel(monthKey),
+          monthKey,
+          netWorth: Number(running.toFixed(2)),
+          goal: maxGoalTarget
+        });
+      }
+    }
+
+    return points;
+  }, [
+    forecastDefaults.baseMonth,
+    forecastMonthlyGrowthRate,
+    forecastRange.end,
+    forecastRange.start,
+    maxGoalTarget,
+    monthlyForecastDelta,
+    startNetWorth
+  ]);
+
+  const expensePeriodLabel = formatTimelineLabel(timelinePeriod);
+  const expenseChartTitle = timelinePeriod === "all"
+    ? "Where Your Spending Goes"
+    : `Where Your Spending Went · ${expensePeriodLabel}`;
+
   return (
     <>
       <div className="fire-insight-cards">
@@ -314,12 +518,42 @@ export function DashboardTab({
       </section>
 
       <section className="border border-line rounded-md p-4 bg-surface shadow-soft min-w-0">
-        <h3 className="font-display text-base tracking-[-0.02em] text-ink">Account Trend</h3>
-        <p className="text-muted text-[0.82rem] mt-[0.42rem]">Stacked area view by account over time.</p>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h3 className="font-display text-base tracking-[-0.02em] text-ink">Account Trend</h3>
+            <p className="text-muted text-[0.82rem] mt-[0.42rem]">Stacked area view by account over time.</p>
+          </div>
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="grid gap-1 text-[0.72rem] uppercase tracking-[0.1em] text-muted font-bold">
+              Start
+              <input
+                type="month"
+                value={accountStartMonth}
+                min={accountHistoryBounds.min || undefined}
+                max={accountRange?.end || accountHistoryBounds.max || undefined}
+                disabled={!accountHistoryBounds.min}
+                className="border border-line-strong bg-surface text-ink rounded-sm px-[0.6rem] py-[0.45rem] text-[0.83rem] focus:outline-none focus:border-[var(--accent-border)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
+                onChange={(event) => setAccountStartMonth(event.target.value)}
+              />
+            </label>
+            <label className="grid gap-1 text-[0.72rem] uppercase tracking-[0.1em] text-muted font-bold">
+              End
+              <input
+                type="month"
+                value={accountEndMonth}
+                min={accountRange?.start || accountHistoryBounds.min || undefined}
+                max={accountHistoryBounds.max || undefined}
+                disabled={!accountHistoryBounds.max}
+                className="border border-line-strong bg-surface text-ink rounded-sm px-[0.6rem] py-[0.45rem] text-[0.83rem] focus:outline-none focus:border-[var(--accent-border)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
+                onChange={(event) => setAccountEndMonth(event.target.value)}
+              />
+            </label>
+          </div>
+        </div>
         <div className="mt-[0.68rem] h-[360px]">
           <ResponsiveContainer width="100%" height={360}>
             <AreaChart
-              data={accountHistoryChartData}
+              data={visibleAccountHistoryChartData}
               margin={{ top: 12, right: 24, bottom: 8, left: 4 }}
             >
               <CartesianGrid
@@ -374,11 +608,63 @@ export function DashboardTab({
       </section>
 
       <section className="border border-line rounded-md p-4 bg-surface shadow-soft min-w-0">
-        <h3 className="font-display text-base tracking-[-0.02em] text-ink">Forecast</h3>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="font-display text-base tracking-[-0.02em] text-ink">Forecast</h3>
+            <p className="text-muted text-[0.82rem] mt-[0.42rem]">
+              {forecastCompoundingEnabled
+                ? `Includes ${forecastAnnualGrowthRate}% annual growth, compounded monthly, plus your current monthly savings rate.`
+                : "Projects net worth from your current monthly savings rate."}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="grid gap-1 text-[0.72rem] uppercase tracking-[0.1em] text-muted font-bold">
+              Start
+              <input
+                type="month"
+                value={forecastStartMonth}
+                min={forecastDefaults.baseMonth}
+                max={forecastRange.end}
+                className="border border-line-strong bg-surface text-ink rounded-sm px-[0.6rem] py-[0.45rem] text-[0.83rem] focus:outline-none focus:border-[var(--accent-border)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
+                onChange={(event) => setForecastStartMonth(event.target.value)}
+              />
+            </label>
+            <label className="grid gap-1 text-[0.72rem] uppercase tracking-[0.1em] text-muted font-bold">
+              End
+              <input
+                type="month"
+                value={forecastEndMonth}
+                min={forecastRange.start}
+                className="border border-line-strong bg-surface text-ink rounded-sm px-[0.6rem] py-[0.45rem] text-[0.83rem] focus:outline-none focus:border-[var(--accent-border)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
+                onChange={(event) => setForecastEndMonth(event.target.value)}
+              />
+            </label>
+            <label className="inline-flex items-center gap-2 rounded-sm border border-line bg-[var(--bg)] px-3 py-[0.55rem] text-[0.78rem] text-ink">
+              <input
+                type="checkbox"
+                checked={forecastCompoundingEnabled}
+                onChange={(event) => setForecastCompoundingEnabled(event.target.checked)}
+              />
+              Compound growth
+            </label>
+            <label className="grid gap-1 text-[0.72rem] uppercase tracking-[0.1em] text-muted font-bold">
+              Annual Growth
+              <input
+                type="number"
+                min="0"
+                step="0.1"
+                value={forecastAnnualGrowthRate}
+                disabled={!forecastCompoundingEnabled}
+                className="border border-line-strong bg-surface text-ink rounded-sm px-[0.6rem] py-[0.45rem] text-[0.83rem] focus:outline-none focus:border-[var(--accent-border)] focus:shadow-[0_0_0_3px_var(--accent-ring)] disabled:opacity-50"
+                onChange={(event) => setForecastAnnualGrowthRate(Number(event.target.value) || 0)}
+              />
+            </label>
+          </div>
+        </div>
         <div className="mt-[0.8rem] h-[360px]">
           <ResponsiveContainer width="100%" height={360}>
             <LineChart
-              data={forecastPoints}
+              data={visibleForecastPoints}
               margin={{ top: 44, right: 24, bottom: 8, left: 4 }}
             >
               <CartesianGrid
@@ -429,10 +715,10 @@ export function DashboardTab({
               />
               {(() => {
                 if (maxGoalTarget <= 0) return null;
-                const crossover = forecastPoints.find((p, i) =>
+                const crossover = visibleForecastPoints.find((p, i) =>
                   p.goal > 0 &&
                   p.netWorth >= p.goal &&
-                  (i === 0 || forecastPoints[i - 1].netWorth < forecastPoints[i - 1].goal)
+                  (i === 0 || visibleForecastPoints[i - 1].netWorth < visibleForecastPoints[i - 1].goal)
                 );
                 if (!crossover) return null;
                 return (
@@ -467,6 +753,8 @@ export function DashboardTab({
                       paddingAngle={2}
                       dataKey="value"
                       nameKey="name"
+                      stroke={PIE_SLICE_STROKE}
+                      strokeWidth={2}
                     >
                       {accountEntries.map((account, index) => (
                         <Cell
@@ -493,7 +781,10 @@ export function DashboardTab({
           ) : null}
           {expensePieData.length > 0 ? (
             <div>
-              <h3 className="font-display text-base tracking-[-0.02em] text-ink mb-2">Expense Breakdown</h3>
+              <h3 className="font-display text-base tracking-[-0.02em] text-ink mb-2">{expenseChartTitle}</h3>
+              <p className="text-muted text-[0.78rem] mt-0 mb-3">
+                {timelinePeriod === "all" ? "Share of spend across all imported data." : `Share of spend for ${expensePeriodLabel}.`}
+              </p>
               <div className="h-[320px]">
                 <ResponsiveContainer width="100%" height={320}>
                   <PieChart>
@@ -506,9 +797,15 @@ export function DashboardTab({
                       paddingAngle={2}
                       dataKey="value"
                       nameKey="name"
+                      stroke={PIE_SLICE_STROKE}
+                      strokeWidth={2}
                     >
-                      {expensePieData.map((entry) => (
-                        <Cell key={entry.name} fill={entry.color} />
+                      {expensePieData.map((entry, index) => (
+                        <Cell
+                          key={entry.name}
+                          fill={EXPENSE_CHART_COLORS[index % EXPENSE_CHART_COLORS.length]}
+                          fillOpacity={index < EXPENSE_CHART_COLORS.length ? 1 : EXPENSE_OVERFLOW_OPACITY}
+                        />
                       ))}
                     </Pie>
                     <Tooltip
@@ -526,6 +823,46 @@ export function DashboardTab({
               </div>
             </div>
           ) : null}
+        </section>
+      ) : null}
+
+      {monthlyExpenseData.rows.length > 0 ? (
+        <section className="border border-line rounded-md p-4 bg-surface shadow-soft min-w-0">
+          <h3 className="font-display text-base tracking-[-0.02em] text-ink">Monthly Spending by Category</h3>
+          <p className="text-muted text-[0.82rem] mt-[0.42rem]">Month-by-month expense breakdown across your imported history.</p>
+          <div className="mt-[0.68rem] h-[360px]">
+            <ResponsiveContainer width="100%" height={360}>
+              <BarChart data={monthlyExpenseData.rows} margin={{ top: 12, right: 24, bottom: 8, left: 4 }} barCategoryGap="28%">
+                <CartesianGrid stroke="rgba(61,36,56,0.08)" strokeDasharray="3 3" />
+                <XAxis dataKey="label" stroke="rgba(61,36,56,0.25)" tick={{ fill: "#9E7088" }} />
+                <YAxis
+                  stroke="rgba(61,36,56,0.25)"
+                  tick={{ fill: "#9E7088" }}
+                  width={96}
+                  tickFormatter={(value) => formatCurrency(Number(value), currency)}
+                />
+                <Tooltip
+                  formatter={(value: number) => formatCurrency(Number(value), currency)}
+                  contentStyle={{
+                    background: "#3D2438",
+                    border: "1px solid rgba(61,36,56,0.2)",
+                    borderRadius: "6px",
+                    color: "#F7F3E8",
+                  }}
+                />
+                <Legend />
+                {monthlyExpenseData.categories.map((categoryConfig, index) => (
+                  <Bar
+                    key={categoryConfig.category}
+                    dataKey={categoryConfig.category}
+                    stackId="expenses"
+                    fill={categoryConfig.color}
+                    radius={index === monthlyExpenseData.categories.length - 1 ? [4, 4, 0, 0] : undefined}
+                  />
+                ))}
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </section>
       ) : null}
     </>

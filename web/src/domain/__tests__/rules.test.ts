@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   applyManualRules,
   canonicalizeCategoryGroup,
+  isExcludedFromIncomeAnalytics,
+  isExcludedFromSpendAnalytics,
   normalizeSimilarityKey,
   resolveCategoryGroupBucket,
   sanitizeManualRule,
@@ -78,6 +80,23 @@ describe("resolveCategoryGroupBucket", () => {
   });
 });
 
+describe("analytics exclusion helpers", () => {
+  it("excludes Ignored debits from spend analytics", () => {
+    const tx = makeTransaction({ categoryGroup: "Ignored", category: "Ignored" });
+    expect(isExcludedFromSpendAnalytics(tx)).toBe(true);
+  });
+
+  it("excludes Transfers credits from income analytics", () => {
+    const tx = makeTransaction({
+      direction: "credit",
+      amount: -85.5,
+      categoryGroup: "Transfers",
+      category: "Bank Transfer"
+    });
+    expect(isExcludedFromIncomeAnalytics(tx)).toBe(true);
+  });
+});
+
 describe("similarityKeyForTransaction", () => {
   it("produces a deterministic key from merchant and narrative", () => {
     const tx = makeTransaction();
@@ -142,6 +161,7 @@ describe("applyManualRules", () => {
     expect(result.category).toBe("Streaming");
     expect(result.categoryGroup).toBe("Entertainment");
     expect(result.manualSource).toBe("id");
+    expect(result.classificationSource).toBe("manual-id");
   });
 
   it("applies a similarity rule when no direct rule exists", () => {
@@ -155,6 +175,7 @@ describe("applyManualRules", () => {
     expect(result.categoryGroup).toBe("Entertainment");
     expect(result.manualNickname).toBe("Netflix");
     expect(result.manualSource).toBe("similar");
+    expect(result.classificationSource).toBe("manual-similar");
   });
 
   it("direct rule takes precedence over similarity rule", () => {

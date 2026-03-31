@@ -10,6 +10,7 @@ import { DashboardTab as DashboardOverviewTab } from "../../features/dashboard/D
 import { IncomeTab } from "../../features/income/IncomeTab";
 import { SettingsTab } from "../../features/settings/SettingsTab";
 import { TransactionDataTab } from "../../features/transactions/TransactionDataTab";
+import { TransactionsTab } from "../../features/transactions/TransactionsTab";
 import { AppNav } from "./AppNav";
 import { Sidebar } from "./Sidebar";
 import { WorkspaceHeader } from "./WorkspaceHeader";
@@ -17,7 +18,6 @@ import type {
   AccountEntry,
   AccountHistorySnapshot,
   AiSuggestionsState,
-  BasiqConnectionStatus,
   CategoryDefinition,
   DashboardTab,
   FlowStartMode,
@@ -75,8 +75,6 @@ interface DashboardProps {
   accountHistory: AccountHistorySnapshot[];
   goals: GoalEntry[];
   payrollDraft: PayrollDraft;
-  forecastStartNetWorth: number | null;
-  forecastMonthlyDelta: number | null;
   fireCurrentAge: number;
   fireAnnualReturn: number;
   fireMultiplier: number;
@@ -112,11 +110,14 @@ interface DashboardProps {
   onDeleteAllBatches: () => void;
   onAddCategoryDefinition: () => void;
   onResetCategoryDefinitions: () => void;
+  onReapplyCategoryDefinitions: () => void;
   onUpdateCategoryDefinition: (id: string, patch: Partial<Pick<CategoryDefinition, "category">>) => void;
   onRemoveCategoryDefinition: (id: string) => void;
   onAddCategorySubcategory: (categoryId: string) => void;
   onUpdateCategorySubcategory: (categoryId: string, subcategoryId: string, patch: Partial<{ name: string; keywords: string[] }>) => void;
   onRemoveCategorySubcategory: (categoryId: string, subcategoryId: string) => void;
+  hasPendingCategoryReapply: boolean;
+  pendingCategoryReapplyCount: number;
   onAddAccount: () => void;
   onUpdateAccount: (id: string, patch: Partial<Omit<AccountEntry, "id">>) => void;
   onRemoveAccount: (id: string) => void;
@@ -127,10 +128,6 @@ interface DashboardProps {
   onUpdateAccountHistoryMonth: (snapshotId: string, month: string) => void;
   onUpdateAccountHistoryBalance: (snapshotId: string, accountId: string, value: number) => void;
   onRemoveAccountHistorySnapshot: (snapshotId: string) => void;
-  onForecastStartNetWorthChange: (value: number | null) => void;
-  onForecastMonthlyDeltaChange: (value: number | null) => void;
-  onResetStartNetWorth: () => void;
-  onResetMonthlyDelta: () => void;
   onPayrollDraftChange: (patch: Partial<PayrollDraft>) => void;
   onFireCurrentAgeChange: (age: number) => void;
   onFireAnnualReturnChange: (rate: number) => void;
@@ -182,8 +179,13 @@ const TAB_META: Record<DashboardTab, { label: string; title: string; subtitle: s
   },
   categories: {
     label: "Categories",
-    title: "Categories & Rules",
-    subtitle: "Define taxonomy and classify transactions quickly."
+    title: "Categories",
+    subtitle: "Define the taxonomy and keyword structure for spend classification."
+  },
+  transactions: {
+    label: "Transactions",
+    title: "Transactions",
+    subtitle: "Review imported transactions, apply rules, and clear uncategorized items."
   },
   settings: {
     label: "Settings",
@@ -237,8 +239,6 @@ export function Dashboard({
   accountHistory,
   goals,
   payrollDraft,
-  forecastStartNetWorth,
-  forecastMonthlyDelta,
   fireCurrentAge,
   fireAnnualReturn,
   fireMultiplier,
@@ -266,11 +266,14 @@ export function Dashboard({
   onDeleteAllBatches,
   onAddCategoryDefinition,
   onResetCategoryDefinitions,
+  onReapplyCategoryDefinitions,
   onUpdateCategoryDefinition,
   onRemoveCategoryDefinition,
   onAddCategorySubcategory,
   onUpdateCategorySubcategory,
   onRemoveCategorySubcategory,
+  hasPendingCategoryReapply,
+  pendingCategoryReapplyCount,
   onAddAccount,
   onUpdateAccount,
   onRemoveAccount,
@@ -281,10 +284,6 @@ export function Dashboard({
   onUpdateAccountHistoryMonth,
   onUpdateAccountHistoryBalance,
   onRemoveAccountHistorySnapshot,
-  onForecastStartNetWorthChange,
-  onForecastMonthlyDeltaChange,
-  onResetStartNetWorth,
-  onResetMonthlyDelta,
   onPayrollDraftChange,
   onFireCurrentAgeChange,
   onFireAnnualReturnChange,
@@ -307,11 +306,6 @@ export function Dashboard({
   onSaveApiKey,
   onSignInWithGoogle,
   onMigrateLocalDataToCloud,
-  basiqStatus,
-  basiqLastSyncAt,
-  basiqErrorMessage,
-  onConnectBasiq,
-  onSyncBasiq,
   checkInDue,
   onStartCheckIn,
 }: DashboardProps) {
@@ -365,12 +359,6 @@ export function Dashboard({
               totalTransactionCount={derived.transactions.length}
               statusMessage={transactionDataStatus}
               errorMessage={error}
-              basiqStatus={basiqStatus}
-              basiqLastSyncAt={basiqLastSyncAt}
-              basiqErrorMessage={basiqErrorMessage}
-              isSignedIn={!!user}
-              onConnectBasiq={onConnectBasiq}
-              onSyncBasiq={onSyncBasiq}
               onUpload={onCsvUpload}
               onUpdateBatchCoverage={onUpdateBatchCoverage}
               onDeleteBatch={onDeleteBatch}
@@ -384,14 +372,14 @@ export function Dashboard({
               accountSummary={derived.accountSummary}
               startNetWorth={derived.startNetWorth}
               monthlyForecastDelta={derived.monthlyForecastDelta}
-              isMonthlyDeltaOverridden={forecastMonthlyDelta !== null}
-              inferredMonthCount={derived.inferredMonthCount}
               forecastPoints={derived.forecastPoints}
               maxGoalTarget={derived.maxGoalTarget}
               accountHistorySeries={derived.accountHistorySeries}
               accountHistoryChartData={derived.accountHistoryChartData}
               expensePieData={derived.expensePieData}
+              monthlyExpenseData={derived.monthlyExpenseData}
               accountEntries={accountEntries}
+              timelinePeriod={timelinePeriod}
               savingsRate={derived.fireInsightsData.savingsRate}
               monthlySavings={derived.fireInsightsData.monthlySavings}
               projectedFireAge={derived.fireInsightsData.projectedFireAge}
@@ -407,9 +395,6 @@ export function Dashboard({
               accountSummary={derived.accountSummary}
               accountEntries={accountEntries}
               accountHistorySnapshots={derived.accountHistorySorted}
-              inferredMonthlyNetFlow={derived.inferredMonthlyNetFlow}
-              forecastStartNetWorth={forecastStartNetWorth}
-              forecastMonthlyDelta={forecastMonthlyDelta}
               onAddAccount={onAddAccount}
               onUpdateAccount={onUpdateAccount}
               onRemoveAccount={onRemoveAccount}
@@ -417,10 +402,6 @@ export function Dashboard({
               onUpdateAccountHistoryMonth={onUpdateAccountHistoryMonth}
               onUpdateAccountHistoryBalance={onUpdateAccountHistoryBalance}
               onRemoveAccountHistorySnapshot={onRemoveAccountHistorySnapshot}
-              onForecastStartNetWorthChange={onForecastStartNetWorthChange}
-              onForecastMonthlyDeltaChange={onForecastMonthlyDeltaChange}
-              onResetStartNetWorth={onResetStartNetWorth}
-              onResetMonthlyDelta={onResetMonthlyDelta}
             />
           ) : null}
 
@@ -491,19 +472,27 @@ export function Dashboard({
 
           {activeTab === "categories" ? (
             <CategoriesTab
-              currency={derived.meta.currency}
-              timelinePeriod={timelinePeriod}
-              onTimelinePeriodChange={onTimelinePeriodChange}
-              timelineOptions={derived.timelineOptions}
-              uncategorizedCount={derived.uncategorizedInPeriod.length}
               categoryDefinitions={categoryDefinitions}
               onAddCategoryDefinition={onAddCategoryDefinition}
               onResetCategoryDefinitions={onResetCategoryDefinitions}
+              onReapplyCategoryDefinitions={onReapplyCategoryDefinitions}
               onUpdateCategoryDefinition={onUpdateCategoryDefinition}
               onRemoveCategoryDefinition={onRemoveCategoryDefinition}
               onAddCategorySubcategory={onAddCategorySubcategory}
               onUpdateCategorySubcategory={onUpdateCategorySubcategory}
               onRemoveCategorySubcategory={onRemoveCategorySubcategory}
+              hasPendingCategoryReapply={hasPendingCategoryReapply}
+              pendingCategoryReapplyCount={pendingCategoryReapplyCount}
+            />
+          ) : null}
+
+          {activeTab === "transactions" ? (
+            <TransactionsTab
+              currency={derived.meta.currency}
+              timelinePeriod={timelinePeriod}
+              onTimelinePeriodChange={onTimelinePeriodChange}
+              timelineOptions={derived.timelineOptions}
+              uncategorizedCount={derived.uncategorizedInPeriod.length}
               rulesFilter={rulesFilter}
               onRulesFilterChange={onRulesFilterChange}
               onClearAllRules={onClearAllRules}

@@ -22,11 +22,11 @@ import {
   buildTransactionBatch,
   createLocalId,
   normalizeCoverageRange,
-  parseForecastSettings,
   parseBankCsvToTransactions,
   parseStoredAccountEntries,
   parseStoredAccountHistory,
   parseStoredCategoryDefinitions,
+  reapplyCategoryDefinitionsToBatches,
   parseStoredDrafts,
   parseStoredGoals,
   parseStoredManualRules,
@@ -126,6 +126,7 @@ export default function App() {
   const [merchantDetailMode, setMerchantDetailMode] = useState<MerchantDetailMode>("summary");
   const [timelinePeriod, setTimelinePeriod] = useState<TimelinePeriod>("all");
   const [rulesFilter, setRulesFilter] = useState<"needs" | "all">("needs");
+  const [hasPendingCategoryReapply, setHasPendingCategoryReapply] = useState(false);
   const [settingsStatus, setSettingsStatus] = useState<string | null>(null);
   const [settingsError, setSettingsError] = useState<string | null>(null);
 
@@ -153,9 +154,7 @@ export default function App() {
   } = useAccountsGoals();
 
   const {
-    payrollDraft, setPayrollDraft,
-    forecastStartNetWorth, setForecastStartNetWorth,
-    forecastMonthlyDelta, setForecastMonthlyDelta
+    payrollDraft, setPayrollDraft
   } = usePayrollForecast();
 
   const { downloadSnapshot, scheduleSyncUpload, deleteSnapshot } = useCloudSync(user, applySnapshot);
@@ -214,12 +213,11 @@ export default function App() {
       accountEntries,
       accountHistory,
       goals,
-      payrollDraft,
-      forecastSettings: { startNetWorth: forecastStartNetWorth, monthlyDelta: forecastMonthlyDelta }
+      payrollDraft
     });
   // scheduleSyncUpload is intentionally omitted — it is stable within a session.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, transactionBatches, manualRules, drafts, categoryDefinitions, accountEntries, accountHistory, goals, payrollDraft, forecastStartNetWorth, forecastMonthlyDelta]);
+  }, [user, transactionBatches, manualRules, drafts, categoryDefinitions, accountEntries, accountHistory, goals, payrollDraft]);
 
   const sd = SAMPLE_DATASET;
   const derived = useDashboardState({
@@ -235,8 +233,6 @@ export default function App() {
     merchantDetailMode,
     timelinePeriod,
     rulesFilter,
-    forecastStartNetWorth: isSampleMode ? sd.forecastStartNetWorth : forecastStartNetWorth,
-    forecastMonthlyDelta: isSampleMode ? sd.forecastMonthlyDelta : forecastMonthlyDelta,
     fireCurrentAge: isSampleMode ? sd.fireCurrentAge : (birthYear > 0 ? new Date().getFullYear() - birthYear : fireCurrentAge),
     fireAnnualReturn: isSampleMode ? sd.fireAnnualReturn : fireAnnualReturn,
     fireMultiplier: isSampleMode ? sd.fireMultiplier : fireMultiplier,
@@ -277,10 +273,10 @@ export default function App() {
     setShowCheckIn(false);
   }
 
-  function handleGoToCategoriesFromCheckIn(): void {
+  function handleGoToTransactionsFromCheckIn(): void {
     localStorage.setItem(MONTHLY_CHECKIN_DISMISSED_KEY, new Date().toISOString());
     setShowCheckIn(false);
-    setActiveTab("categories");
+    setActiveTab("transactions");
   }
 
   // ---------- Draft / rule helpers ----------
@@ -305,13 +301,20 @@ export default function App() {
     });
   }
 
+  function markCategoryDefinitionsDirty(): void {
+    setHasPendingCategoryReapply(true);
+    resetSuggestions();
+  }
+
   // ---------- Category definition handlers ----------
 
   function updateCategoryDefinition(id: string, patch: Partial<Pick<CategoryDefinition, "category">>): void {
+    markCategoryDefinitionsDirty();
     setCategoryDefinitions((prev) => prev.map((d) => d.id === id ? { ...d, ...patch } : d));
   }
 
   function addCategoryDefinition(): void {
+    markCategoryDefinitionsDirty();
     setCategoryDefinitions((prev) => [
       ...prev,
       { id: createLocalId("cat"), category: "", subcategories: [{ id: createLocalId("subcat"), name: "", keywords: [] }] }
@@ -319,10 +322,12 @@ export default function App() {
   }
 
   function removeCategoryDefinition(id: string): void {
+    markCategoryDefinitionsDirty();
     setCategoryDefinitions((prev) => prev.filter((d) => d.id !== id));
   }
 
   function addCategorySubcategory(categoryId: string): void {
+    markCategoryDefinitionsDirty();
     setCategoryDefinitions((prev) => prev.map((d) => {
       if (d.id !== categoryId) return d;
       return { ...d, subcategories: [...d.subcategories, { id: createLocalId("subcat"), name: "", keywords: [] }] };
@@ -334,6 +339,7 @@ export default function App() {
     subcategoryId: string,
     patch: Partial<Omit<CategorySubcategoryDefinition, "id">>
   ): void {
+    markCategoryDefinitionsDirty();
     setCategoryDefinitions((prev) => prev.map((d) => {
       if (d.id !== categoryId) return d;
       return { ...d, subcategories: d.subcategories.map((s) => s.id === subcategoryId ? { ...s, ...patch } : s) };
@@ -341,6 +347,7 @@ export default function App() {
   }
 
   function removeCategorySubcategory(categoryId: string, subcategoryId: string): void {
+    markCategoryDefinitionsDirty();
     setCategoryDefinitions((prev) => prev.map((d) => {
       if (d.id !== categoryId) return d;
       return { ...d, subcategories: d.subcategories.filter((s) => s.id !== subcategoryId) };
@@ -348,7 +355,23 @@ export default function App() {
   }
 
   function resetCategoryDefinitions(): void {
+    markCategoryDefinitionsDirty();
     setCategoryDefinitions(buildDefaultCategoryDefinitions());
+  }
+
+  function reapplyCategoryDefinitions(): void {
+    if (transactionBatches.length === 0) {
+      return;
+    }
+    const confirmed = window.confirm(
+      "Reapply the current category setup to all stored transactions? Manual rules will still override these results."
+    );
+    if (!confirmed) return;
+
+    setTransactionBatches((prev) => reapplyCategoryDefinitionsToBatches(prev, categoryDefinitions));
+    setHasPendingCategoryReapply(false);
+    resetSuggestions();
+    setTransactionDataStatus(`Reapplied category setup to ${derived.transactions.length} stored transaction(s).`);
   }
 
   // ---------- Rule handlers ----------
@@ -476,11 +499,23 @@ export default function App() {
     setAccountHistory((prev) => {
       const sorted = [...prev].sort((a, b) => a.month.localeCompare(b.month));
       const seedMonth = sorted.length === 0 ? currentMonthValue() : nextMonthValue(sorted[sorted.length - 1].month);
+      const latestSnapshot = sorted[sorted.length - 1];
+      const balances: Record<string, number> = {};
+      for (const account of accountEntries) {
+        balances[account.id] = latestSnapshot?.balances[account.id] ?? Number(account.value.toFixed(2));
+      }
+      return [...prev, { id: createLocalId("acct_hist"), month: seedMonth, balances }];
+    });
+  }
+
+  function commitOnboardingAccountSnapshot(): void {
+    setAccountHistory((prev) => {
+      if (prev.length > 0) return prev; // already have history, don't overwrite
       const balances: Record<string, number> = {};
       for (const account of accountEntries) {
         balances[account.id] = Number(account.value.toFixed(2));
       }
-      return [...prev, { id: createLocalId("acct_hist"), month: seedMonth, balances }];
+      return [{ id: createLocalId("acct_hist"), month: currentMonthValue(), balances }];
     });
   }
 
@@ -518,6 +553,9 @@ export default function App() {
       const duplicateCount = nextBatch.transactions.filter((t) => mergedBefore.has(t.id)).length;
 
       setTransactionBatches((prev) => [nextBatch, ...prev]);
+      if (derived.transactions.length === 0) {
+        setHasPendingCategoryReapply(false);
+      }
       resetSuggestions();
       setError(null);
       setTimelinePeriod("all");
@@ -557,6 +595,9 @@ export default function App() {
   function deleteBatch(batchId: string): void {
     setTransactionBatches((prev) => {
       const next = prev.filter((b) => b.id !== batchId);
+      if (next.length === 0) {
+        setHasPendingCategoryReapply(false);
+      }
       if (next.length === 0) setActiveTab("imports");
       return next;
     });
@@ -568,6 +609,7 @@ export default function App() {
 
   function clearUploadedData(): void {
     setTransactionBatches([]);
+    setHasPendingCategoryReapply(false);
     setError(null);
     setTimelinePeriod("all");
     setActiveTab("imports");
@@ -586,25 +628,22 @@ export default function App() {
     const nextAccountHistory = parseStoredAccountHistory(candidate.accountHistory);
     const nextGoals = parseStoredGoals(candidate.goals);
     const nextPayrollDraft = sanitizePayrollDraft(candidate.payrollDraft);
-    const nextForecast = parseForecastSettings(candidate.forecastSettings);
 
     setTransactionBatches(nextTransactionBatches);
     setManualRules(nextManualRules);
     setDrafts(nextDrafts);
     setCategoryDefinitions(nextCategoryDefinitions.length > 0 ? nextCategoryDefinitions : buildDefaultCategoryDefinitions());
+    setHasPendingCategoryReapply(false);
     setAccountEntries(nextAccountEntries.length > 0 ? nextAccountEntries : DEFAULT_ACCOUNT_ENTRIES);
     setAccountHistory(nextAccountHistory);
     setGoals(nextGoals.length > 0 ? nextGoals : DEFAULT_GOALS);
     setPayrollDraft(nextPayrollDraft);
-    setForecastStartNetWorth(nextForecast.startNetWorth);
-    setForecastMonthlyDelta(nextForecast.monthlyDelta);
   }
 
   function migrateLocalDataToCloud(): void {
     scheduleSyncUpload({
       transactionBatches, manualRules, drafts, categoryDefinitions,
-      accountEntries, accountHistory, goals, payrollDraft,
-      forecastSettings: { startNetWorth: forecastStartNetWorth, monthlyDelta: forecastMonthlyDelta }
+      accountEntries, accountHistory, goals, payrollDraft
     }, 0);
     setShowMigration(false);
   }
@@ -622,12 +661,11 @@ export default function App() {
     setManualRules(EMPTY_MANUAL_RULES);
     setDrafts({});
     setCategoryDefinitions(buildDefaultCategoryDefinitions());
+    setHasPendingCategoryReapply(false);
     setAccountEntries(DEFAULT_ACCOUNT_ENTRIES);
     setAccountHistory([]);
     setGoals(DEFAULT_GOALS);
     setPayrollDraft(EMPTY_PAYROLL_DRAFT);
-    setForecastStartNetWorth(null);
-    setForecastMonthlyDelta(null);
     setFlowStartMode("income");
     setIncomeBasisMode("raw");
     setMerchantDetailMode("summary");
@@ -656,12 +694,11 @@ export default function App() {
     setManualRules(EMPTY_MANUAL_RULES);
     setDrafts({});
     setCategoryDefinitions(buildDefaultCategoryDefinitions());
+    setHasPendingCategoryReapply(false);
     setAccountEntries([]);
     setAccountHistory([]);
     setGoals([]);
     setPayrollDraft(EMPTY_PAYROLL_DRAFT);
-    setForecastStartNetWorth(null);
-    setForecastMonthlyDelta(null);
     setFlowStartMode("income");
     setIncomeBasisMode("raw");
     setMerchantDetailMode("summary");
@@ -694,8 +731,7 @@ export default function App() {
         exportedAt: new Date().toISOString(),
         data: {
           transactionBatches, manualRules, drafts, categoryDefinitions,
-          accountEntries, accountHistory, goals, payrollDraft,
-          forecastSettings: { startNetWorth: forecastStartNetWorth, monthlyDelta: forecastMonthlyDelta }
+          accountEntries, accountHistory, goals, payrollDraft
         }
       };
 
@@ -739,7 +775,6 @@ export default function App() {
       const nextAccountHistory = parseStoredAccountHistory(candidate.accountHistory);
       const nextGoals = parseStoredGoals(candidate.goals);
       const nextPayrollDraft = sanitizePayrollDraft(candidate.payrollDraft);
-      const nextForecast = parseForecastSettings(candidate.forecastSettings);
 
       for (const key of APP_STORAGE_KEYS) {
         localStorage.removeItem(key);
@@ -749,12 +784,11 @@ export default function App() {
       setManualRules(nextManualRules);
       setDrafts(nextDrafts);
       setCategoryDefinitions(nextCategoryDefinitions.length > 0 ? nextCategoryDefinitions : buildDefaultCategoryDefinitions());
+      setHasPendingCategoryReapply(false);
       setAccountEntries(nextAccountEntries.length > 0 ? nextAccountEntries : DEFAULT_ACCOUNT_ENTRIES);
       setAccountHistory(nextAccountHistory);
       setGoals(nextGoals.length > 0 ? nextGoals : DEFAULT_GOALS);
       setPayrollDraft(nextPayrollDraft);
-      setForecastStartNetWorth(nextForecast.startNetWorth);
-      setForecastMonthlyDelta(nextForecast.monthlyDelta);
       setFlowStartMode("income");
       setIncomeBasisMode("raw");
       setMerchantDetailMode("summary");
@@ -818,12 +852,11 @@ export default function App() {
     setManualRules(EMPTY_MANUAL_RULES);
     setDrafts({});
     setCategoryDefinitions(buildDefaultCategoryDefinitions());
+    setHasPendingCategoryReapply(false);
     setAccountEntries(DEFAULT_ACCOUNT_ENTRIES);
     setAccountHistory([]);
     setGoals(DEFAULT_GOALS);
     setPayrollDraft(EMPTY_PAYROLL_DRAFT);
-    setForecastStartNetWorth(null);
-    setForecastMonthlyDelta(null);
     setActiveTab("imports");
     localStorage.setItem(FREE_TIER_KEY, "1");
     setBypassAuth(true);
@@ -878,7 +911,7 @@ export default function App() {
     return (
       <MonthlyCheckInWizard
         onExit={handleExitCheckIn}
-        onGoToCategories={handleGoToCategoriesFromCheckIn}
+        onGoToTransactions={handleGoToTransactionsFromCheckIn}
         user={user}
         isDark={isDark}
         onToggleTheme={toggleTheme}
@@ -902,12 +935,11 @@ export default function App() {
         step={onboardingStep}
         onStepChange={setOnboardingStep}
         onComplete={handleCompleteOnboarding}
-        onExitToDashboard={() => setShowOnboarding(false)}
         user={user}
         isDark={isDark}
         onToggleTheme={toggleTheme}
         onSignIn={() => setShowAuthModal(true)}
-        onGoHome={() => { setShowLanding(true); setShowOnboarding(false); }}
+        onGoHome={() => setShowOnboarding(false)}
         displayName={user?.user_metadata?.["full_name"] as string ?? displayName}
         onDisplayNameChange={setDisplayName}
         birthYear={birthYear}
@@ -920,6 +952,7 @@ export default function App() {
         onAddAccount={addAccount}
         onUpdateAccount={updateAccount}
         onRemoveAccount={removeAccount}
+        onAccountsStepComplete={commitOnboardingAccountSnapshot}
         goals={derived.resolvedGoals}
         onAddGoal={addGoal}
         onUpdateGoal={updateGoal}
@@ -966,8 +999,6 @@ export default function App() {
       accountHistory={isSampleMode ? sd.accountHistory : accountHistory}
       goals={isSampleMode ? sd.goals : goals}
       payrollDraft={isSampleMode ? sd.payrollDraft : payrollDraft}
-      forecastStartNetWorth={isSampleMode ? sd.forecastStartNetWorth : forecastStartNetWorth}
-      forecastMonthlyDelta={isSampleMode ? sd.forecastMonthlyDelta : forecastMonthlyDelta}
       fireCurrentAge={isSampleMode ? sd.fireCurrentAge : fireCurrentAge}
       fireAnnualReturn={isSampleMode ? sd.fireAnnualReturn : fireAnnualReturn}
       fireMultiplier={isSampleMode ? sd.fireMultiplier : fireMultiplier}
@@ -995,11 +1026,14 @@ export default function App() {
       onDeleteAllBatches={clearUploadedData}
       onAddCategoryDefinition={addCategoryDefinition}
       onResetCategoryDefinitions={resetCategoryDefinitions}
+      onReapplyCategoryDefinitions={reapplyCategoryDefinitions}
       onUpdateCategoryDefinition={updateCategoryDefinition}
       onRemoveCategoryDefinition={removeCategoryDefinition}
       onAddCategorySubcategory={addCategorySubcategory}
       onUpdateCategorySubcategory={updateCategorySubcategory}
       onRemoveCategorySubcategory={removeCategorySubcategory}
+      hasPendingCategoryReapply={!isSampleMode && hasPendingCategoryReapply && derived.transactions.length > 0}
+      pendingCategoryReapplyCount={isSampleMode ? 0 : derived.transactions.length}
       onAddAccount={addAccount}
       onUpdateAccount={updateAccount}
       onRemoveAccount={removeAccount}
@@ -1010,10 +1044,6 @@ export default function App() {
       onUpdateAccountHistoryMonth={updateAccountHistoryMonth}
       onUpdateAccountHistoryBalance={updateAccountHistoryBalance}
       onRemoveAccountHistorySnapshot={removeAccountHistorySnapshot}
-      onForecastStartNetWorthChange={setForecastStartNetWorth}
-      onForecastMonthlyDeltaChange={setForecastMonthlyDelta}
-      onResetStartNetWorth={() => setForecastStartNetWorth(null)}
-      onResetMonthlyDelta={() => setForecastMonthlyDelta(null)}
       onPayrollDraftChange={(patch) => setPayrollDraft((prev) => ({ ...prev, ...patch }))}
       onFireCurrentAgeChange={setFireCurrentAge}
       onFireAnnualReturnChange={setFireAnnualReturn}

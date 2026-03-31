@@ -1,0 +1,162 @@
+{
+  "supportUrl": "",
+  "incomeSourceAliases": [
+    {
+      "label": "Primary Salary",
+      "needles": ["acme corp", "acme payroll"]
+    },
+    {
+      "label": "Reimbursements",
+      "needles": ["expense reimbursement", "staff reimbursement"]
+    }
+  ],
+  "merchantAliases": [
+    {
+      "label": "Uber Eats",
+      "needles": ["uber eats", "uber *eats"]
+    },
+    {
+      "label": "Spotify",
+      "needles": ["spotify"]
+    },
+    {
+      "label": "Supermarket",
+      "needles": ["supermarket", "grocery"]
+    },
+    {
+      "label": "Coffee Shop",
+      "needles": ["coffee", "cafe"]
+    }
+  ],
+  "defaultCategorySetup": [
+    {
+      "category": "Food & Drink",
+      "subcategories": [
+        { "name": "Groceries", "keywords": ["supermarket", "grocery"] },
+        { "name": "Coffee", "keywords": ["coffee", "cafe"] },
+        { "name": "Delivery", "keywords": ["uber eats", "doordash", "menulog"] },
+        { "name": "Dining", "keywords": ["restaurant", "takeaway"] }
+      ]
+    },
+    {
+      "category": "Transport",
+      "subcategories": [
+        { "name": "Fuel", "keywords": ["fuel", "petrol", "service station"] },
+        { "name": "Rideshare", "keywords": ["uber trip", "rideshare"] },
+        { "name": "Public Transport", "keywords": ["metro", "train", "bus"] }
+      ]
+    },
+    {
+      "category": "Home & Bills",
+      "subcategories": [
+        { "name": "Phone", "keywords": ["mobile", "phone bill"] },
+        { "name": "Internet", "keywords": ["internet", "broadband"] },
+        { "name": "Utilities", "keywords": ["electricity", "gas", "water"] }
+      ]
+    },
+    {
+      "category": "Health",
+      "subcategories": [
+        { "name": "Insurance", "keywords": ["health insurance"] },
+        { "name": "Pharmacy", "keywords": ["chemist", "pharmacy"] }
+      ]
+    },
+    {
+      "category": "Subscriptions & Tech",
+      "subcategories": [
+        { "name": "Entertainment", "keywords": ["spotify", "netflix", "youtube"] },
+        { "name": "Software", "keywords": ["software", "app store", "license"] },
+        { "name": "Hosting & Domains", "keywords": ["hosting", "domain", "cloud"] }
+      ]
+    },
+    {
+      "category": "Shopping",
+      "subcategories": [
+        { "name": "Online Shopping", "keywords": ["marketplace", "online order"] },
+        { "name": "Home", "keywords": ["hardware", "furniture"] },
+        { "name": "Gifts", "keywords": ["gift", "florist"] }
+      ]
+    },
+    {
+      "category": "Travel & Experiences",
+      "subcategories": [
+        { "name": "Accommodation", "keywords": ["hotel", "airbnb"] },
+        { "name": "Experiences", "keywords": ["tickets", "tour"] }
+      ]
+    },
+    {
+      "category": "Transfers",
+      "subcategories": [
+        { "name": "Credit Card Payment", "keywords": ["card payment", "credit payment"] },
+        { "name": "Bank Transfer", "keywords": ["bank transfer", "osko payment"] },
+        { "name": "Investments", "keywords": ["broker", "investment"] },
+        { "name": "Cash Withdrawal", "keywords": ["atm", "cash withdrawal"] },
+        { "name": "Fees & Interest", "keywords": ["fee", "interest charge"] }
+      ]
+    },
+    {
+      "category": "Income",
+      "subcategories": [
+        { "name": "Salary", "keywords": ["salary", "payroll"] },
+        { "name": "Reimbursements", "keywords": ["reimbursement", "refund"] },
+        { "name": "Transfers In", "keywords": ["bank transfer", "osko payment"] }
+      ]
+    },
+    {
+      "category": "Ignored",
+      "subcategories": [{ "name": "Ignored", "keywords": [] }]
+    },
+    {
+      "category": "Uncategorized",
+      "subcategories": [{ "name": "Uncategorized", "keywords": [] }]
+    }
+  ],
+  "defaultAccountEntries": [
+    {
+      "id": "acct_everyday",
+      "name": "Everyday Account",
+      "bucket": "Bank",
+      "kind": "asset",
+      "value": 5000
+    },
+    {
+      "id": "acct_savings",
+      "name": "Savings Account",
+      "bucket": "Bank",
+      "kind": "asset",
+      "value": 20000
+    },
+    {
+      "id": "acct_investing",
+      "name": "Investment Account",
+      "bucket": "Stocks",
+      "kind": "asset",
+      "value": 12000
+    },
+    {
+      "id": "acct_card",
+      "name": "Credit Card",
+      "bucket": "Debt",
+      "kind": "liability",
+      "value": 2500
+    }
+  ],
+  "defaultGoals": [
+    {
+      "id": "goal_emergency",
+      "name": "Emergency Fund",
+      "target": 15000,
+      "current": 0,
+      "trackingMode": "accounts",
+      "accountIds": ["acct_savings"]
+    },
+    {
+      "id": "goal_deposit",
+      "name": "Deposit",
+      "target": 80000,
+      "current": 0,
+      "trackingMode": "netWorth",
+      "accountIds": []
+    }
+  ]
+}

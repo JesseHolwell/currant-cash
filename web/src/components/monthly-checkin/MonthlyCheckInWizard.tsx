@@ -269,10 +269,10 @@ function ImportStep({
 
 function CategorizeStep({
   uncategorizedCount,
-  onGoToCategories,
+  onGoToTransactions,
 }: {
   uncategorizedCount: number;
-  onGoToCategories: () => void;
+  onGoToTransactions: () => void;
 }) {
   if (uncategorizedCount === 0) {
     return (
@@ -302,13 +302,13 @@ function CategorizeStep({
       <button
         type="button"
         className="flex items-start gap-4 p-5 border-[1.5px] border-accent rounded-lg bg-accent-soft text-left cursor-pointer transition-colors duration-150 hover:bg-[rgba(139,41,66,0.15)] w-full"
-        onClick={onGoToCategories}
+        onClick={onGoToTransactions}
       >
         <span className="text-[1.25rem] shrink-0 text-accent mt-[2px]" aria-hidden="true">✦</span>
         <div>
-          <strong className="block text-[0.95rem] text-ink mb-[0.3rem]">Review in Categories</strong>
+          <strong className="block text-[0.95rem] text-ink mb-[0.3rem]">Review in Transactions</strong>
           <p className="m-0 text-[0.82rem] text-ink-soft leading-[1.4]">
-            Head to the Categories tab to assign rules and categorize your spending.
+            Head to the Transactions tab to assign rules and categorize your spending.
           </p>
         </div>
       </button>
@@ -325,7 +325,7 @@ function CategorizeStep({
 
 export interface MonthlyCheckInWizardProps {
   onExit: () => void;
-  onGoToCategories: () => void;
+  onGoToTransactions: () => void;
   // Nav
   user: User | null;
   isDark: boolean;
@@ -347,7 +347,7 @@ export interface MonthlyCheckInWizardProps {
 
 export function MonthlyCheckInWizard({
   onExit,
-  onGoToCategories,
+  onGoToTransactions,
   user,
   isDark,
   onToggleTheme,
@@ -421,11 +421,10 @@ export function MonthlyCheckInWizard({
         {step === 2 && (
           <CategorizeStep
             uncategorizedCount={uncategorizedCount}
-            onGoToCategories={onGoToCategories}
+            onGoToTransactions={onGoToTransactions}
           />
         )}
       </CheckInShell>
     </div>
   );
 }
-

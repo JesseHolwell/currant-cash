@@ -122,19 +122,6 @@ export function parseStoredAccountHistory(raw: unknown): AccountHistorySnapshot[
   return next.sort((a, b) => a.month.localeCompare(b.month));
 }
 
-export function parseForecastSettings(raw: unknown): { startNetWorth: number | null; monthlyDelta: number | null } {
-  if (!raw || typeof raw !== "object") {
-    return { startNetWorth: null, monthlyDelta: null };
-  }
-  const candidate = raw as { startNetWorth?: unknown; monthlyDelta?: unknown };
-  const start = Number(candidate.startNetWorth);
-  const delta = Number(candidate.monthlyDelta);
-  return {
-    startNetWorth: Number.isFinite(start) ? Number(start.toFixed(2)) : null,
-    monthlyDelta: Number.isFinite(delta) ? Number(delta.toFixed(2)) : null
-  };
-}
-
 export function parseStoredRawTransactions(raw: unknown): RawTransaction[] {
   if (!Array.isArray(raw)) {
     return [];
@@ -164,11 +151,19 @@ export function parseStoredRawTransactions(raw: unknown): RawTransaction[] {
       accountId: candidate.accountId,
       merchant: candidate.merchant,
       narrative: candidate.narrative,
+      sourceCategory: typeof candidate.sourceCategory === "string" ? candidate.sourceCategory : undefined,
       amount: candidate.amount,
       direction: candidate.direction,
       category: candidate.category,
       categoryReason: candidate.categoryReason,
       categoryGroup: typeof candidate.categoryGroup === "string" ? candidate.categoryGroup : undefined,
+      classificationSource:
+        candidate.classificationSource === "imported-auto"
+        || candidate.classificationSource === "reprocessed-auto"
+        || candidate.classificationSource === "manual-id"
+        || candidate.classificationSource === "manual-similar"
+          ? candidate.classificationSource
+          : undefined,
       manualNickname: typeof candidate.manualNickname === "string" ? candidate.manualNickname : undefined,
       manualCategoryGroup: typeof candidate.manualCategoryGroup === "string" ? candidate.manualCategoryGroup : undefined,
       manualCategory: typeof candidate.manualCategory === "string" ? candidate.manualCategory : undefined,

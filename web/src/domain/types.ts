@@ -4,11 +4,13 @@ export type RawTransaction = {
   accountId: string;
   merchant: string;
   narrative: string;
+  sourceCategory?: string;
   amount: number;
   direction: "debit" | "credit" | "neutral";
   category: string;
   categoryGroup?: string;
   categoryReason: string;
+  classificationSource?: "imported-auto" | "reprocessed-auto" | "manual-id" | "manual-similar";
   manualNickname?: string;
   manualCategoryGroup?: string;
   manualCategory?: string;
@@ -84,7 +86,7 @@ export type FlowStartMode = "income" | "expenses";
 export type IncomeMode = IncomeBasisMode | "expenses";
 export type MerchantDetailMode = "summary" | "full";
 export type TimelinePeriod = "all" | `${number}-${number}`;
-export type DashboardTab = "dashboard" | "accounts" | "income" | "expenses" | "categories" | "imports" | "settings" | "fireInsights" | "goals";
+export type DashboardTab = "dashboard" | "accounts" | "income" | "expenses" | "categories" | "transactions" | "imports" | "settings" | "fireInsights" | "goals";
 
 export type AccountKind = "asset" | "liability";
 

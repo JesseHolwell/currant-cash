@@ -2,7 +2,6 @@ import {
   ACCOUNT_COLORS,
   CATEGORY_COLORS,
   EMPTY_VIZ,
-  EXCLUDED_CATEGORIES,
   HIDDEN_FIXED_LEAF_TAIL_VALUE,
   SUMMARY_TOP_MERCHANTS_PER_GROUP
 } from "./constants";
@@ -13,6 +12,8 @@ import {
 } from "./formatting";
 import {
   groupSubcategoryKey,
+  isExcludedFromIncomeAnalytics,
+  isExcludedFromSpendAnalytics,
   resolveCategoryGroupBucket,
   resolveIncomeSource,
   resolveMerchantBucket,
@@ -71,10 +72,9 @@ export function buildVisualization(
 ): BuildVizResult {
   const scopedTransactions = transactions.filter((transaction) => isInTimeline(transaction.date, timeline));
 
-  const creditTransactions = scopedTransactions.filter((transaction) => {
-    const bucket = resolveCategoryGroupBucket(transaction);
-    return transaction.direction === "credit" && transaction.amount < 0 && bucket !== "Transfers";
-  });
+  const creditTransactions = scopedTransactions.filter((transaction) =>
+    transaction.direction === "credit" && transaction.amount < 0 && !isExcludedFromIncomeAnalytics(transaction)
+  );
 
   const incomeBySource = new Map<string, number>();
   for (const transaction of creditTransactions) {
@@ -92,10 +92,9 @@ export function buildVisualization(
     color: ACCOUNT_COLORS[index % ACCOUNT_COLORS.length]
   }));
 
-  const spendTransactions = scopedTransactions.filter((transaction) => {
-    const bucket = resolveCategoryGroupBucket(transaction);
-    return transaction.direction === "debit" && transaction.amount > 0 && !EXCLUDED_CATEGORIES.has(bucket);
-  });
+  const spendTransactions = scopedTransactions.filter((transaction) =>
+    transaction.direction === "debit" && transaction.amount > 0 && !isExcludedFromSpendAnalytics(transaction)
+  );
   const totalSpend = spendTransactions.reduce((sum, transaction) => sum + transaction.amount, 0);
 
   const categoryTotals = new Map<string, { total: number; count: number }>();

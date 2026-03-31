@@ -64,7 +64,6 @@ type WizardShellProps = {
   onBack: () => void;
   onSkip: () => void;
   onNext: () => void;
-  onExit?: () => void;
   nextLabel?: string;
   nextDisabled?: boolean;
   hideBack?: boolean;
@@ -77,7 +76,6 @@ function WizardShell({
   onBack,
   onSkip,
   onNext,
-  onExit,
   nextLabel = "Next",
   nextDisabled,
   hideBack,
@@ -104,15 +102,6 @@ function WizardShell({
           <span className="text-[0.72rem] font-bold tracking-[0.08em] text-accent whitespace-nowrap">
             {meta.label.toUpperCase()}
           </span>
-          {onExit && (
-            <button
-              type="button"
-              className="bg-none border-none text-muted text-[0.72rem] cursor-pointer py-1 pl-3 border-l border-line transition-colors duration-150 hover:text-ink-soft whitespace-nowrap"
-              onClick={onExit}
-            >
-              ← Dashboard
-            </button>
-          )}
         </div>
 
         {/* Header */}
@@ -679,8 +668,8 @@ function CategorizeStep({ batches, onGoToCategorize }: CategorizeStepProps) {
             >
               <span className="text-[1.25rem] shrink-0 text-accent mt-[2px]" aria-hidden="true">✦</span>
               <div>
-                <strong className="block text-[0.95rem] text-ink mb-[0.3rem]">Set up rules manually</strong>
-                <p className="m-0 text-[0.82rem] text-ink-soft leading-[1.4]">Head to the Categories tab to define keyword rules and categorise your spending.</p>
+                <strong className="block text-[0.95rem] text-ink mb-[0.3rem]">Review transactions now</strong>
+                <p className="m-0 text-[0.82rem] text-ink-soft leading-[1.4]">Head to the Transactions tab to apply rules and categorise your spending.</p>
               </div>
             </button>
           </div>
@@ -691,7 +680,7 @@ function CategorizeStep({ batches, onGoToCategorize }: CategorizeStepProps) {
         </>
       ) : (
         <div className="text-center py-4 text-ink-soft text-[0.875rem] leading-[1.6]">
-          <p>No transactions uploaded yet. You can upload a CSV any time from the <strong>Imports</strong> tab, then head to <strong>Categories</strong> to set up your rules.</p>
+          <p>No transactions uploaded yet. You can upload a CSV any time from the <strong>Imports</strong> tab, then head to <strong>Transactions</strong> to review and categorize them.</p>
         </div>
       )}
     </div>
@@ -704,7 +693,6 @@ export type OnboardingWizardProps = {
   step: number;
   onStepChange: (step: number) => void;
   onComplete: (goToTab?: string) => void;
-  onExitToDashboard?: () => void;
   // Nav
   user: User | null;
   isDark: boolean;
@@ -726,6 +714,7 @@ export type OnboardingWizardProps = {
   onAddAccount: () => void;
   onUpdateAccount: (id: string, patch: Partial<Omit<AccountEntry, "id">>) => void;
   onRemoveAccount: (id: string) => void;
+  onAccountsStepComplete: () => void;
   // Goals
   goals: ResolvedGoalEntry[];
   onAddGoal: () => void;
@@ -745,7 +734,6 @@ export function OnboardingWizard({
   step,
   onStepChange,
   onComplete,
-  onExitToDashboard,
   user,
   isDark,
   onToggleTheme,
@@ -763,6 +751,7 @@ export function OnboardingWizard({
   onAddAccount,
   onUpdateAccount,
   onRemoveAccount,
+  onAccountsStepComplete,
   goals,
   onAddGoal,
   onUpdateGoal,
@@ -774,6 +763,7 @@ export function OnboardingWizard({
   onUpload,
 }: OnboardingWizardProps) {
   function goNext() {
+    if (step === 2) onAccountsStepComplete();
     if (step < TOTAL_STEPS - 1) {
       onStepChange(step + 1);
     } else {
@@ -790,7 +780,7 @@ export function OnboardingWizard({
   }
 
   function handleCategorizeAndGo() {
-    onComplete("categories");
+    onComplete("transactions");
   }
 
   const isLastStep = step === TOTAL_STEPS - 1;
@@ -812,7 +802,6 @@ export function OnboardingWizard({
         onBack={goBack}
         onSkip={skip}
         onNext={goNext}
-        onExit={onExitToDashboard}
         nextLabel={isLastStep ? "Finish setup" : "Next"}
         hideBack={isFirstStep}
       >

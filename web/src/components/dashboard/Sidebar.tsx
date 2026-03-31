@@ -60,6 +60,13 @@ const TAB_ICONS: Partial<Record<DashboardTab, () => React.ReactElement>> = {
       <path d="M13 9.8v1.2l.8.8" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" opacity="0.6"/>
     </svg>
   ),
+  transactions: () => (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <rect x="2" y="2.5" width="12" height="11" rx="2" stroke="currentColor" strokeWidth="1.4" opacity="0.7"/>
+      <path d="M4.5 6h7M4.5 8.5h5.5M4.5 11h3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" opacity="0.8"/>
+      <circle cx="12" cy="11.5" r="1.25" fill="currentColor" opacity="0.55"/>
+    </svg>
+  ),
   imports: () => (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
       <path d="M8 2v8M5 7l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.8"/>
@@ -76,6 +83,7 @@ const NAV_TABS: DashboardTab[] = [
   "accounts",
   "goals",
   "categories",
+  "transactions",
   "imports",
 ];
 

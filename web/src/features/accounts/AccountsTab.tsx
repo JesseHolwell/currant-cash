@@ -14,28 +14,18 @@ export function AccountsTab({
   accountSummary,
   accountEntries,
   accountHistorySnapshots,
-  inferredMonthlyNetFlow,
-  forecastStartNetWorth,
-  forecastMonthlyDelta,
   onAddAccount,
   onUpdateAccount,
   onRemoveAccount,
   onAddAccountHistorySnapshot,
   onUpdateAccountHistoryMonth,
   onUpdateAccountHistoryBalance,
-  onRemoveAccountHistorySnapshot,
-  onForecastStartNetWorthChange,
-  onForecastMonthlyDeltaChange,
-  onResetStartNetWorth,
-  onResetMonthlyDelta
+  onRemoveAccountHistorySnapshot
 }: {
   currency: string;
   accountSummary: AccountSummary;
   accountEntries: AccountEntry[];
   accountHistorySnapshots: AccountHistorySnapshot[];
-  inferredMonthlyNetFlow: number;
-  forecastStartNetWorth: number | null;
-  forecastMonthlyDelta: number | null;
   onAddAccount: () => void;
   onUpdateAccount: (id: string, patch: Partial<Omit<AccountEntry, "id">>) => void;
   onRemoveAccount: (id: string) => void;
@@ -43,10 +33,6 @@ export function AccountsTab({
   onUpdateAccountHistoryMonth: (snapshotId: string, month: string) => void;
   onUpdateAccountHistoryBalance: (snapshotId: string, accountId: string, value: number) => void;
   onRemoveAccountHistorySnapshot: (snapshotId: string) => void;
-  onForecastStartNetWorthChange: (value: number | null) => void;
-  onForecastMonthlyDeltaChange: (value: number | null) => void;
-  onResetStartNetWorth: () => void;
-  onResetMonthlyDelta: () => void;
 }) {
   return (
     <>
@@ -99,11 +85,6 @@ export function AccountsTab({
                 <option value="asset">Asset (Credit)</option>
                 <option value="liability">Liability (Debit)</option>
               </select>
-              <input
-                type="number"
-                value={account.value}
-                onChange={(event) => onUpdateAccount(account.id, { value: Number(event.target.value) || 0 })}
-              />
               <button type="button" className="mode-btn" onClick={() => onRemoveAccount(account.id)}>Delete</button>
             </li>
           ))}
@@ -175,48 +156,6 @@ export function AccountsTab({
             </table>
           </div>
         )}
-      </section>
-
-      <section className="border border-line rounded-md p-4 bg-surface shadow-soft flex items-center justify-between gap-[0.8rem] flex-wrap">
-        <div>
-          <h3 className="font-display text-base tracking-[-0.02em] text-ink">Forecast Inputs</h3>
-          <div className="grid grid-cols-2 gap-[0.6rem] w-full mt-3">
-            <label className="grid gap-[0.25rem] text-[0.75rem] text-ink-soft font-semibold">
-              Start net worth
-              <input
-                type="number"
-                value={forecastStartNetWorth ?? ""}
-                placeholder={`${accountSummary.netWorth}`}
-                className="border border-line-strong bg-surface text-ink rounded-sm px-[0.6rem] py-[0.45rem] text-[0.83rem] focus:outline-none focus:border-[var(--accent-border)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
-                onChange={(event) => {
-                  const next = event.target.value.trim();
-                  onForecastStartNetWorthChange(next ? Number(next) : null);
-                }}
-              />
-            </label>
-            <label className="grid gap-[0.25rem] text-[0.75rem] text-ink-soft font-semibold">
-              Monthly forecast delta
-              <input
-                type="number"
-                value={forecastMonthlyDelta ?? ""}
-                placeholder={`${inferredMonthlyNetFlow}`}
-                className="border border-line-strong bg-surface text-ink rounded-sm px-[0.6rem] py-[0.45rem] text-[0.83rem] focus:outline-none focus:border-[var(--accent-border)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
-                onChange={(event) => {
-                  const next = event.target.value.trim();
-                  onForecastMonthlyDeltaChange(next ? Number(next) : null);
-                }}
-              />
-            </label>
-          </div>
-        </div>
-        <div className="inline-flex items-center gap-[0.4rem] flex-wrap">
-          <button type="button" className="mode-btn" onClick={onResetStartNetWorth}>
-            Use account total
-          </button>
-          <button type="button" className="mode-btn" onClick={onResetMonthlyDelta}>
-            Use inferred delta
-          </button>
-        </div>
       </section>
     </>
   );

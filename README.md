@@ -4,8 +4,6 @@ Turn bank CSV exports into a clear, local-first money dashboard with minimal fri
 
 `https://currant.cash`
 
-`https://personal-spend.vercel.app`
-
 ## Privacy model
 
 - All transaction data stays in the browser on the user's device.
@@ -31,6 +29,11 @@ npm run web
 
 Then open the local Vite URL (usually `http://localhost:5173`).
 Upload your CSV in the `Data Source` panel.
+
+If you want to keep personal aliases, categories, accounts, or goals out of git,
+copy `web/src/domain/config/profile.example.json` to
+`web/src/domain/config/profile.local.json` and edit the local file instead. The
+local profile is gitignored and overrides the committed example defaults.
 
 ## Product spec
 
@@ -58,7 +61,7 @@ npm run test:watch   # Watch mode
 npm run test:coverage # Coverage report
 ```
 
-Tests cover all pure domain functions in `web/src/domain/` — 7 test files, 127 tests.
+Tests cover all pure domain functions in `web/src/domain/` — 7 test files, 132 tests.
 
 ### iOS / TestFlight
 
@@ -88,7 +91,7 @@ In Xcode:
 
 Legacy (deprecated) CLI command:
 
-- `npm run ingest -- --input ./Data_export_23022026.csv`
+- `npm run ingest -- --input ./bank-export.csv`
 
 ## Project structure
 

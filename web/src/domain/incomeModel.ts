@@ -1,4 +1,5 @@
 import type { IncomeModel, ModelComponent, PayrollDraft, RawTransaction } from "./types";
+import { isExcludedFromIncomeAnalytics } from "./rules";
 import { normalizeForMatch } from "./utils";
 
 function toComponents(field: { label: string; amount: number }, payEventCount: number): ModelComponent[] {
@@ -58,7 +59,9 @@ export function buildIncomeModelFromTransactions(
     };
   }
 
-  const creditTransactions = transactions.filter((transaction) => transaction.direction === "credit" && transaction.amount < 0);
+  const creditTransactions = transactions.filter((transaction) =>
+    transaction.direction === "credit" && transaction.amount < 0 && !isExcludedFromIncomeAnalytics(transaction)
+  );
 
   const salaryMatches = creditTransactions.filter((transaction) => {
     const merchant = normalizeForMatch(transaction.merchant);
@@ -70,7 +73,7 @@ export function buildIncomeModelFromTransactions(
   const payEventCount = salaryMatches.length;
 
   const otherCredits = creditTransactions
-    .filter((transaction) => !salaryMatchIds.has(transaction.id) && transaction.categoryGroup !== "Transfers")
+    .filter((transaction) => !salaryMatchIds.has(transaction.id))
     .reduce((sum, transaction) => sum + Math.abs(transaction.amount), 0);
 
   const salaryGrossTotal = Number((payEventCount * grossPay).toFixed(2));

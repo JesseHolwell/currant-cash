@@ -1,4 +1,5 @@
 import { useRef, useState, type ChangeEvent } from "react";
+import { APP_SUPPORT_URL } from "../../domain/constants";
 
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -144,14 +145,20 @@ export function SettingsTab({
         <h3 className="font-display text-base tracking-[-0.02em] text-ink">Support</h3>
         <p className="text-muted text-[0.82rem] mt-[0.42rem]">
           Currant is open source.{" "}
-          <a
-            href="https://github.com/JesseHolwell/personal-spend/issues"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-accent underline hover:opacity-80"
-          >
-            Raise an issue on GitHub
-          </a>{" "}
+          {APP_SUPPORT_URL ? (
+            <>
+              <a
+                href={APP_SUPPORT_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-accent underline hover:opacity-80"
+              >
+                Raise an issue on GitHub
+              </a>{" "}
+            </>
+          ) : (
+            "Raise an issue in the repository you cloned this from "
+          )}
           if you run into a bug or have a feature request.
         </p>
       </section>

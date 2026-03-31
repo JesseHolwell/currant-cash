@@ -157,7 +157,7 @@ function resolveFromRoot(rootDir: string, value: string): string {
 
 function parseArgs(argv: string[]): CliOptions {
   const options: CliOptions = {
-    input: "Data_export_23022026.csv",
+    input: "bank-export.csv",
     outDir: path.join("data", "processed"),
     rulesFile: path.join("rules", "categories.yml"),
     overridesFile: path.join("rules", "overrides.yml"),
