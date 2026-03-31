@@ -272,49 +272,62 @@ type IncomeStepProps = {
   currency: string;
 };
 
+const PERIODS_PER_YEAR: Record<string, number> = { weekly: 52, fortnightly: 26, monthly: 12 };
+
 function IncomeStep({ payrollDraft, onPayrollDraftChange, currency }: IncomeStepProps) {
-  const monthlyNet =
-    payrollDraft.netPay > 0
-      ? (() => {
-          const freq = PAY_FREQUENCY_OPTIONS.find((o) => o.value === payrollDraft.payFrequency);
-          const periods = freq ? { weekly: 52, fortnightly: 26, monthly: 12 }[payrollDraft.payFrequency] ?? 12 : 12;
-          return (payrollDraft.netPay * periods) / 12;
-        })()
-      : null;
+  const periods = PERIODS_PER_YEAR[payrollDraft.payFrequency] ?? 12;
+  const currencySymbol = currency === "USD" ? "$" : currency === "AUD" ? "A$" : currency === "GBP" ? "£" : "$";
+
+  const [yearlyNet, setYearlyNet] = React.useState(
+    payrollDraft.netPay > 0 ? String(Math.round(payrollDraft.netPay * periods)) : ""
+  );
+  const [yearlyGross, setYearlyGross] = React.useState(
+    payrollDraft.grossPay > 0 ? String(Math.round(payrollDraft.grossPay * periods)) : ""
+  );
+
+  const monthlyNet = Number(yearlyNet) > 0 ? Number(yearlyNet) / 12 : null;
 
   return (
     <div className="flex flex-col gap-5">
       <div className="grid grid-cols-2 gap-4 max-[540px]:grid-cols-1">
         <label className="onboarding-field">
-          <span className="onboarding-field-label">Net monthly pay</span>
-          <span className="onboarding-field-hint">Amount that arrives in your bank each pay.</span>
+          <span className="onboarding-field-label">Net yearly pay</span>
+          <span className="onboarding-field-hint">Total take-home after tax per year.</span>
           <div className="onboarding-currency-input">
-            <span>{currency === "USD" ? "$" : currency === "AUD" ? "A$" : currency === "GBP" ? "£" : "$"}</span>
+            <span>{currencySymbol}</span>
             <input
               type="number"
               inputMode="decimal"
               min="0"
-              step="0.01"
-              placeholder="0.00"
-              value={payrollDraft.netPay || ""}
-              onChange={(e) => onPayrollDraftChange({ netPay: Number(e.target.value) || 0 })}
+              step="1"
+              placeholder="0"
+              value={yearlyNet}
+              onChange={(e) => {
+                setYearlyNet(e.target.value);
+                const yearly = Number(e.target.value) || 0;
+                onPayrollDraftChange({ netPay: yearly > 0 ? yearly / periods : 0 });
+              }}
             />
           </div>
         </label>
 
         <label className="onboarding-field">
-          <span className="onboarding-field-label">Gross monthly pay</span>
-          <span className="onboarding-field-hint">Salary before tax and deductions.</span>
+          <span className="onboarding-field-label">Gross yearly pay</span>
+          <span className="onboarding-field-hint">Total salary before tax per year.</span>
           <div className="onboarding-currency-input">
-            <span>{currency === "USD" ? "$" : currency === "AUD" ? "A$" : currency === "GBP" ? "£" : "$"}</span>
+            <span>{currencySymbol}</span>
             <input
               type="number"
               inputMode="decimal"
               min="0"
-              step="0.01"
-              placeholder="0.00"
-              value={payrollDraft.grossPay || ""}
-              onChange={(e) => onPayrollDraftChange({ grossPay: Number(e.target.value) || 0 })}
+              step="1"
+              placeholder="0"
+              value={yearlyGross}
+              onChange={(e) => {
+                setYearlyGross(e.target.value);
+                const yearly = Number(e.target.value) || 0;
+                onPayrollDraftChange({ grossPay: yearly > 0 ? yearly / periods : 0 });
+              }}
             />
           </div>
         </label>
@@ -325,9 +338,15 @@ function IncomeStep({ payrollDraft, onPayrollDraftChange, currency }: IncomeStep
           <span className="onboarding-field-label">Pay frequency</span>
           <select
             value={payrollDraft.payFrequency}
-            onChange={(e) =>
-              onPayrollDraftChange({ payFrequency: e.target.value as PayrollDraft["payFrequency"] })
-            }
+            onChange={(e) => {
+              const freq = e.target.value as PayrollDraft["payFrequency"];
+              const newPeriods = PERIODS_PER_YEAR[freq] ?? 12;
+              onPayrollDraftChange({
+                payFrequency: freq,
+                netPay: Number(yearlyNet) > 0 ? Number(yearlyNet) / newPeriods : 0,
+                grossPay: Number(yearlyGross) > 0 ? Number(yearlyGross) / newPeriods : 0,
+              });
+            }}
           >
             {PAY_FREQUENCY_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>

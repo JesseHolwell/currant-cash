@@ -13,7 +13,7 @@ const CURRENCY_OPTIONS = [
   { value: "JPY", label: "JPY — Japanese Yen" },
 ];
 
-const inputCls = "border border-line-strong bg-surface text-ink rounded-sm px-[0.6rem] py-[0.45rem] text-[0.83rem] focus:outline-none focus:border-[var(--accent-border)] focus:shadow-[0_0_0_3px_var(--accent-ring)] w-full";
+const inputCls = "border border-line-strong bg-surface text-ink rounded-sm pl-[0.6rem] pr-8 py-[0.45rem] text-[0.83rem] focus:outline-none focus:border-[var(--accent-border)] focus:shadow-[0_0_0_3px_var(--accent-ring)] w-full";
 
 export function SettingsTab({
   statusMessage,

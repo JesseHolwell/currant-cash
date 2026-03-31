@@ -17,7 +17,7 @@ import type {
 import { AiSuggestionBanner } from "./AiSuggestionBanner";
 import type { AiBannerAuthState } from "./AiSuggestionBanner";
 
-const inputCls = "border border-line-strong bg-surface text-ink rounded-sm px-[0.6rem] py-[0.45rem] text-[0.83rem] focus:outline-none focus:border-[var(--accent-border)] focus:shadow-[0_0_0_3px_var(--accent-ring)]";
+const inputCls = "border border-line-strong bg-surface text-ink rounded-sm pl-[0.6rem] pr-8 py-[0.45rem] text-[0.83rem] focus:outline-none focus:border-[var(--accent-border)] focus:shadow-[0_0_0_3px_var(--accent-ring)]";
 
 export function CategoriesTab({
   currency,

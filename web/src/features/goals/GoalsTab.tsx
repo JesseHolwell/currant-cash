@@ -42,7 +42,7 @@ export function GoalsTab({
                   type="text"
                   value={goal.name}
                   placeholder="Goal name"
-                  className="flex-1 border border-line-strong bg-surface text-ink rounded-sm px-[0.6rem] py-[0.45rem] text-[0.83rem] focus:outline-none focus:border-[var(--accent-border)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
+                  className="flex-1 border border-line-strong bg-surface text-ink rounded-sm pl-[0.6rem] pr-8 py-[0.45rem] text-[0.83rem] focus:outline-none focus:border-[var(--accent-border)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
                   onChange={(event) => onUpdateGoal(goal.id, { name: event.target.value })}
                 />
                 <button type="button" className="mode-btn" onClick={() => onRemoveGoal(goal.id)}>Delete</button>
@@ -52,7 +52,7 @@ export function GoalsTab({
                   Tracking
                   <select
                     value={goal.trackingMode}
-                    className="border border-line-strong bg-surface text-ink rounded-sm px-[0.6rem] py-[0.45rem] text-[0.83rem] focus:outline-none focus:border-[var(--accent-border)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
+                    className="border border-line-strong bg-surface text-ink rounded-sm pl-[0.6rem] pr-8 py-[0.45rem] text-[0.83rem] focus:outline-none focus:border-[var(--accent-border)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
                     onChange={(event) => onUpdateGoal(goal.id, { trackingMode: event.target.value as GoalEntry["trackingMode"] })}
                   >
                     <option value="manual">Manual</option>
@@ -65,7 +65,7 @@ export function GoalsTab({
                   <input
                     type="number"
                     value={goal.target}
-                    className="border border-line-strong bg-surface text-ink rounded-sm px-[0.6rem] py-[0.45rem] text-[0.83rem] focus:outline-none focus:border-[var(--accent-border)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
+                    className="border border-line-strong bg-surface text-ink rounded-sm pl-[0.6rem] pr-8 py-[0.45rem] text-[0.83rem] focus:outline-none focus:border-[var(--accent-border)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
                     onChange={(event) => onUpdateGoal(goal.id, { target: Number(event.target.value) || 0 })}
                   />
                 </label>
@@ -77,7 +77,7 @@ export function GoalsTab({
                     <input
                       type="number"
                       value={goal.current}
-                      className="border border-line-strong bg-surface text-ink rounded-sm px-[0.6rem] py-[0.45rem] text-[0.83rem] focus:outline-none focus:border-[var(--accent-border)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
+                      className="border border-line-strong bg-surface text-ink rounded-sm pl-[0.6rem] pr-8 py-[0.45rem] text-[0.83rem] focus:outline-none focus:border-[var(--accent-border)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
                       onChange={(event) => onUpdateGoal(goal.id, { current: Number(event.target.value) || 0 })}
                     />
                   </label>
@@ -112,7 +112,7 @@ export function GoalsTab({
                 <div className="flex gap-[0.45rem] items-center mt-[0.45rem]">
                   <label className="grid gap-[0.25rem] text-[0.75rem] text-ink-soft font-semibold w-full">
                     Current Value
-                    <input type="text" value={formatCurrency(goal.currentValue, currency)} readOnly className="border border-line-strong bg-surface text-ink rounded-sm px-[0.6rem] py-[0.45rem] text-[0.83rem]" />
+                    <input type="text" value={formatCurrency(goal.currentValue, currency)} readOnly className="border border-line-strong bg-surface text-ink rounded-sm pl-[0.6rem] pr-8 py-[0.45rem] text-[0.83rem]" />
                   </label>
                 </div>
               ) : null}
