@@ -17,6 +17,7 @@ import type {
   AccountEntry,
   AccountHistorySnapshot,
   AiSuggestionsState,
+  BasiqConnectionStatus,
   CategoryDefinition,
   DashboardTab,
   FlowStartMode,
@@ -140,6 +141,7 @@ interface DashboardProps {
   onBirthYearChange: (year: number) => void;
   onCurrencyChange: (currency: string) => void;
   onDeleteAllData: () => Promise<void>;
+  onRestartOnboarding: () => void;
   userEmail: string | null;
   onExportAllData: () => void;
   onImportData: (file: File) => Promise<void>;
@@ -151,6 +153,10 @@ interface DashboardProps {
   onSaveApiKey: (key: string) => void;
   onSignInWithGoogle: () => void;
   onMigrateLocalDataToCloud: () => void;
+
+  // Monthly check-in
+  checkInDue: boolean;
+  onStartCheckIn: () => void;
 }
 
 const TAB_META: Record<DashboardTab, { label: string; title: string; subtitle: string }> = {
@@ -289,6 +295,7 @@ export function Dashboard({
   onBirthYearChange,
   onCurrencyChange,
   onDeleteAllData,
+  onRestartOnboarding,
   userEmail,
   onExportAllData,
   onImportData,
@@ -299,7 +306,14 @@ export function Dashboard({
   onDismissAiSuggestions,
   onSaveApiKey,
   onSignInWithGoogle,
-  onMigrateLocalDataToCloud
+  onMigrateLocalDataToCloud,
+  basiqStatus,
+  basiqLastSyncAt,
+  basiqErrorMessage,
+  onConnectBasiq,
+  onSyncBasiq,
+  checkInDue,
+  onStartCheckIn,
 }: DashboardProps) {
   const activeTabMeta = TAB_META[activeTab];
 
@@ -322,6 +336,8 @@ export function Dashboard({
           accountSummary={derived.accountSummary}
           goals={derived.resolvedGoals}
           currency={derived.meta.currency}
+          checkInDue={checkInDue}
+          onStartCheckIn={onStartCheckIn}
         />
 
         <section className="flex-1 min-w-0 overflow-y-auto px-6 py-5 pb-10 grid gap-[0.85rem] content-start">
@@ -335,6 +351,7 @@ export function Dashboard({
               </button>
             </div>
           ) : null}
+
           <WorkspaceHeader
             title={activeTabMeta.title}
             subtitle={activeTabMeta.subtitle}
@@ -348,6 +365,12 @@ export function Dashboard({
               totalTransactionCount={derived.transactions.length}
               statusMessage={transactionDataStatus}
               errorMessage={error}
+              basiqStatus={basiqStatus}
+              basiqLastSyncAt={basiqLastSyncAt}
+              basiqErrorMessage={basiqErrorMessage}
+              isSignedIn={!!user}
+              onConnectBasiq={onConnectBasiq}
+              onSyncBasiq={onSyncBasiq}
               onUpload={onCsvUpload}
               onUpdateBatchCoverage={onUpdateBatchCoverage}
               onDeleteBatch={onDeleteBatch}
@@ -436,6 +459,7 @@ export function Dashboard({
               userEmail={userEmail}
               onSignOut={onSignOut}
               onDeleteAllData={onDeleteAllData}
+              onRestartOnboarding={onRestartOnboarding}
               onExportAllData={onExportAllData}
               onImportData={onImportData}
             />

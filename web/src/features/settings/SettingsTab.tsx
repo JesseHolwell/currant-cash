@@ -28,6 +28,7 @@ export function SettingsTab({
   userEmail,
   onSignOut,
   onDeleteAllData,
+  onRestartOnboarding,
   onExportAllData,
   onImportData,
 }: {
@@ -43,6 +44,7 @@ export function SettingsTab({
   userEmail: string | null;
   onSignOut: () => void;
   onDeleteAllData: () => Promise<void>;
+  onRestartOnboarding: () => void;
   onExportAllData: () => void;
   onImportData: (file: File) => Promise<void>;
 }) {
@@ -130,6 +132,11 @@ export function SettingsTab({
               <span className="text-muted text-[0.75rem]">Age: {currentAge}</span>
             )}
           </label>
+        </div>
+        <div className="mt-4 pt-4 border-t border-line">
+          <button type="button" className="mode-btn" onClick={onRestartOnboarding}>
+            Re-do onboarding
+          </button>
         </div>
       </section>
 

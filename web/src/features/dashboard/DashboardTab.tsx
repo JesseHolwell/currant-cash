@@ -20,7 +20,7 @@ import { formatCurrency } from "../../domain";
 function GoalCrossoverBadge({ viewBox, label }: { viewBox?: { x: number; y: number; height: number }; label: string }) {
   if (!viewBox) return null;
   const { x } = viewBox;
-  const text = `🎯 ${label}`;
+  const text = label;
   const badgeW = text.length * 7 + 12;
   const badgeH = 22;
   const badgeX = x - badgeW / 2;
@@ -58,7 +58,13 @@ function SavingsRateCard({
 
   return (
     <div className="fire-insight-card">
-      <div className="fire-insight-card-icon fire-insight-card-icon--savings">🐷</div>
+      <div className="fire-insight-card-icon fire-insight-card-icon--savings" style={{ color: "#3D8B4F" }}>
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
+          <rect x="2" y="11" width="18" height="9" rx="3" fill="currentColor" opacity="0.85"/>
+          <path d="M9.5 9V3.5M9.5 3.5L7 6M9.5 3.5L12 6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M7.5 11h7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" opacity="0.5"/>
+        </svg>
+      </div>
       <h3 className="fire-insight-card-title">Savings Rate</h3>
       <p className="fire-insight-card-subtitle">Percentage of income retained</p>
       <div className="fire-savings-gauge-wrap">
@@ -116,7 +122,11 @@ function FireTimelineCard({
 
   return (
     <div className="fire-insight-card">
-      <div className="fire-insight-card-icon fire-insight-card-icon--fire">🔥</div>
+      <div className="fire-insight-card-icon fire-insight-card-icon--fire" style={{ color: "#C4843E" }}>
+        <svg width="22" height="22" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M8 14c3.314 0 6-2.462 6-5.5 0-1.8-.9-3.2-2-4.1-.2 1.3-.8 2.1-1.5 2.4C10.2 5 9.5 2.5 7.5 1c0 2-1 3.2-2 4-.5.4-1 1.2-1 2.5 0 .7.2 1.3.5 1.8C4.4 9 4 8.2 4 7.4c-.6.8-1 1.9-1 3.1C3 13.5 5.2 14 8 14Z" fill="currentColor" opacity="0.9"/>
+        </svg>
+      </div>
       <h3 className="fire-insight-card-title">FIRE Timeline</h3>
       <p className="fire-insight-card-subtitle">Estimated retirement age</p>
       {targetAge !== null ? (
@@ -165,7 +175,11 @@ function FireInsightBanner({
   const yrs = Math.ceil(yearsToFire);
   return (
     <div className="border border-line rounded-md p-4 bg-surface shadow-soft flex items-start gap-4">
-      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[rgba(196,132,62,0.12)] flex items-center justify-center text-xl">🔥</div>
+      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[rgba(196,132,62,0.12)] flex items-center justify-center" style={{ color: "#C4843E" }}>
+        <svg width="20" height="20" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M8 14c3.314 0 6-2.462 6-5.5 0-1.8-.9-3.2-2-4.1-.2 1.3-.8 2.1-1.5 2.4C10.2 5 9.5 2.5 7.5 1c0 2-1 3.2-2 4-.5.4-1 1.2-1 2.5 0 .7.2 1.3.5 1.8C4.4 9 4 8.2 4 7.4c-.6.8-1 1.9-1 3.1C3 13.5 5.2 14 8 14Z" fill="currentColor" opacity="0.9"/>
+        </svg>
+      </div>
       <div className="flex-1">
         <h3 className="font-display text-[0.98rem] text-ink m-0 mb-[0.35rem]">
           At this rate, you could retire at {Math.ceil(projectedFireAge)}.

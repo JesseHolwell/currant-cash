@@ -42,6 +42,37 @@
   opacity: 1;
 }
 
+/* Monthly check-in button */
+.nav-btn-checkin {
+  color: var(--ink-muted);
+  font-size: 0.82rem;
+}
+
+.nav-btn-checkin--due {
+  color: var(--accent);
+  font-weight: 600;
+  background: rgba(139, 41, 66, 0.07);
+}
+
+.nav-btn-checkin--due svg {
+  opacity: 1;
+}
+
+.nav-btn-checkin--due:hover {
+  background: rgba(139, 41, 66, 0.13);
+}
+
+.nav-checkin-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  margin-left: auto;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px var(--accent-ring);
+}
+
 .goal-mini-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--accent-strong), var(--accent));

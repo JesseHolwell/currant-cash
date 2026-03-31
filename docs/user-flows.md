@@ -65,7 +65,6 @@ Home tab → "It's been 31 days" banner + [Start monthly update]
   Step 3: Review new categories
     - Uncategorized transactions from the new batch (AI or manual rules)
 
-  → Monthly summary card on Home ("March recap")
 ```
 
 ---

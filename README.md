@@ -2,6 +2,8 @@
 
 Turn bank CSV exports into a clear, local-first money dashboard with minimal friction.
 
+`https://currant.cash`
+
 `https://personal-spend.vercel.app`
 
 ## Privacy model
@@ -77,7 +79,8 @@ npx cap open ios     # open Xcode
 ```
 
 In Xcode:
-1. Select your Apple Developer team under *Signing & Capabilities*.
+
+1. Select your Apple Developer team under _Signing & Capabilities_.
 2. **Product → Archive** to build a release binary.
 3. Upload to TestFlight via Xcode Organizer.
 

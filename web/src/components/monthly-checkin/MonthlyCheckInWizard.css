@@ -1,0 +1,109 @@
+/* ─── Monthly Check-in Wizard — step-specific additions ─────────────────── */
+
+/* Balances step */
+.checkin-accounts-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 0 0.5rem 0.25rem;
+}
+
+.checkin-account-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  transition: border-color 150ms ease;
+}
+
+.checkin-account-row:hover {
+  border-color: var(--line-strong);
+}
+
+.checkin-account-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.checkin-account-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.checkin-account-meta {
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-transform: capitalize;
+}
+
+.checkin-account-input-wrap {
+  flex-shrink: 0;
+  width: 130px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.checkin-account-row:hover .checkin-account-input-wrap {
+  border-color: var(--line);
+  background: var(--bg-main);
+}
+
+.checkin-account-input-wrap:focus-within {
+  border-color: var(--accent-border) !important;
+  background: var(--bg-surface) !important;
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+.checkin-account-input-wrap input {
+  text-align: right;
+  padding: 0.4rem 0.4rem 0.4rem 0;
+  font-size: 0.875rem;
+}
+
+.checkin-net-worth {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-md);
+  padding: 0.6rem 1rem;
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+}
+
+.checkin-net-worth strong {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--accent);
+  font-family: "Fraunces", Georgia, serif;
+}
+
+/* Import step */
+.checkin-import-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  background: var(--bg-warm);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  padding: 0.65rem 0.875rem;
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+}

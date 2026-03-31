@@ -89,6 +89,8 @@ export function Sidebar({
   accountSummary,
   goals,
   currency,
+  checkInDue,
+  onStartCheckIn,
 }: {
   tabMeta: TabMeta;
   activeTab: DashboardTab;
@@ -96,6 +98,8 @@ export function Sidebar({
   accountSummary: AccountSummary;
   goals: ResolvedGoalEntry[];
   currency: string;
+  checkInDue: boolean;
+  onStartCheckIn: () => void;
 }) {
   return (
     <aside className="flex-none w-[260px] h-full overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(61,36,56,0.15)_transparent] bg-sidebar border-r border-line p-4 flex flex-col gap-[0.85rem]">
@@ -115,6 +119,21 @@ export function Sidebar({
             </button>
           );
         })}
+        <hr className="border-none border-t border-line my-1" />
+        <button
+          type="button"
+          className={checkInDue ? "nav-btn nav-btn-checkin nav-btn-checkin--due" : "nav-btn nav-btn-checkin"}
+          onClick={onStartCheckIn}
+          title={checkInDue ? "It's time for your monthly update" : "Monthly check-in"}
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <rect x="2" y="3" width="12" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.4" opacity="0.7"/>
+            <path d="M5 2v2M11 2v2M2 6.5h12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" opacity="0.6"/>
+            <path d="M5.5 10l1.5 1.5L11 8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          <span>Monthly Update</span>
+          {checkInDue && <span className="nav-checkin-dot" aria-label="Update due" />}
+        </button>
       </nav>
 
       <section className="border border-line rounded-md p-3 bg-surface">

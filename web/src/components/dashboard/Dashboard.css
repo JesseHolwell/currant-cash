@@ -1,3 +1,63 @@
+/* ── Monthly check-in banner ── */
+
+.checkin-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 1rem;
+  background: var(--bg-warm);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line-strong);
+  animation: rise 300ms cubic-bezier(0.2, 0.95, 0.35, 1);
+}
+
+.checkin-banner-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.checkin-banner-text {
+  flex: 1;
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+  min-width: 0;
+}
+
+.checkin-banner-cta {
+  flex-shrink: 0;
+  padding: 0.4rem 0.9rem;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 150ms;
+  white-space: nowrap;
+}
+.checkin-banner-cta:hover {
+  background: var(--accent-strong);
+}
+
+.checkin-banner-dismiss {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--ink-muted);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0.2rem 0.35rem;
+  border-radius: var(--radius-sm);
+  line-height: 1;
+  transition: color 120ms, background 120ms;
+}
+.checkin-banner-dismiss:hover {
+  color: var(--ink);
+  background: var(--bg-surface);
+}
+
 /* ── Sample mode banner ── */
 
 .sample-banner {

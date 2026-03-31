@@ -1,3 +1,4 @@
+import React from 'react';
 import './OnboardingWizard.css';
 import type { User } from "@supabase/supabase-js";
 import type {
@@ -63,6 +64,7 @@ type WizardShellProps = {
   onBack: () => void;
   onSkip: () => void;
   onNext: () => void;
+  onExit?: () => void;
   nextLabel?: string;
   nextDisabled?: boolean;
   hideBack?: boolean;
@@ -75,6 +77,7 @@ function WizardShell({
   onBack,
   onSkip,
   onNext,
+  onExit,
   nextLabel = "Next",
   nextDisabled,
   hideBack,
@@ -101,6 +104,15 @@ function WizardShell({
           <span className="text-[0.72rem] font-bold tracking-[0.08em] text-accent whitespace-nowrap">
             {meta.label.toUpperCase()}
           </span>
+          {onExit && (
+            <button
+              type="button"
+              className="bg-none border-none text-muted text-[0.72rem] cursor-pointer py-1 pl-3 border-l border-line transition-colors duration-150 hover:text-ink-soft whitespace-nowrap"
+              onClick={onExit}
+            >
+              ← Dashboard
+            </button>
+          )}
         </div>
 
         {/* Header */}
@@ -194,7 +206,9 @@ function AboutYouStep({
   currency,
   onCurrencyChange,
 }: AboutYouStepProps) {
-  const age = birthYear > 0 ? CURRENT_YEAR - birthYear : "";
+  const [ageInput, setAgeInput] = React.useState(
+    birthYear > 0 ? String(CURRENT_YEAR - birthYear) : ""
+  );
 
   return (
     <div className="flex flex-col gap-5">
@@ -238,8 +252,9 @@ function AboutYouStep({
           min={10}
           max={100}
           placeholder="e.g. 32"
-          value={age}
+          value={ageInput}
           onChange={(e) => {
+            setAgeInput(e.target.value);
             const val = Number(e.target.value);
             onBirthYearChange(val >= 10 && val <= 100 ? CURRENT_YEAR - val : 0);
           }}
@@ -670,6 +685,7 @@ export type OnboardingWizardProps = {
   step: number;
   onStepChange: (step: number) => void;
   onComplete: (goToTab?: string) => void;
+  onExitToDashboard?: () => void;
   // Nav
   user: User | null;
   isDark: boolean;
@@ -710,6 +726,7 @@ export function OnboardingWizard({
   step,
   onStepChange,
   onComplete,
+  onExitToDashboard,
   user,
   isDark,
   onToggleTheme,
@@ -776,6 +793,7 @@ export function OnboardingWizard({
         onBack={goBack}
         onSkip={skip}
         onNext={goNext}
+        onExit={onExitToDashboard}
         nextLabel={isLastStep ? "Finish setup" : "Next"}
         hideBack={isFirstStep}
       >

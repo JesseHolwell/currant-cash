@@ -16,6 +16,7 @@ import {
   TRANSACTION_BATCHES_STORAGE_KEY,
   UPLOADED_META_STORAGE_KEY,
   UPLOADED_TRANSACTIONS_STORAGE_KEY,
+  MONTHLY_CHECKIN_DISMISSED_KEY,
   buildDefaultCategoryDefinitions,
   buildIncomeModelFromTransactions,
   buildTransactionBatch,
@@ -53,6 +54,7 @@ import { isSupabaseConfigured } from "./lib/supabase";
 import { LandingPage } from "./components/LandingPage";
 import { Dashboard } from "./components/dashboard/Dashboard";
 import { OnboardingWizard } from "./components/onboarding/OnboardingWizard";
+import { MonthlyCheckInWizard } from "./components/monthly-checkin/MonthlyCheckInWizard";
 import { SAMPLE_DATASET } from "./domain/sampleData";
 import type {
   AccountEntry,
@@ -116,6 +118,7 @@ export default function App() {
 
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(0);
+  const [showCheckIn, setShowCheckIn] = useState(false);
 
   const [activeTab, setActiveTab] = useState<DashboardTab>("dashboard");
   const [flowStartMode, setFlowStartMode] = useState<FlowStartMode>("income");
@@ -247,6 +250,38 @@ export default function App() {
       setTimelinePeriod("all");
     }
   }, [derived.timelineOptions, timelinePeriod]);
+
+  // ---------- Monthly check-in ----------
+
+  const payFreqDays = payrollDraft.payFrequency === "weekly" ? 7 : payrollDraft.payFrequency === "fortnightly" ? 14 : 30;
+  const lastImportBatch = transactionBatches.length > 0
+    ? [...transactionBatches].sort((a, b) => b.importedAt.localeCompare(a.importedAt))[0]
+    : null;
+  const daysSinceImport = lastImportBatch
+    ? Math.floor((Date.now() - new Date(lastImportBatch.importedAt).getTime()) / 86400000)
+    : 0;
+  const lastImportCoverageEnd = lastImportBatch?.coverageEnd ?? null;
+  const checkInDismissed = (() => {
+    const dismissed = localStorage.getItem(MONTHLY_CHECKIN_DISMISSED_KEY);
+    if (!dismissed) return false;
+    return Math.floor((Date.now() - new Date(dismissed).getTime()) / 86400000) < payFreqDays;
+  })();
+  const checkInDue = !isSampleMode && !!lastImportBatch && daysSinceImport >= payFreqDays && !checkInDismissed;
+
+  function handleStartCheckIn(): void {
+    setShowCheckIn(true);
+  }
+
+  function handleExitCheckIn(): void {
+    localStorage.setItem(MONTHLY_CHECKIN_DISMISSED_KEY, new Date().toISOString());
+    setShowCheckIn(false);
+  }
+
+  function handleGoToCategoriesFromCheckIn(): void {
+    localStorage.setItem(MONTHLY_CHECKIN_DISMISSED_KEY, new Date().toISOString());
+    setShowCheckIn(false);
+    setActiveTab("categories");
+  }
 
   // ---------- Draft / rule helpers ----------
 
@@ -796,6 +831,11 @@ export default function App() {
     setShowOnboarding(true);
   }
 
+  function handleRestartOnboarding(): void {
+    setOnboardingStep(0);
+    setShowOnboarding(true);
+  }
+
   function handleCompleteOnboarding(goToTab?: string): void {
     localStorage.setItem(ONBOARDING_COMPLETE_KEY, "1");
     setShowOnboarding(false);
@@ -834,12 +874,35 @@ export default function App() {
     );
   }
 
+  if (showCheckIn) {
+    return (
+      <MonthlyCheckInWizard
+        onExit={handleExitCheckIn}
+        onGoToCategories={handleGoToCategoriesFromCheckIn}
+        user={user}
+        isDark={isDark}
+        onToggleTheme={toggleTheme}
+        onSignIn={() => setShowAuthModal(true)}
+        onGoHome={() => setShowLanding(true)}
+        accountEntries={accountEntries}
+        currency={currency}
+        onUpdateAccount={updateAccount}
+        onCsvUpload={handleCsvUpload}
+        uploadStatus={transactionDataStatus}
+        lastCoverageEnd={lastImportCoverageEnd}
+        daysSinceImport={daysSinceImport}
+        uncategorizedCount={derived.uncategorizedInPeriod.length}
+      />
+    );
+  }
+
   if (showOnboarding) {
     return (
       <OnboardingWizard
         step={onboardingStep}
         onStepChange={setOnboardingStep}
         onComplete={handleCompleteOnboarding}
+        onExitToDashboard={() => setShowOnboarding(false)}
         user={user}
         isDark={isDark}
         onToggleTheme={toggleTheme}
@@ -961,6 +1024,7 @@ export default function App() {
       onBirthYearChange={setBirthYear}
       onCurrencyChange={setCurrency}
       onDeleteAllData={handleDeleteAllData}
+      onRestartOnboarding={handleRestartOnboarding}
       userEmail={user?.email ?? null}
       onExportAllData={exportAllData}
       onImportData={importAllData}
@@ -972,6 +1036,8 @@ export default function App() {
       onSaveApiKey={setOpenaiApiKey}
       onSignInWithGoogle={signInWithGoogle}
       onMigrateLocalDataToCloud={migrateLocalDataToCloud}
+      checkInDue={checkInDue}
+      onStartCheckIn={handleStartCheckIn}
     />
   );
 }
