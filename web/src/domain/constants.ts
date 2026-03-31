@@ -46,6 +46,7 @@ export const APP_SETTINGS_STORAGE_KEY = "personal-spend-settings-v1";
 export const UPLOADED_TRANSACTIONS_STORAGE_KEY =
   "personal-spend-uploaded-transactions-v1";
 export const UPLOADED_META_STORAGE_KEY = "personal-spend-uploaded-meta-v1";
+export const MONTHLY_CHECKIN_DISMISSED_KEY = "personal-spend-monthly-checkin-dismissed-v1";
 
 export const EMPTY_MANUAL_RULES: ManualRulesState = {
   byId: {},
