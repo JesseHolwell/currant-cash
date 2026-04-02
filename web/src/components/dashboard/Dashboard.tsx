@@ -139,6 +139,7 @@ interface DashboardProps {
   onCurrencyChange: (currency: string) => void;
   onDeleteAllData: () => Promise<void>;
   onRestartOnboarding: () => void;
+  onRestoreProfileCategoryDefaults: () => void;
   userEmail: string | null;
   onExportAllData: () => void;
   onImportData: (file: File) => Promise<void>;
@@ -295,6 +296,7 @@ export function Dashboard({
   onCurrencyChange,
   onDeleteAllData,
   onRestartOnboarding,
+  onRestoreProfileCategoryDefaults,
   userEmail,
   onExportAllData,
   onImportData,
@@ -441,6 +443,7 @@ export function Dashboard({
               onSignOut={onSignOut}
               onDeleteAllData={onDeleteAllData}
               onRestartOnboarding={onRestartOnboarding}
+              onRestoreProfileCategoryDefaults={onRestoreProfileCategoryDefaults}
               onExportAllData={onExportAllData}
               onImportData={onImportData}
             />

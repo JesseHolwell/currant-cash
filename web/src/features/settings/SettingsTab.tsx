@@ -30,6 +30,7 @@ export function SettingsTab({
   onSignOut,
   onDeleteAllData,
   onRestartOnboarding,
+  onRestoreProfileCategoryDefaults,
   onExportAllData,
   onImportData,
 }: {
@@ -46,6 +47,7 @@ export function SettingsTab({
   onSignOut: () => void;
   onDeleteAllData: () => Promise<void>;
   onRestartOnboarding: () => void;
+  onRestoreProfileCategoryDefaults: () => void;
   onExportAllData: () => void;
   onImportData: (file: File) => Promise<void>;
 }) {
@@ -193,6 +195,22 @@ export function SettingsTab({
               }}
             >
               Delete All My Data
+            </button>
+          </article>
+
+          <article className="border border-line rounded-md p-4 bg-surface hover:border-line-strong transition-colors">
+            <h4 className="font-semibold text-ink text-[0.92rem]">Restore Profile Category Defaults</h4>
+            <p className="text-ink-soft text-[0.83rem] mt-1 mb-3">
+              Replace saved category edits, manual rules, and draft changes with
+              the defaults from your local profile, then reapply them to stored
+              transactions.
+            </p>
+            <button
+              type="button"
+              className="mode-btn"
+              onClick={onRestoreProfileCategoryDefaults}
+            >
+              Restore Defaults
             </button>
           </article>
 

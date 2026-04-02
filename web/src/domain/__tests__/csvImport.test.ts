@@ -15,6 +15,16 @@ const FOOD_CATEGORIES: CategoryDefinition[] = [
   }
 ];
 
+const SOFTWARE_CATEGORIES: CategoryDefinition[] = [
+  {
+    id: "cat-software",
+    category: "Software",
+    subcategories: [
+      { id: "sub-apps", name: "Apps", keywords: ["apple.com/bill"] }
+    ]
+  }
+];
+
 const IGNORED_CATEGORIES: CategoryDefinition[] = [
   {
     id: "cat-ignored",
@@ -55,6 +65,13 @@ describe("parseBankCsvToTransactions", () => {
     const tx = transactions[0];
     expect(tx.categoryGroup).toBe("Food");
     expect(tx.category).toBe("Groceries");
+  });
+
+  it("matches punctuation-heavy merchant keywords after normalization", () => {
+    const csv = makeCsv(["12345678,01/03/2024,APPLE.COM/BILL SYDNEY AUS,9.99,,500.00,,"]);
+    const { transactions } = parseBankCsvToTransactions(csv, SOFTWARE_CATEGORIES);
+    expect(transactions[0].categoryGroup).toBe("Software");
+    expect(transactions[0].category).toBe("Apps");
   });
 
   it("assigns 'Income' category to credit transactions regardless of keyword", () => {

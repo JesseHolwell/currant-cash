@@ -235,7 +235,7 @@ function inferCategory(
     }
   }
 
-  const narrativeNormalized = normalizeText(narrative);
+  const narrativeNormalized = normalizeForMatch(narrative);
   for (const matcher of matchers) {
     const minLength = matcher.source === "keyword" ? 2 : 4;
     if (!matcher.needle || matcher.needle.length < minLength) {

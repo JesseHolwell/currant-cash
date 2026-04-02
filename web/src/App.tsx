@@ -809,6 +809,40 @@ export default function App() {
     }
   }
 
+  function handleRestoreProfileCategoryDefaults(): void {
+    if (isSampleMode) {
+      setSettingsStatus(null);
+      setSettingsError("Exit sample mode before restoring profile category defaults.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Restore category defaults from your local profile? This will erase saved category edits, manual rules, and draft changes, then reapply the restored setup to stored transactions."
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    const nextCategoryDefinitions = buildDefaultCategoryDefinitions();
+    const nextTransactionBatches =
+      transactionBatches.length > 0
+        ? reapplyCategoryDefinitionsToBatches(transactionBatches, nextCategoryDefinitions)
+        : transactionBatches;
+
+    setManualRules(EMPTY_MANUAL_RULES);
+    setDrafts({});
+    setCategoryDefinitions(nextCategoryDefinitions);
+    setTransactionBatches(nextTransactionBatches);
+    setHasPendingCategoryReapply(false);
+    resetSuggestions();
+    setSettingsError(null);
+    setSettingsStatus(
+      transactionBatches.length > 0
+        ? `Restored profile category defaults and reapplied them to ${derived.transactions.length} stored transaction(s).`
+        : "Restored profile category defaults."
+    );
+  }
+
   // ---------- Auth handlers ----------
 
   function handleContinueFree(): void {
@@ -1055,6 +1089,7 @@ export default function App() {
       onCurrencyChange={setCurrency}
       onDeleteAllData={handleDeleteAllData}
       onRestartOnboarding={handleRestartOnboarding}
+      onRestoreProfileCategoryDefaults={handleRestoreProfileCategoryDefaults}
       userEmail={user?.email ?? null}
       onExportAllData={exportAllData}
       onImportData={importAllData}
