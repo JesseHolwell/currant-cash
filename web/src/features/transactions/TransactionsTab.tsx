@@ -9,6 +9,7 @@ import type {
   AiSuggestionsState,
   RawTransaction,
   TimelinePeriod,
+  TransactionExplorerFilters,
   TransactionDraft
 } from "../../domain";
 import { AiSuggestionBanner } from "../categories/AiSuggestionBanner";
@@ -24,6 +25,9 @@ export function TransactionsTab({
   uncategorizedCount,
   rulesFilter,
   onRulesFilterChange,
+  transactionExplorerFilters,
+  onTransactionExplorerFilterChange,
+  onClearTransactionExplorerFilters,
   onClearAllRules,
   visibleEditableTransactions,
   draftFor,
@@ -50,6 +54,9 @@ export function TransactionsTab({
   uncategorizedCount: number;
   rulesFilter: "needs" | "all";
   onRulesFilterChange: (filter: "needs" | "all") => void;
+  transactionExplorerFilters: TransactionExplorerFilters;
+  onTransactionExplorerFilterChange: (patch: Partial<TransactionExplorerFilters>) => void;
+  onClearTransactionExplorerFilters: () => void;
   onClearAllRules: () => void;
   visibleEditableTransactions: RawTransaction[];
   draftFor: (transaction: RawTransaction) => TransactionDraft;
@@ -70,6 +77,11 @@ export function TransactionsTab({
   onSignIn: () => void;
 }) {
   const pendingCount = aiSuggestions.suggestions.filter((s) => s.status === "pending").length;
+  const hasExplorerFilters = Boolean(
+    transactionExplorerFilters.categoryGroup ||
+    transactionExplorerFilters.startMonth ||
+    transactionExplorerFilters.endMonth
+  );
 
   const bannerAuthState: AiBannerAuthState = (() => {
     if (!isSignedIn) return "unauthenticated";
@@ -93,25 +105,86 @@ export function TransactionsTab({
     return "Auto (imported)";
   };
 
+  const activePeriodLabel = (() => {
+    const startMonth = transactionExplorerFilters.startMonth;
+    const endMonth = transactionExplorerFilters.endMonth;
+    if (startMonth && endMonth) {
+      return startMonth === endMonth
+        ? formatTimelineLabel(startMonth as TimelinePeriod)
+        : `${formatTimelineLabel(startMonth as TimelinePeriod)} - ${formatTimelineLabel(endMonth as TimelinePeriod)}`;
+    }
+    if (startMonth) return `From ${formatTimelineLabel(startMonth as TimelinePeriod)}`;
+    if (endMonth) return `Up to ${formatTimelineLabel(endMonth as TimelinePeriod)}`;
+    return formatTimelineLabel(timelinePeriod);
+  })();
+
   return (
     <>
-      <section className="border border-line rounded-md p-4 bg-surface shadow-soft min-w-0 flex items-center justify-between gap-4 flex-wrap">
-        <div className="inline-flex items-center gap-2">
-          <label htmlFor="timeline-period-transactions" className="text-[0.72rem] uppercase tracking-[0.1em] text-muted font-bold">Timeline</label>
-          <select
-            id="timeline-period-transactions"
-            value={timelinePeriod}
-            className={inputCls}
-            onChange={(event) => onTimelinePeriodChange(event.target.value as TimelinePeriod)}
-          >
-            {timelineOptions.map((option) => (
-              <option key={option} value={option}>
-                {formatTimelineLabel(option)}
-              </option>
-            ))}
-          </select>
+      <section className="border border-line rounded-md p-4 bg-surface shadow-soft min-w-0 grid gap-3">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="grid gap-1 text-[0.72rem] uppercase tracking-[0.1em] text-muted font-bold">
+              Timeline
+              <select
+                id="timeline-period-transactions"
+                value={timelinePeriod}
+                className={inputCls}
+                onChange={(event) => {
+                  onTimelinePeriodChange(event.target.value as TimelinePeriod);
+                  onTransactionExplorerFilterChange({ startMonth: "", endMonth: "" });
+                }}
+              >
+                {timelineOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {formatTimelineLabel(option)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="grid gap-1 text-[0.72rem] uppercase tracking-[0.1em] text-muted font-bold">
+              Category
+              <select
+                value={transactionExplorerFilters.categoryGroup}
+                className={inputCls}
+                onChange={(event) => onTransactionExplorerFilterChange({ categoryGroup: event.target.value })}
+              >
+                <option value="">All categories</option>
+                {categoryGroupOptions.map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+            </label>
+            <label className="grid gap-1 text-[0.72rem] uppercase tracking-[0.1em] text-muted font-bold">
+              From
+              <input
+                type="month"
+                value={transactionExplorerFilters.startMonth}
+                className={inputCls}
+                onChange={(event) => onTransactionExplorerFilterChange({ startMonth: event.target.value })}
+              />
+            </label>
+            <label className="grid gap-1 text-[0.72rem] uppercase tracking-[0.1em] text-muted font-bold">
+              To
+              <input
+                type="month"
+                value={transactionExplorerFilters.endMonth}
+                className={inputCls}
+                onChange={(event) => onTransactionExplorerFilterChange({ endMonth: event.target.value })}
+              />
+            </label>
+          </div>
+          <button type="button" className="mode-btn" onClick={onClearTransactionExplorerFilters} disabled={!hasExplorerFilters}>
+            Clear Filters
+          </button>
         </div>
-        <p className="text-muted text-[0.82rem]">Period: {formatTimelineLabel(timelinePeriod)} | Uncategorized: {uncategorizedCount}</p>
+        <p className="text-muted text-[0.82rem] m-0">
+          Period: {activePeriodLabel} | Uncategorized: {uncategorizedCount} | Showing: {visibleEditableTransactions.length}
+        </p>
+        {hasExplorerFilters ? (
+          <p className="text-muted text-[0.78rem] m-0">
+            Drill-down filters are active. Adjust them here or clear them to return to the broader transaction list.
+          </p>
+        ) : null}
       </section>
 
       <section className="border border-line rounded-md p-4 bg-surface shadow-soft min-w-0">

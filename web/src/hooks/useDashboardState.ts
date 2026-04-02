@@ -27,6 +27,7 @@ import type {
   ResolvedGoalEntry,
   SankeyMeta,
   TimelinePeriod,
+  TransactionExplorerFilters,
   TransactionBatch
 } from "../domain";
 
@@ -43,6 +44,7 @@ interface DashboardStateInput {
   merchantDetailMode: MerchantDetailMode;
   timelinePeriod: TimelinePeriod;
   rulesFilter: "needs" | "all";
+  transactionExplorerFilters: TransactionExplorerFilters;
   fireCurrentAge: number;
   fireAnnualReturn: number;
   fireMultiplier: number;
@@ -63,6 +65,7 @@ export function useDashboardState({
   merchantDetailMode,
   timelinePeriod,
   rulesFilter,
+  transactionExplorerFilters,
   fireCurrentAge,
   fireAnnualReturn,
   fireMultiplier,
@@ -148,24 +151,59 @@ export function useDashboardState({
     return finalized;
   }, [configuredTaxonomy, effectiveTransactions]);
 
-  const editableTransactions = useMemo(() => {
-    const scoped = effectiveTransactions.filter((t) => isInTimeline(t.date, timelinePeriod));
-    return scoped
+  const allEditableTransactions = useMemo(
+    () => effectiveTransactions
       .filter((t) => t.direction === "debit" && t.amount > 0)
-      .sort((a, b) => b.date.localeCompare(a.date));
-  }, [effectiveTransactions, timelinePeriod]);
+      .sort((a, b) => b.date.localeCompare(a.date)),
+    [effectiveTransactions]
+  );
+
+  const editableTransactions = useMemo(() => {
+    const scoped = allEditableTransactions.filter((t) => isInTimeline(t.date, timelinePeriod));
+    return scoped;
+  }, [allEditableTransactions, timelinePeriod]);
 
   const uncategorizedInPeriod = useMemo(
     () => editableTransactions.filter((t) => resolveCategoryGroupBucket(t) === "Uncategorized"),
     [editableTransactions]
   );
 
+  const transactionExplorerTransactions = useMemo(() => {
+    const defaultMonth = timelinePeriod === "all" ? "" : timelinePeriod;
+    const startMonth = transactionExplorerFilters.startMonth || defaultMonth;
+    const endMonth = transactionExplorerFilters.endMonth || defaultMonth;
+    const rangeStart = startMonth && endMonth && startMonth.localeCompare(endMonth) > 0 ? endMonth : startMonth;
+    const rangeEnd = startMonth && endMonth && startMonth.localeCompare(endMonth) > 0 ? startMonth : endMonth;
+
+    return allEditableTransactions.filter((transaction) => {
+      const transactionMonth = monthKey(transaction.date);
+      if (rangeStart && transactionMonth.localeCompare(rangeStart) < 0) {
+        return false;
+      }
+      if (rangeEnd && transactionMonth.localeCompare(rangeEnd) > 0) {
+        return false;
+      }
+      if (
+        transactionExplorerFilters.categoryGroup &&
+        resolveCategoryGroupBucket(transaction) !== transactionExplorerFilters.categoryGroup
+      ) {
+        return false;
+      }
+      return true;
+    });
+  }, [allEditableTransactions, timelinePeriod, transactionExplorerFilters]);
+
+  const transactionExplorerUncategorizedCount = useMemo(
+    () => transactionExplorerTransactions.filter((t) => resolveCategoryGroupBucket(t) === "Uncategorized").length,
+    [transactionExplorerTransactions]
+  );
+
   const visibleEditableTransactions = useMemo(() => {
     if (rulesFilter === "all") {
-      return editableTransactions;
+      return transactionExplorerTransactions;
     }
-    return uncategorizedInPeriod;
-  }, [rulesFilter, editableTransactions, uncategorizedInPeriod]);
+    return transactionExplorerTransactions.filter((t) => resolveCategoryGroupBucket(t) === "Uncategorized");
+  }, [rulesFilter, transactionExplorerTransactions]);
 
   const flowTitle = incomeMode === "modeled"
     ? merchantDetailMode === "summary"
@@ -465,6 +503,8 @@ export function useDashboardState({
     subcategoryOptionsByGroup,
     editableTransactions,
     uncategorizedInPeriod,
+    transactionExplorerTransactions,
+    transactionExplorerUncategorizedCount,
     visibleEditableTransactions,
     flowTitle,
     chartHeight,

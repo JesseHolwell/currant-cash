@@ -30,6 +30,7 @@ import type {
   ResolvedGoalEntry,
   TimelinePeriod,
   TransactionBatch,
+  TransactionExplorerFilters,
   TransactionDraft
 } from "../../domain";
 import type { useDashboardState } from "../../hooks/useDashboardState";
@@ -53,6 +54,7 @@ interface DashboardProps {
   // UI State
   activeTab: DashboardTab;
   onTabChange: (tab: DashboardTab) => void;
+  onTransactionDrilldown: (preset: Partial<TransactionExplorerFilters>) => void;
   flowStartMode: FlowStartMode;
   onFlowStartModeChange: (mode: FlowStartMode) => void;
   incomeBasisMode: IncomeBasisMode;
@@ -63,6 +65,9 @@ interface DashboardProps {
   onTimelinePeriodChange: (period: TimelinePeriod) => void;
   rulesFilter: "needs" | "all";
   onRulesFilterChange: (filter: "needs" | "all") => void;
+  transactionExplorerFilters: TransactionExplorerFilters;
+  onTransactionExplorerFilterChange: (patch: Partial<TransactionExplorerFilters>) => void;
+  onClearTransactionExplorerFilters: () => void;
 
   // Store state
   transactionBatches: TransactionBatch[];
@@ -222,6 +227,7 @@ export function Dashboard({
   onGoHome,
   activeTab,
   onTabChange,
+  onTransactionDrilldown,
   flowStartMode,
   onFlowStartModeChange,
   incomeBasisMode,
@@ -232,6 +238,9 @@ export function Dashboard({
   onTimelinePeriodChange,
   rulesFilter,
   onRulesFilterChange,
+  transactionExplorerFilters,
+  onTransactionExplorerFilterChange,
+  onClearTransactionExplorerFilters,
   transactionBatches,
   transactionDataStatus,
   error,
@@ -388,6 +397,7 @@ export function Dashboard({
               yearsToFire={derived.fireInsightsData.yearsToFire}
               currentAge={fireCurrentAge}
               onGoToFire={() => onTabChange("fireInsights")}
+              onTransactionDrilldown={onTransactionDrilldown}
             />
           ) : null}
 
@@ -495,9 +505,12 @@ export function Dashboard({
               timelinePeriod={timelinePeriod}
               onTimelinePeriodChange={onTimelinePeriodChange}
               timelineOptions={derived.timelineOptions}
-              uncategorizedCount={derived.uncategorizedInPeriod.length}
+              uncategorizedCount={derived.transactionExplorerUncategorizedCount}
               rulesFilter={rulesFilter}
               onRulesFilterChange={onRulesFilterChange}
+              transactionExplorerFilters={transactionExplorerFilters}
+              onTransactionExplorerFilterChange={onTransactionExplorerFilterChange}
+              onClearTransactionExplorerFilters={onClearTransactionExplorerFilters}
               onClearAllRules={onClearAllRules}
               visibleEditableTransactions={derived.visibleEditableTransactions}
               draftFor={draftFor}

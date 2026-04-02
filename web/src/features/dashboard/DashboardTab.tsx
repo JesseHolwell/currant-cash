@@ -332,6 +332,7 @@ export function DashboardTab({
   yearsToFire,
   currentAge,
   onGoToFire,
+  onTransactionDrilldown,
 }: {
   currency: string;
   accountSummary: AccountSummary;
@@ -351,6 +352,7 @@ export function DashboardTab({
   yearsToFire: number | null;
   currentAge: number;
   onGoToFire: () => void;
+  onTransactionDrilldown: (preset: { startMonth?: string; endMonth?: string; categoryGroup?: string }) => void;
 }) {
   const accountHistoryBounds = useMemo(() => {
     const months = accountHistoryChartData.map((row) => row.month).filter(Boolean).sort(compareMonthValues);
@@ -478,6 +480,28 @@ export function DashboardTab({
   const expenseChartTitle = timelinePeriod === "all"
     ? "Where Your Spending Goes"
     : `Where Your Spending Went · ${expensePeriodLabel}`;
+
+  const handleCategoryPieClick = (categoryName: string) => {
+    if (!categoryName || categoryName === "Other") {
+      return;
+    }
+    onTransactionDrilldown({
+      categoryGroup: categoryName,
+      startMonth: timelinePeriod === "all" ? "" : timelinePeriod,
+      endMonth: timelinePeriod === "all" ? "" : timelinePeriod
+    });
+  };
+
+  const handleMonthlyCategoryClick = (month: string, categoryGroup: string) => {
+    if (!month || !categoryGroup) {
+      return;
+    }
+    onTransactionDrilldown({
+      categoryGroup,
+      startMonth: month,
+      endMonth: month
+    });
+  };
 
   return (
     <>
@@ -805,6 +829,8 @@ export function DashboardTab({
                           key={entry.name}
                           fill={EXPENSE_CHART_COLORS[index % EXPENSE_CHART_COLORS.length]}
                           fillOpacity={index < EXPENSE_CHART_COLORS.length ? 1 : EXPENSE_OVERFLOW_OPACITY}
+                          style={{ cursor: entry.name === "Other" ? "default" : "pointer" }}
+                          onClick={() => handleCategoryPieClick(entry.name)}
                         />
                       ))}
                     </Pie>
@@ -829,7 +855,7 @@ export function DashboardTab({
       {monthlyExpenseData.rows.length > 0 ? (
         <section className="border border-line rounded-md p-4 bg-surface shadow-soft min-w-0">
           <h3 className="font-display text-base tracking-[-0.02em] text-ink">Monthly Spending by Category</h3>
-          <p className="text-muted text-[0.82rem] mt-[0.42rem]">Month-by-month expense breakdown across your imported history.</p>
+          <p className="text-muted text-[0.82rem] mt-[0.42rem]">Month-by-month expense breakdown across your imported history. Click a segment to inspect matching transactions.</p>
           <div className="mt-[0.68rem] h-[360px]">
             <ResponsiveContainer width="100%" height={360}>
               <BarChart data={monthlyExpenseData.rows} margin={{ top: 12, right: 24, bottom: 8, left: 4 }} barCategoryGap="28%">
@@ -858,6 +884,8 @@ export function DashboardTab({
                     stackId="expenses"
                     fill={categoryConfig.color}
                     radius={index === monthlyExpenseData.categories.length - 1 ? [4, 4, 0, 0] : undefined}
+                    style={{ cursor: "pointer" }}
+                    onClick={(data) => handleMonthlyCategoryClick(data?.payload?.month ?? "", categoryConfig.category)}
                   />
                 ))}
               </BarChart>

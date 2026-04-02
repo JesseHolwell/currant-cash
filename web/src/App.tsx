@@ -67,6 +67,7 @@ import type {
   MerchantDetailMode,
   RawTransaction,
   TimelinePeriod,
+  TransactionExplorerFilters,
   TransactionDraft
 } from "./domain";
 
@@ -126,6 +127,11 @@ export default function App() {
   const [merchantDetailMode, setMerchantDetailMode] = useState<MerchantDetailMode>("summary");
   const [timelinePeriod, setTimelinePeriod] = useState<TimelinePeriod>("all");
   const [rulesFilter, setRulesFilter] = useState<"needs" | "all">("needs");
+  const [transactionExplorerFilters, setTransactionExplorerFilters] = useState<TransactionExplorerFilters>({
+    startMonth: "",
+    endMonth: "",
+    categoryGroup: ""
+  });
   const [hasPendingCategoryReapply, setHasPendingCategoryReapply] = useState(false);
   const [settingsStatus, setSettingsStatus] = useState<string | null>(null);
   const [settingsError, setSettingsError] = useState<string | null>(null);
@@ -233,6 +239,7 @@ export default function App() {
     merchantDetailMode,
     timelinePeriod,
     rulesFilter,
+    transactionExplorerFilters,
     fireCurrentAge: isSampleMode ? sd.fireCurrentAge : (birthYear > 0 ? new Date().getFullYear() - birthYear : fireCurrentAge),
     fireAnnualReturn: isSampleMode ? sd.fireAnnualReturn : fireAnnualReturn,
     fireMultiplier: isSampleMode ? sd.fireMultiplier : fireMultiplier,
@@ -246,6 +253,31 @@ export default function App() {
       setTimelinePeriod("all");
     }
   }, [derived.timelineOptions, timelinePeriod]);
+
+  useEffect(() => {
+    setTransactionExplorerFilters((previous) => {
+      let changed = false;
+      const next = { ...previous };
+      const monthOptions = new Set(
+        derived.timelineOptions.filter((option): option is Exclude<TimelinePeriod, "all"> => option !== "all")
+      );
+
+      if (previous.categoryGroup && !derived.categoryGroupOptions.includes(previous.categoryGroup)) {
+        next.categoryGroup = "";
+        changed = true;
+      }
+      if (previous.startMonth && !monthOptions.has(previous.startMonth as Exclude<TimelinePeriod, "all">)) {
+        next.startMonth = "";
+        changed = true;
+      }
+      if (previous.endMonth && !monthOptions.has(previous.endMonth as Exclude<TimelinePeriod, "all">)) {
+        next.endMonth = "";
+        changed = true;
+      }
+
+      return changed ? next : previous;
+    });
+  }, [derived.categoryGroupOptions, derived.timelineOptions]);
 
   // ---------- Monthly check-in ----------
 
@@ -276,6 +308,28 @@ export default function App() {
   function handleGoToTransactionsFromCheckIn(): void {
     localStorage.setItem(MONTHLY_CHECKIN_DISMISSED_KEY, new Date().toISOString());
     setShowCheckIn(false);
+    setActiveTab("transactions");
+  }
+
+  function handleTransactionExplorerFilterChange(patch: Partial<TransactionExplorerFilters>): void {
+    setTransactionExplorerFilters((previous) => ({ ...previous, ...patch }));
+  }
+
+  function handleClearTransactionExplorerFilters(): void {
+    setTransactionExplorerFilters({
+      startMonth: "",
+      endMonth: "",
+      categoryGroup: ""
+    });
+  }
+
+  function handleTransactionDrilldown(preset: Partial<TransactionExplorerFilters>): void {
+    setTransactionExplorerFilters({
+      startMonth: preset.startMonth ?? "",
+      endMonth: preset.endMonth ?? preset.startMonth ?? "",
+      categoryGroup: preset.categoryGroup ?? ""
+    });
+    setRulesFilter("all");
     setActiveTab("transactions");
   }
 
@@ -1013,6 +1067,7 @@ export default function App() {
       onGoHome={() => setShowLanding(true)}
       activeTab={activeTab}
       onTabChange={setActiveTab}
+      onTransactionDrilldown={handleTransactionDrilldown}
       flowStartMode={flowStartMode}
       onFlowStartModeChange={setFlowStartMode}
       incomeBasisMode={incomeBasisMode}
@@ -1023,6 +1078,9 @@ export default function App() {
       onTimelinePeriodChange={setTimelinePeriod}
       rulesFilter={rulesFilter}
       onRulesFilterChange={setRulesFilter}
+      transactionExplorerFilters={transactionExplorerFilters}
+      onTransactionExplorerFilterChange={handleTransactionExplorerFilterChange}
+      onClearTransactionExplorerFilters={handleClearTransactionExplorerFilters}
       transactionBatches={isSampleMode ? sd.transactionBatches : transactionBatches}
       transactionDataStatus={transactionDataStatus}
       error={error}

@@ -50,6 +50,12 @@ export type TransactionDraft = {
   applySimilar: boolean;
 };
 
+export type TransactionExplorerFilters = {
+  startMonth: string;
+  endMonth: string;
+  categoryGroup: string;
+};
+
 export type AiCategorySuggestion = {
   transactionId: string;
   categoryGroup: string;
