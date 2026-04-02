@@ -47,6 +47,26 @@
   background-clip: text;
 }
 
+.app-nav-mobile-menu {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+
+.app-nav-mobile-menu:hover {
+  background: var(--fill-hover);
+  color: var(--ink);
+  border-color: var(--line-strong);
+}
+
 .app-nav-icon-btn {
   display: flex;
   align-items: center;
@@ -129,4 +149,18 @@
 
 .app-nav-sign-in:hover {
   background: rgba(139, 41, 66, 0.15);
+}
+
+@media (max-width: 1023px) {
+  .app-nav-mobile-menu {
+    display: inline-flex;
+  }
+
+  .app-nav-wordmark {
+    font-size: 1rem;
+  }
+
+  .app-nav-sign-in {
+    display: none;
+  }
 }

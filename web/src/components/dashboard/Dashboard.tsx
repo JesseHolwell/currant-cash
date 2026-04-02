@@ -1,4 +1,5 @@
 import './Dashboard.css';
+import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { AccountsTab } from "../../features/accounts/AccountsTab";
 import { GoalsTab } from "../../features/goals/GoalsTab";
@@ -321,6 +322,37 @@ export function Dashboard({
   onStartCheckIn,
 }: DashboardProps) {
   const activeTabMeta = TAB_META[activeTab];
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isMobileNavOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsMobileNavOpen(false);
+      }
+    };
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isMobileNavOpen]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setIsMobileNavOpen(false);
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
@@ -331,21 +363,57 @@ export function Dashboard({
         onSignIn={onSignIn}
         onGoHome={onGoHome}
         onGoToSettings={() => onTabChange("settings")}
+        onToggleMobileNav={() => setIsMobileNavOpen((open) => !open)}
+        isMobileNavOpen={isMobileNavOpen}
       />
 
       <main className="flex-1 w-full flex flex-row overflow-hidden animate-[rise_400ms_cubic-bezier(0.2,0.95,0.35,1)]">
-        <Sidebar
-          tabMeta={TAB_META}
-          activeTab={activeTab}
-          onTabChange={onTabChange}
-          accountSummary={derived.accountSummary}
-          goals={derived.resolvedGoals}
-          currency={derived.meta.currency}
-          checkInDue={checkInDue}
-          onStartCheckIn={onStartCheckIn}
-        />
+        <div className="hidden lg:block h-full">
+          <Sidebar
+            tabMeta={TAB_META}
+            activeTab={activeTab}
+            onTabChange={onTabChange}
+            accountSummary={derived.accountSummary}
+            goals={derived.resolvedGoals}
+            currency={derived.meta.currency}
+            checkInDue={checkInDue}
+            onStartCheckIn={onStartCheckIn}
+          />
+        </div>
 
-        <section className="flex-1 min-w-0 overflow-y-auto px-6 py-5 pb-10 grid gap-[0.85rem] content-start">
+        {isMobileNavOpen ? (
+          <div className="mobile-nav-shell is-open lg:hidden">
+            <button
+              type="button"
+              className="mobile-nav-backdrop"
+              aria-label="Close navigation menu"
+              onClick={() => setIsMobileNavOpen(false)}
+            />
+            <div
+              id="mobile-dashboard-navigation"
+              className="mobile-nav-drawer"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Dashboard navigation"
+            >
+              <Sidebar
+                tabMeta={TAB_META}
+                activeTab={activeTab}
+                onTabChange={onTabChange}
+                accountSummary={derived.accountSummary}
+                goals={derived.resolvedGoals}
+                currency={derived.meta.currency}
+                checkInDue={checkInDue}
+                onStartCheckIn={onStartCheckIn}
+                className="w-full border-r-0"
+                showSummaryCards={false}
+                onNavigate={() => setIsMobileNavOpen(false)}
+              />
+            </div>
+          </div>
+        ) : null}
+
+        <section className="flex-1 min-w-0 overflow-y-auto px-4 sm:px-6 py-5 pb-10 grid gap-[0.85rem] content-start">
           {isSampleMode ? (
             <div className="sample-banner">
               <span className="sample-banner-text">

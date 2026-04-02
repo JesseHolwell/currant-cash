@@ -99,6 +99,9 @@ export function Sidebar({
   currency,
   checkInDue,
   onStartCheckIn,
+  className = "",
+  showSummaryCards = true,
+  onNavigate,
 }: {
   tabMeta: TabMeta;
   activeTab: DashboardTab;
@@ -108,9 +111,22 @@ export function Sidebar({
   currency: string;
   checkInDue: boolean;
   onStartCheckIn: () => void;
+  className?: string;
+  showSummaryCards?: boolean;
+  onNavigate?: () => void;
 }) {
+  const handleTabChange = (tab: DashboardTab) => {
+    onTabChange(tab);
+    onNavigate?.();
+  };
+
+  const handleStartCheckIn = () => {
+    onStartCheckIn();
+    onNavigate?.();
+  };
+
   return (
-    <aside className="flex-none w-[260px] h-full overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(61,36,56,0.15)_transparent] bg-sidebar border-r border-line p-4 flex flex-col gap-[0.85rem]">
+    <aside className={`flex-none w-[260px] h-full overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(61,36,56,0.15)_transparent] bg-sidebar border-r border-line p-4 flex flex-col gap-[0.85rem] ${className}`.trim()}>
       <nav className="grid gap-[0.18rem]" aria-label="Dashboard navigation">
         {NAV_TABS.map((tab) => {
           const Icon = TAB_ICONS[tab];
@@ -119,7 +135,7 @@ export function Sidebar({
               key={tab}
               type="button"
               className={activeTab === tab ? "nav-btn active" : "nav-btn"}
-              onClick={() => onTabChange(tab)}
+              onClick={() => handleTabChange(tab)}
               aria-current={activeTab === tab ? "page" : undefined}
             >
               {Icon ? <Icon /> : null}
@@ -131,7 +147,7 @@ export function Sidebar({
         <button
           type="button"
           className={checkInDue ? "nav-btn nav-btn-checkin nav-btn-checkin--due" : "nav-btn nav-btn-checkin"}
-          onClick={onStartCheckIn}
+          onClick={handleStartCheckIn}
           title={checkInDue ? "It's time for your monthly update" : "Monthly check-in"}
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -144,45 +160,49 @@ export function Sidebar({
         </button>
       </nav>
 
-      <section className="border border-line rounded-md p-3 bg-surface">
-        <p className="uppercase tracking-[0.14em] text-[0.64rem] text-muted font-bold mb-2">Accounts</p>
-        <ul className="m-0 p-0 list-none">
-          {accountSummary.byBucket.slice(0, 6).map((item) => (
-            <li key={item.bucket} className="flex items-center justify-between gap-2 text-[0.82rem] py-[0.36rem] border-b border-line text-ink-soft last:border-b-0">
-              <span>{item.bucket}</span>
-              <strong className="text-[0.82rem] text-ink">{formatCurrency(item.total, currency)}</strong>
-            </li>
-          ))}
-        </ul>
-        <div className="mt-2 flex items-center justify-between font-bold text-ink">
-          <span>Net Worth</span>
-          <strong>{formatCurrency(accountSummary.netWorth, currency)}</strong>
-        </div>
-      </section>
+      {showSummaryCards ? (
+        <>
+          <section className="border border-line rounded-md p-3 bg-surface">
+            <p className="uppercase tracking-[0.14em] text-[0.64rem] text-muted font-bold mb-2">Accounts</p>
+            <ul className="m-0 p-0 list-none">
+              {accountSummary.byBucket.slice(0, 6).map((item) => (
+                <li key={item.bucket} className="flex items-center justify-between gap-2 text-[0.82rem] py-[0.36rem] border-b border-line text-ink-soft last:border-b-0">
+                  <span>{item.bucket}</span>
+                  <strong className="text-[0.82rem] text-ink">{formatCurrency(item.total, currency)}</strong>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-2 flex items-center justify-between font-bold text-ink">
+              <span>Net Worth</span>
+              <strong>{formatCurrency(accountSummary.netWorth, currency)}</strong>
+            </div>
+          </section>
 
-      <section className="border border-line rounded-md p-3 bg-surface">
-        <p className="uppercase tracking-[0.14em] text-[0.64rem] text-muted font-bold mb-2">Goals</p>
-        <ul className="m-0 p-0 list-none grid gap-[0.52rem]">
-          {goals.slice(0, 4).map((goal) => (
-            <li key={goal.id}>
-              <div className="grid gap-[0.2rem]">
-                <span className="text-[0.82rem] font-semibold text-ink">{goal.name || "Untitled Goal"}</span>
-                <small className="text-muted text-[0.72rem]">
-                  {Math.round(goal.progress * 100)}% ·{" "}
-                  {formatCurrency(Math.round(goal.currentValue), currency)} /{" "}
-                  {formatCurrency(Math.round(goal.target), currency)}
-                </small>
-              </div>
-              <div className="mt-[0.28rem] h-[6px] rounded-full bg-[var(--accent-ring)] overflow-hidden">
-                <div
-                  className="goal-mini-fill"
-                  style={{ width: `${Math.round(goal.progress * 100)}%` }}
-                />
-              </div>
-            </li>
-          ))}
-        </ul>
-      </section>
+          <section className="border border-line rounded-md p-3 bg-surface">
+            <p className="uppercase tracking-[0.14em] text-[0.64rem] text-muted font-bold mb-2">Goals</p>
+            <ul className="m-0 p-0 list-none grid gap-[0.52rem]">
+              {goals.slice(0, 4).map((goal) => (
+                <li key={goal.id}>
+                  <div className="grid gap-[0.2rem]">
+                    <span className="text-[0.82rem] font-semibold text-ink">{goal.name || "Untitled Goal"}</span>
+                    <small className="text-muted text-[0.72rem]">
+                      {Math.round(goal.progress * 100)}% ·{" "}
+                      {formatCurrency(Math.round(goal.currentValue), currency)} /{" "}
+                      {formatCurrency(Math.round(goal.target), currency)}
+                    </small>
+                  </div>
+                  <div className="mt-[0.28rem] h-[6px] rounded-full bg-[var(--accent-ring)] overflow-hidden">
+                    <div
+                      className="goal-mini-fill"
+                      style={{ width: `${Math.round(goal.progress * 100)}%` }}
+                    />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </>
+      ) : null}
     </aside>
   );
 }

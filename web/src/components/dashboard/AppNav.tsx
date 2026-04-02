@@ -9,6 +9,8 @@ export function AppNav({
   onSignIn,
   onGoHome,
   onGoToSettings,
+  onToggleMobileNav,
+  isMobileNavOpen = false,
 }: {
   user: User | null;
   isDark: boolean;
@@ -16,26 +18,56 @@ export function AppNav({
   onSignIn: () => void;
   onGoHome: () => void;
   onGoToSettings: () => void;
+  onToggleMobileNav?: () => void;
+  isMobileNavOpen?: boolean;
 }) {
   const avatarInitial = user?.email?.charAt(0).toUpperCase() ?? "?";
   const avatarUrl = user?.user_metadata?.["avatar_url"] as string | undefined;
 
   return (
-    <nav className="sticky top-0 z-20 w-full h-[var(--app-nav-height)] flex items-center justify-between px-6 bg-[var(--bg-main)] border-b border-line">
-      <button
-        type="button"
-        className="flex items-center gap-[0.6rem] bg-none border-0 px-2 py-1 cursor-pointer rounded-md transition-opacity hover:opacity-75"
-        onClick={onGoHome}
-        aria-label="Go to home"
-      >
-        <div className="brand-mark brand-mark-sm" aria-hidden="true">
-          <span className="brand-leaf" />
-          <span className="brand-berry brand-berry-top" />
-          <span className="brand-berry brand-berry-left" />
-          <span className="brand-berry brand-berry-right" />
-        </div>
-        <span className="app-nav-wordmark">Currant</span>
-      </button>
+    <nav className="sticky top-0 z-20 w-full h-[var(--app-nav-height)] flex items-center justify-between px-4 sm:px-6 bg-[var(--bg-main)] border-b border-line">
+      <div className="flex items-center gap-2 min-w-0">
+        {onToggleMobileNav ? (
+          <button
+            type="button"
+            className="app-nav-mobile-menu"
+            onClick={onToggleMobileNav}
+            aria-label={isMobileNavOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-controls="mobile-dashboard-navigation"
+            aria-expanded={isMobileNavOpen}
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+              {isMobileNavOpen ? (
+                <>
+                  <path d="M4.5 4.5l9 9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                  <path d="M13.5 4.5l-9 9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                </>
+              ) : (
+                <>
+                  <path d="M3.5 5.25h11" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                  <path d="M3.5 9h11" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                  <path d="M3.5 12.75h11" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                </>
+              )}
+            </svg>
+          </button>
+        ) : null}
+
+        <button
+          type="button"
+          className="flex items-center gap-[0.6rem] bg-none border-0 px-2 py-1 cursor-pointer rounded-md transition-opacity hover:opacity-75 min-w-0"
+          onClick={onGoHome}
+          aria-label="Go to home"
+        >
+          <div className="brand-mark brand-mark-sm" aria-hidden="true">
+            <span className="brand-leaf" />
+            <span className="brand-berry brand-berry-top" />
+            <span className="brand-berry brand-berry-left" />
+            <span className="brand-berry brand-berry-right" />
+          </div>
+          <span className="app-nav-wordmark">Currant</span>
+        </button>
+      </div>
 
       <div className="flex items-center gap-1">
         <button
