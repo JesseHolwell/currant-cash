@@ -2,6 +2,13 @@
 
 Captured for thinking-through. Not commitments.
 
+## Status (2026-05-12)
+
+- ✅ **#1 cadence** — partial. Cadence relabel shipped (snapshot field now ISO date, UI uses chosen cadence word). Read-side cadence toggle (re-bucketing Sankey/savings rate) **deferred**.
+- ✅ **#2 Australian FIRE** — shipped. `lockedUntilAge` on accounts, two-phase model (bridge + perpetual), preservation age setting, Two-Phase FIRE milestones. **Loose end:** super contributions during bridge years not yet folded in (model is conservatively pessimistic). Two-line liquid/locked projection chart still pending.
+- ⏸️ **#3 timeline** — deferred. Exciting but needs more thought on shape before building.
+- ⏸️ **#4 travel mode** — deferred. Documented for later. Pain is real (Thailand trip) but punting because it's bigger than it looks and timeline (#3) likely subsumes the date-range primitive.
+
 ## 1. Fortnightly-first interface
 
 **Pain:** I'm paid fortnightly but the whole app is monthly (account snapshots, expense breakdowns, "monthly update" cadence).

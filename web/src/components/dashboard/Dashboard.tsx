@@ -636,6 +636,7 @@ export function Dashboard({
               perpetualTarget={derived.fireInsightsData.perpetualTarget}
               lockedTargetToday={derived.fireInsightsData.lockedTargetToday}
               projectedLockedAtPreservation={derived.fireInsightsData.projectedLockedAtPreservation}
+              annualLockedContribution={derived.fireInsightsData.annualLockedContribution}
               bridgeAchieved={derived.fireInsightsData.bridgeAchieved}
               perpetualAchieved={derived.fireInsightsData.perpetualAchieved}
               twoPhaseAchieved={derived.fireInsightsData.twoPhaseAchieved}

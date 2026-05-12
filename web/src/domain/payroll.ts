@@ -22,6 +22,22 @@ export type CadenceLabels = {
   days: number;
 };
 
+/**
+ * Annual net contribution to locked retirement accounts (e.g. super, 401k)
+ * implied by payroll: sum of employer-contribution fields minus contribution-tax
+ * fields, scaled by pay periods per year. Returns 0 if there are no
+ * employer-contribution fields configured.
+ */
+export function annualNetLockedContribution(draft: PayrollDraft): number {
+  const periodsPerYear = getPayFrequencyMeta(draft.payFrequency).periodsPerYear;
+  let perPeriod = 0;
+  for (const field of draft.fields) {
+    if (field.kind === "employer_contribution") perPeriod += field.amount;
+    else if (field.kind === "contribution_tax") perPeriod -= field.amount;
+  }
+  return Math.max(0, perPeriod * periodsPerYear);
+}
+
 export function getCadenceLabels(frequency: PayFrequency): CadenceLabels {
   switch (frequency) {
     case "weekly":

@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import {
+  annualNetLockedContribution,
   applyManualRules,
   buildIncomeModelFromTransactions,
   buildResolvedGoals,
@@ -409,7 +410,17 @@ export function useDashboardState({
     const bridgeYears = Math.max(0, firePreservationAge - fireCurrentAge);
     const bridgeTarget = pvAnnuity(annualExpenses, bridgeYears, annualReturnRate);
     const perpetualTarget = fireNumber;
-    const projectedLockedAtPreservation = lockedNW * Math.pow(1 + annualReturnRate, bridgeYears);
+    // Future value of a stream of annual contributions C over N years at rate r:
+    // FV = C × ((1+r)^N − 1) / r   (FV of an ordinary annuity)
+    const annualLockedContribution = annualNetLockedContribution(payrollDraft);
+    function fvAnnuity(c: number, years: number, r: number): number {
+      if (years <= 0 || c <= 0) return 0;
+      if (r <= 0) return c * years;
+      return c * (Math.pow(1 + r, years) - 1) / r;
+    }
+    const projectedLockedAtPreservation =
+      lockedNW * Math.pow(1 + annualReturnRate, bridgeYears)
+      + fvAnnuity(annualLockedContribution, bridgeYears, annualReturnRate);
     // Equivalent locked balance needed today so it grows to perpetualTarget by preservation age.
     const lockedTargetToday = annualReturnRate > 0 && bridgeYears > 0
       ? perpetualTarget / Math.pow(1 + annualReturnRate, bridgeYears)
@@ -439,9 +450,10 @@ export function useDashboardState({
         let lockedT = lockedNW;
         for (let t = 1; t <= 60; t++) {
           liquidT = liquidT * annualGrowthFactor + annualContribution;
-          lockedT = lockedT * annualGrowthFactor;
+          lockedT = lockedT * annualGrowthFactor + annualLockedContribution;
           const yearsRemaining = Math.max(0, firePreservationAge - fireCurrentAge - t);
           const bridgeNeed = pvAnnuity(annualExpenses, yearsRemaining, annualReturnRate);
+          // Once user stops working (FIRE'd), no further super contributions.
           const lockedAtPres = lockedT * Math.pow(1 + annualReturnRate, yearsRemaining);
           if (liquidT >= bridgeNeed && lockedAtPres >= perpetualTarget) {
             yearsToFire = t;
@@ -482,7 +494,7 @@ export function useDashboardState({
       });
       if (i > 0 && (liquidProj + lockedProj) >= fireNumber * 1.5) break;
       liquidProj = liquidProj * annualGrowthFactor + annualContribution;
-      lockedProj = lockedProj * annualGrowthFactor;
+      lockedProj = lockedProj * annualGrowthFactor + annualLockedContribution;
     }
 
     return {
@@ -504,6 +516,7 @@ export function useDashboardState({
       perpetualTarget,
       lockedTargetToday,
       projectedLockedAtPreservation,
+      annualLockedContribution,
       bridgeAchieved,
       perpetualAchieved,
       twoPhaseAchieved

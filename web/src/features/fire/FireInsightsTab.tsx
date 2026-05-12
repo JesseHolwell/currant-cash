@@ -91,6 +91,7 @@ export function FireInsightsTab({
   bridgeTarget,
   perpetualTarget,
   projectedLockedAtPreservation,
+  annualLockedContribution,
   bridgeAchieved,
   perpetualAchieved,
   twoPhaseAchieved,
@@ -122,6 +123,7 @@ export function FireInsightsTab({
   perpetualTarget: number;
   lockedTargetToday: number;
   projectedLockedAtPreservation: number;
+  annualLockedContribution: number;
   bridgeAchieved: boolean;
   perpetualAchieved: boolean;
   twoPhaseAchieved: boolean;
@@ -351,7 +353,11 @@ export function FireInsightsTab({
             />
             <FireMilestone
               label="Super at Preservation"
-              description={`Locked balance projected forward (no further contributions) vs. ${fireMultiplier}× annual expenses.`}
+              description={
+                annualLockedContribution > 0
+                  ? `Locked balance projected forward with ${formatCurrency(Math.round(annualLockedContribution), currency)}/yr in contributions vs. ${fireMultiplier}× annual expenses.`
+                  : `Locked balance projected forward (no payroll contributions configured) vs. ${fireMultiplier}× annual expenses. Set up employer contributions in the Income tab to refine this.`
+              }
               target={perpetualTarget}
               current={projectedLockedAtPreservation}
               currency={currency}
