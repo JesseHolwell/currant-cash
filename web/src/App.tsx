@@ -58,6 +58,7 @@ import { MonthlyCheckInWizard } from "./components/monthly-checkin/MonthlyCheckI
 import { SAMPLE_DATASET } from "./domain/sampleData";
 import type {
   AccountEntry,
+  AccountHistorySnapshot,
   CategoryDefinition,
   CategorySubcategoryDefinition,
   DashboardTab,
@@ -590,6 +591,10 @@ export default function App() {
 
   function removeAccountHistorySnapshot(snapshotId: string): void {
     setAccountHistory((prev) => prev.filter((s) => s.id !== snapshotId));
+  }
+
+  function replaceAccountHistory(snapshots: AccountHistorySnapshot[]): void {
+    setAccountHistory(() => [...snapshots].sort((a, b) => a.date.localeCompare(b.date)));
   }
 
   // ---------- Transaction / CSV handlers ----------
@@ -1142,6 +1147,7 @@ export default function App() {
       onUpdateAccountHistoryDate={updateAccountHistoryDate}
       onUpdateAccountHistoryBalance={updateAccountHistoryBalance}
       onRemoveAccountHistorySnapshot={removeAccountHistorySnapshot}
+      onReplaceAccountHistory={replaceAccountHistory}
       onPayrollDraftChange={(patch) => setPayrollDraft((prev) => ({ ...prev, ...patch }))}
       onFireCurrentAgeChange={setFireCurrentAge}
       onFireAnnualReturnChange={setFireAnnualReturn}

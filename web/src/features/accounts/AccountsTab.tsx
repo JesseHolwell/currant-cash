@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { formatCurrency, getCadenceLabels } from "../../domain";
 import type { AccountEntry, AccountHistorySnapshot, PayFrequency } from "../../domain";
+import { ImportSnapshotsModal } from "./ImportSnapshotsModal";
 
 type AccountKind = "asset" | "liability";
 
@@ -23,7 +25,8 @@ export function AccountsTab({
   onAddAccountHistorySnapshot,
   onUpdateAccountHistoryDate,
   onUpdateAccountHistoryBalance,
-  onRemoveAccountHistorySnapshot
+  onRemoveAccountHistorySnapshot,
+  onReplaceAccountHistory
 }: {
   currency: string;
   accountSummary: AccountSummary;
@@ -37,8 +40,10 @@ export function AccountsTab({
   onUpdateAccountHistoryDate: (snapshotId: string, date: string) => void;
   onUpdateAccountHistoryBalance: (snapshotId: string, accountId: string, value: number) => void;
   onRemoveAccountHistorySnapshot: (snapshotId: string) => void;
+  onReplaceAccountHistory: (snapshots: AccountHistorySnapshot[]) => void;
 }) {
   const cadence = getCadenceLabels(payFrequency);
+  const [showImport, setShowImport] = useState(false);
   return (
     <>
       <section className="grid grid-cols-4 gap-[0.65rem]">
@@ -136,9 +141,14 @@ export function AccountsTab({
       <section className="border border-line rounded-md p-4 bg-surface shadow-soft min-w-0">
         <div className="flex items-center justify-between gap-3 mb-2">
           <h3 className="font-display text-base tracking-[-0.02em] text-ink">Account Balance History</h3>
-          <button type="button" className="mode-btn active" onClick={onAddAccountHistorySnapshot}>
-            Add Snapshot
-          </button>
+          <div className="flex items-center gap-2">
+            <button type="button" className="mode-btn" onClick={() => setShowImport(true)}>
+              Import…
+            </button>
+            <button type="button" className="mode-btn active" onClick={onAddAccountHistorySnapshot}>
+              Add Snapshot
+            </button>
+          </div>
         </div>
         <p className="text-muted text-[0.82rem] mt-[0.42rem]">
           Record balances each {cadence.noun} (or whenever you check in). Liabilities should be entered as positive balances;
@@ -199,6 +209,15 @@ export function AccountsTab({
           </div>
         )}
       </section>
+
+      {showImport ? (
+        <ImportSnapshotsModal
+          accounts={accountEntries}
+          existingSnapshots={accountHistorySnapshots}
+          onClose={() => setShowImport(false)}
+          onImport={(snapshots) => onReplaceAccountHistory(snapshots)}
+        />
+      ) : null}
     </>
   );
 }

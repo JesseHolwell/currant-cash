@@ -133,6 +133,7 @@ interface DashboardProps {
   onRemoveGoal: (id: string) => void;
   onAddAccountHistorySnapshot: () => void;
   onUpdateAccountHistoryDate: (snapshotId: string, date: string) => void;
+  onReplaceAccountHistory: (snapshots: AccountHistorySnapshot[]) => void;
   onUpdateAccountHistoryBalance: (snapshotId: string, accountId: string, value: number) => void;
   onRemoveAccountHistorySnapshot: (snapshotId: string) => void;
   onPayrollDraftChange: (patch: Partial<PayrollDraft>) => void;
@@ -298,6 +299,7 @@ export function Dashboard({
   onRemoveGoal,
   onAddAccountHistorySnapshot,
   onUpdateAccountHistoryDate,
+  onReplaceAccountHistory,
   onUpdateAccountHistoryBalance,
   onRemoveAccountHistorySnapshot,
   onPayrollDraftChange,
@@ -495,6 +497,7 @@ export function Dashboard({
               onUpdateAccountHistoryDate={onUpdateAccountHistoryDate}
               onUpdateAccountHistoryBalance={onUpdateAccountHistoryBalance}
               onRemoveAccountHistorySnapshot={onRemoveAccountHistorySnapshot}
+              onReplaceAccountHistory={onReplaceAccountHistory}
             />
           ) : null}
 
