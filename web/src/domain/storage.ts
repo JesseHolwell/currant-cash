@@ -24,6 +24,7 @@ export function parseStoredAccountEntries(raw: unknown): AccountEntry[] {
       bucket?: unknown;
       kind?: unknown;
       value?: unknown;
+      lockedUntilAge?: unknown;
     };
     const name = typeof candidate.name === "string" ? candidate.name.trim() : "";
     if (!name) {
@@ -32,12 +33,17 @@ export function parseStoredAccountEntries(raw: unknown): AccountEntry[] {
     const bucket = typeof candidate.bucket === "string" && candidate.bucket.trim() ? candidate.bucket.trim() : "Other";
     const kind: AccountKind = candidate.kind === "liability" ? "liability" : "asset";
     const numericValue = typeof candidate.value === "number" ? candidate.value : Number(candidate.value);
+    const rawLock = typeof candidate.lockedUntilAge === "number" ? candidate.lockedUntilAge : Number(candidate.lockedUntilAge);
+    const lockedUntilAge = kind === "asset" && Number.isFinite(rawLock) && rawLock >= 16 && rawLock <= 100
+      ? Math.round(rawLock)
+      : undefined;
     next.push({
       id: typeof candidate.id === "string" && candidate.id.trim().length > 0 ? candidate.id : createLocalId("acct"),
       name,
       bucket,
       kind,
-      value: Number.isFinite(numericValue) ? Number(numericValue.toFixed(2)) : 0
+      value: Number.isFinite(numericValue) ? Number(numericValue.toFixed(2)) : 0,
+      ...(lockedUntilAge !== undefined ? { lockedUntilAge } : {})
     });
   }
   return next;

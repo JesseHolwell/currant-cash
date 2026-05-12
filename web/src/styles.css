@@ -229,7 +229,7 @@ select {
 
 .account-row {
   display: grid;
-  grid-template-columns: minmax(180px, 1.3fr) minmax(120px, 0.8fr) minmax(160px, 0.75fr) auto;
+  grid-template-columns: minmax(180px, 1.3fr) minmax(120px, 0.8fr) minmax(160px, 0.75fr) minmax(80px, auto) auto;
   gap: 0.45rem;
   align-items: center;
   border: 1px solid var(--line);

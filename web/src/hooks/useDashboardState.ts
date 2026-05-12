@@ -48,6 +48,7 @@ interface DashboardStateInput {
   fireCurrentAge: number;
   fireAnnualReturn: number;
   fireMultiplier: number;
+  firePreservationAge: number;
   /** User-configured currency override. Falls back to batch-derived currency. */
   currency?: string;
 }
@@ -69,6 +70,7 @@ export function useDashboardState({
   fireCurrentAge,
   fireAnnualReturn,
   fireMultiplier,
+  firePreservationAge,
   currency: currencyOverride
 }: DashboardStateInput) {
   const transactions = useMemo(
@@ -250,22 +252,33 @@ export function useDashboardState({
   const accountSummary = useMemo(() => {
     let assets = 0;
     let liabilities = 0;
+    let lockedAssets = 0;
     const buckets = new Map<string, number>();
 
     for (const account of effectiveAccountEntries) {
       const signedValue = account.kind === "asset" ? account.value : -account.value;
       if (account.kind === "asset") {
         assets += account.value;
+        if (account.lockedUntilAge !== undefined) {
+          lockedAssets += account.value;
+        }
       } else {
         liabilities += account.value;
       }
       buckets.set(account.bucket, (buckets.get(account.bucket) ?? 0) + signedValue);
     }
 
+    const netWorth = assets - liabilities;
+    // Liquid net worth = everything we could actually spend before preservation age.
+    // Liabilities reduce the liquid side (they're due before retirement, not against locked super).
+    const liquidNetWorth = (assets - lockedAssets) - liabilities;
+
     return {
       assets: Number(assets.toFixed(2)),
       liabilities: Number(liabilities.toFixed(2)),
-      netWorth: Number((assets - liabilities).toFixed(2)),
+      netWorth: Number(netWorth.toFixed(2)),
+      lockedAssets: Number(lockedAssets.toFixed(2)),
+      liquidNetWorth: Number(liquidNetWorth.toFixed(2)),
       byBucket: [...buckets.entries()].map(([bucket, total]) => ({ bucket, total })).sort((a, b) => b.total - a.total)
     };
   }, [effectiveAccountEntries]);
@@ -378,8 +391,33 @@ export function useDashboardState({
     const fireNumber = annualExpenses * fireMultiplier;
     const leanFireNumber = fireNumber * 0.6;
     const monthlyReturn = Math.pow(1 + fireAnnualReturn / 100, 1 / 12) - 1;
-    const currentNW = accountSummary.netWorth;
+    const annualReturnRate = fireAnnualReturn / 100;
+    const totalNW = accountSummary.netWorth;
+    const liquidNW = accountSummary.liquidNetWorth;
+    const lockedNW = accountSummary.lockedAssets;
+    const hasLockedAssets = lockedNW > 0;
     const monthlySavings = inferredMonthlyNetFlow;
+
+    // PV of an annuity: amount needed today to fund `payment` annually for `years` years at rate r.
+    function pvAnnuity(payment: number, years: number, r: number): number {
+      if (years <= 0 || payment <= 0) return 0;
+      if (r <= 0) return payment * years;
+      return payment * (1 - Math.pow(1 + r, -years)) / r;
+    }
+
+    // Two-phase targets — used when any account is locked (e.g. super).
+    const bridgeYears = Math.max(0, firePreservationAge - fireCurrentAge);
+    const bridgeTarget = pvAnnuity(annualExpenses, bridgeYears, annualReturnRate);
+    const perpetualTarget = fireNumber;
+    const projectedLockedAtPreservation = lockedNW * Math.pow(1 + annualReturnRate, bridgeYears);
+    // Equivalent locked balance needed today so it grows to perpetualTarget by preservation age.
+    const lockedTargetToday = annualReturnRate > 0 && bridgeYears > 0
+      ? perpetualTarget / Math.pow(1 + annualReturnRate, bridgeYears)
+      : perpetualTarget;
+
+    const bridgeAchieved = bridgeTarget > 0 && liquidNW >= bridgeTarget;
+    const perpetualAchieved = perpetualTarget > 0 && projectedLockedAtPreservation >= perpetualTarget;
+    const twoPhaseAchieved = bridgeAchieved && perpetualAchieved;
 
     const yearsUntilRetire = Math.max(0, 65 - fireCurrentAge);
     const coastFireNumber =
@@ -390,11 +428,32 @@ export function useDashboardState({
     let yearsToFire: number | null = null;
     if (fireNumber <= 0 || annualExpenses <= 0) {
       yearsToFire = null;
-    } else if (currentNW >= fireNumber) {
+    } else if (hasLockedAssets) {
+      // Two-phase: iterate forward; FIRE achieved when liquid covers bridge AND projected super covers perpetual.
+      if (twoPhaseAchieved) {
+        yearsToFire = 0;
+      } else if (monthlyReturn > 0 && monthlySavings > 0) {
+        const annualGrowthFactor = Math.pow(1 + monthlyReturn, 12);
+        const annualContribution = monthlySavings * ((annualGrowthFactor - 1) / monthlyReturn);
+        let liquidT = liquidNW;
+        let lockedT = lockedNW;
+        for (let t = 1; t <= 60; t++) {
+          liquidT = liquidT * annualGrowthFactor + annualContribution;
+          lockedT = lockedT * annualGrowthFactor;
+          const yearsRemaining = Math.max(0, firePreservationAge - fireCurrentAge - t);
+          const bridgeNeed = pvAnnuity(annualExpenses, yearsRemaining, annualReturnRate);
+          const lockedAtPres = lockedT * Math.pow(1 + annualReturnRate, yearsRemaining);
+          if (liquidT >= bridgeNeed && lockedAtPres >= perpetualTarget) {
+            yearsToFire = t;
+            break;
+          }
+        }
+      }
+    } else if (totalNW >= fireNumber) {
       yearsToFire = 0;
     } else if (monthlyReturn > 0 && monthlySavings > 0) {
       const n =
-        Math.log((fireNumber * monthlyReturn + monthlySavings) / (currentNW * monthlyReturn + monthlySavings)) /
+        Math.log((fireNumber * monthlyReturn + monthlySavings) / (totalNW * monthlyReturn + monthlySavings)) /
         Math.log(1 + monthlyReturn);
       yearsToFire = n / 12;
     }
@@ -404,18 +463,26 @@ export function useDashboardState({
     const grossMonthlyIncome = payrollDraft.grossPay > 0 ? payrollDraft.grossPay * freqMultiplier : null;
     const savingsRate = grossMonthlyIncome ? (monthlySavings / grossMonthlyIncome) * 100 : null;
 
-    const projectionData: Array<{ age: number; label: string; netWorth: number }> = [];
-    let nw = currentNW;
+    // Projection: track liquid + locked separately so the chart can show them.
+    const projectionData: Array<{ age: number; label: string; netWorth: number; liquid: number; locked: number }> = [];
+    let liquidProj = liquidNW;
+    let lockedProj = lockedNW;
     const annualGrowthFactor = Math.pow(1 + monthlyReturn, 12);
     const annualContribution =
       monthlyReturn > 0
         ? monthlySavings * ((annualGrowthFactor - 1) / monthlyReturn)
         : monthlySavings * 12;
-    const maxYears = 60;
-    for (let i = 0; i <= maxYears; i++) {
-      projectionData.push({ age: fireCurrentAge + i, label: String(fireCurrentAge + i), netWorth: Math.round(nw) });
-      if (i > 0 && nw >= fireNumber * 1.5) break;
-      nw = nw * annualGrowthFactor + annualContribution;
+    for (let i = 0; i <= 60; i++) {
+      projectionData.push({
+        age: fireCurrentAge + i,
+        label: String(fireCurrentAge + i),
+        netWorth: Math.round(liquidProj + lockedProj),
+        liquid: Math.round(liquidProj),
+        locked: Math.round(lockedProj)
+      });
+      if (i > 0 && (liquidProj + lockedProj) >= fireNumber * 1.5) break;
+      liquidProj = liquidProj * annualGrowthFactor + annualContribution;
+      lockedProj = lockedProj * annualGrowthFactor;
     }
 
     return {
@@ -428,7 +495,18 @@ export function useDashboardState({
         : yearsToFire === 0 ? fireCurrentAge : null,
       savingsRate,
       projectionData,
-      monthlySavings
+      monthlySavings,
+      hasLockedAssets,
+      liquidNetWorth: liquidNW,
+      lockedNetWorth: lockedNW,
+      bridgeYears,
+      bridgeTarget,
+      perpetualTarget,
+      lockedTargetToday,
+      projectedLockedAtPreservation,
+      bridgeAchieved,
+      perpetualAchieved,
+      twoPhaseAchieved
     };
   }, [
     inferredMonthlyExpenses,
@@ -436,7 +514,10 @@ export function useDashboardState({
     fireMultiplier,
     fireAnnualReturn,
     fireCurrentAge,
+    firePreservationAge,
     accountSummary.netWorth,
+    accountSummary.liquidNetWorth,
+    accountSummary.lockedAssets,
     payrollDraft
   ]);
 

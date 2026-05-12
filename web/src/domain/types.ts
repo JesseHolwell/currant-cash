@@ -102,6 +102,13 @@ export type AccountEntry = {
   bucket: string;
   kind: AccountKind;
   value: number;
+  /**
+   * If set, this asset is inaccessible until the holder reaches this age
+   * (e.g. superannuation in Australia, 401k in the US). The value still
+   * counts toward total net worth, but the two-phase FIRE model treats it
+   * as not-spendable during the bridge years.
+   */
+  lockedUntilAge?: number;
 };
 
 export type GoalTrackingMode = "manual" | "accounts" | "netWorth";

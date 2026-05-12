@@ -135,7 +135,9 @@ export default function App() {
   const [settingsError, setSettingsError] = useState<string | null>(null);
 
   const { currentAge: fireCurrentAge, annualReturn: fireAnnualReturn, multiplier: fireMultiplier,
-    setCurrentAge: setFireCurrentAge, setAnnualReturn: setFireAnnualReturn, setMultiplier: setFireMultiplier
+    preservationAge: firePreservationAge,
+    setCurrentAge: setFireCurrentAge, setAnnualReturn: setFireAnnualReturn, setMultiplier: setFireMultiplier,
+    setPreservationAge: setFirePreservationAge
   } = useFireStore();
 
   const {
@@ -241,6 +243,7 @@ export default function App() {
     fireCurrentAge: isSampleMode ? sd.fireCurrentAge : (birthYear > 0 ? new Date().getFullYear() - birthYear : fireCurrentAge),
     fireAnnualReturn: isSampleMode ? sd.fireAnnualReturn : fireAnnualReturn,
     fireMultiplier: isSampleMode ? sd.fireMultiplier : fireMultiplier,
+    firePreservationAge: isSampleMode ? (sd.firePreservationAge ?? 60) : firePreservationAge,
     currency: isSampleMode ? undefined : currency,
   });
 
@@ -1094,6 +1097,8 @@ export default function App() {
       fireCurrentAge={isSampleMode ? sd.fireCurrentAge : fireCurrentAge}
       fireAnnualReturn={isSampleMode ? sd.fireAnnualReturn : fireAnnualReturn}
       fireMultiplier={isSampleMode ? sd.fireMultiplier : fireMultiplier}
+      firePreservationAge={isSampleMode ? (sd.firePreservationAge ?? 60) : firePreservationAge}
+      onFirePreservationAgeChange={setFirePreservationAge}
       openaiApiKey={openaiApiKey}
       aiSuggestions={aiSuggestions}
       derived={derived}

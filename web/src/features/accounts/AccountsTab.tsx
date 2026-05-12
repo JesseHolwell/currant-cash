@@ -7,6 +7,8 @@ type AccountSummary = {
   assets: number;
   liabilities: number;
   netWorth: number;
+  lockedAssets: number;
+  liquidNetWorth: number;
 };
 
 export function AccountsTab({
@@ -51,6 +53,11 @@ export function AccountsTab({
         <article className="border border-line rounded-md px-4 py-[0.9rem] bg-surface shadow-soft hover:border-line-strong transition-colors">
           <h2 className="text-[0.72rem] uppercase tracking-[0.12em] text-muted font-bold">Net Worth</h2>
           <p className="font-mono text-ink font-semibold tracking-[-0.03em] mt-[0.38rem] text-[clamp(1.2rem,1.8vw,1.55rem)]">{formatCurrency(accountSummary.netWorth, currency)}</p>
+          {accountSummary.lockedAssets > 0 ? (
+            <span className="text-[0.68rem] text-muted font-normal mt-[0.2rem] inline-block">
+              🔒 {formatCurrency(accountSummary.lockedAssets, currency)} locked
+            </span>
+          ) : null}
         </article>
         <article className="border border-line rounded-md px-4 py-[0.9rem] bg-surface shadow-soft hover:border-line-strong transition-colors">
           <h2 className="text-[0.72rem] uppercase tracking-[0.12em] text-muted font-bold">Accounts</h2>
@@ -83,11 +90,43 @@ export function AccountsTab({
               />
               <select
                 value={account.kind}
-                onChange={(event) => onUpdateAccount(account.id, { kind: event.target.value as AccountKind })}
+                onChange={(event) => onUpdateAccount(account.id, {
+                  kind: event.target.value as AccountKind,
+                  // Liabilities can't be locked — clear if user switches kind.
+                  ...(event.target.value === "liability" ? { lockedUntilAge: undefined } : {})
+                })}
               >
                 <option value="asset">Asset (Credit)</option>
                 <option value="liability">Liability (Debit)</option>
               </select>
+              {account.kind === "asset" ? (
+                <label
+                  className="flex items-center gap-[0.4rem] text-[0.78rem] text-muted"
+                  title="Locked retirement asset (e.g. superannuation). Counts toward net worth but isn't spendable until the chosen age."
+                >
+                  <span aria-hidden="true">🔒</span>
+                  <input
+                    type="number"
+                    min={40}
+                    max={75}
+                    step={1}
+                    placeholder="—"
+                    value={account.lockedUntilAge ?? ""}
+                    onChange={(event) => {
+                      const raw = event.target.value;
+                      if (raw === "") {
+                        onUpdateAccount(account.id, { lockedUntilAge: undefined });
+                        return;
+                      }
+                      const v = Number(raw);
+                      if (Number.isFinite(v) && v >= 16 && v <= 100) {
+                        onUpdateAccount(account.id, { lockedUntilAge: Math.round(v) });
+                      }
+                    }}
+                    style={{ width: "4rem" }}
+                  />
+                </label>
+              ) : <span />}
               <button type="button" className="mode-btn" onClick={() => onRemoveAccount(account.id)}>Delete</button>
             </li>
           ))}

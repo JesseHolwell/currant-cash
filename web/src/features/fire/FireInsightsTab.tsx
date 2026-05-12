@@ -72,9 +72,11 @@ export function FireInsightsTab({
   currentAge,
   annualReturn,
   fireMultiplier,
+  preservationAge,
   onCurrentAgeChange,
   onAnnualReturnChange,
   onFireMultiplierChange,
+  onPreservationAgeChange,
   fireNumber,
   leanFireNumber,
   coastFireNumber,
@@ -82,6 +84,16 @@ export function FireInsightsTab({
   projectedFireAge,
   savingsRate,
   projectionData,
+  hasLockedAssets,
+  liquidNetWorth,
+  lockedNetWorth,
+  bridgeYears,
+  bridgeTarget,
+  perpetualTarget,
+  projectedLockedAtPreservation,
+  bridgeAchieved,
+  perpetualAchieved,
+  twoPhaseAchieved,
 }: {
   currency: string;
   currentNetWorth: number;
@@ -90,9 +102,11 @@ export function FireInsightsTab({
   currentAge: number;
   annualReturn: number;
   fireMultiplier: number;
+  preservationAge: number;
   onCurrentAgeChange: (v: number) => void;
   onAnnualReturnChange: (v: number) => void;
   onFireMultiplierChange: (v: number) => void;
+  onPreservationAgeChange: (v: number) => void;
   fireNumber: number;
   leanFireNumber: number;
   coastFireNumber: number;
@@ -100,6 +114,17 @@ export function FireInsightsTab({
   projectedFireAge: number | null;
   savingsRate: number | null;
   projectionData: ProjectionPoint[];
+  hasLockedAssets: boolean;
+  liquidNetWorth: number;
+  lockedNetWorth: number;
+  bridgeYears: number;
+  bridgeTarget: number;
+  perpetualTarget: number;
+  lockedTargetToday: number;
+  projectedLockedAtPreservation: number;
+  bridgeAchieved: boolean;
+  perpetualAchieved: boolean;
+  twoPhaseAchieved: boolean;
 }) {
   const hasExpenseData = monthlyExpenses > 0;
   const inputCls = "border border-line-strong bg-surface text-ink rounded-sm px-[0.6rem] py-[0.45rem] text-[0.83rem] focus:outline-none focus:border-[var(--accent-border)] focus:shadow-[0_0_0_3px_var(--accent-ring)] w-full";
@@ -196,6 +221,26 @@ export function FireInsightsTab({
               ≈ {(100 / fireMultiplier).toFixed(1)}% safe withdrawal rate
             </span>
           </label>
+          {hasLockedAssets ? (
+            <label className="grid gap-[0.35rem]">
+              <span className="text-[0.84rem] text-ink font-semibold">Preservation Age</span>
+              <input
+                type="number"
+                min={40}
+                max={75}
+                step={1}
+                value={preservationAge}
+                className={inputCls}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  if (v >= 40 && v <= 75) onPreservationAgeChange(v);
+                }}
+              />
+              <span className="text-muted text-[0.75rem]">
+                Age locked assets (e.g. super) become accessible
+              </span>
+            </label>
+          ) : null}
           <div className="grid gap-[0.35rem]">
             <span className="text-[0.84rem] text-ink font-semibold">Annual Expenses</span>
             <strong className="text-ink font-mono text-lg">
@@ -281,29 +326,76 @@ export function FireInsightsTab({
         )}
       </section>
 
+      {hasLockedAssets ? (
+        <section className="border border-line rounded-md p-4 bg-surface shadow-soft min-w-0">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <h3 className="font-display text-base tracking-[-0.02em] text-ink">Two-Phase FIRE</h3>
+            {twoPhaseAchieved ? (
+              <span className="text-[0.72rem] font-bold text-accent-leaf bg-[var(--accent-leaf)]/10 px-2 py-[0.2rem] rounded-full">
+                Both phases on track
+              </span>
+            ) : null}
+          </div>
+          <p className="text-muted text-[0.82rem] mt-[0.42rem]">
+            With locked retirement assets, your FIRE plan needs two pots: liquid funds to bridge from today
+            to preservation age ({preservationAge}, ~{bridgeYears} years away), and locked funds projected
+            to cover spending from then on. You're FIRE when both are covered.
+          </p>
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-[0.85rem] mt-4">
+            <FireMilestone
+              label="Bridge to Preservation"
+              description={`Liquid funds to cover ${bridgeYears} years of spending at ${annualReturn}% real return.`}
+              target={bridgeTarget}
+              current={liquidNetWorth}
+              currency={currency}
+            />
+            <FireMilestone
+              label="Super at Preservation"
+              description={`Locked balance projected forward (no further contributions) vs. ${fireMultiplier}× annual expenses.`}
+              target={perpetualTarget}
+              current={projectedLockedAtPreservation}
+              currency={currency}
+            />
+          </div>
+          <p className="text-muted text-[0.78rem] mt-3">
+            Liquid net worth: <strong className="text-ink">{formatCurrency(Math.round(liquidNetWorth), currency)}</strong>
+            {" · "}
+            Locked (current): <strong className="text-ink">{formatCurrency(Math.round(lockedNetWorth), currency)}</strong>
+            {" · "}
+            Locked (projected at {preservationAge}): <strong className="text-ink">{formatCurrency(Math.round(projectedLockedAtPreservation), currency)}</strong>
+            {bridgeAchieved && !perpetualAchieved ? " · Bridge covered, super still needs growth." : null}
+            {!bridgeAchieved && perpetualAchieved ? " · Super on track, more liquid needed for the bridge." : null}
+          </p>
+        </section>
+      ) : null}
+
       <section className="border border-line rounded-md p-4 bg-surface shadow-soft min-w-0">
         <h3 className="font-display text-base tracking-[-0.02em] text-ink">FIRE Milestones</h3>
-        <p className="text-muted text-[0.82rem] mt-[0.42rem]">Track your progress toward each milestone.</p>
+        <p className="text-muted text-[0.82rem] mt-[0.42rem]">
+          {hasLockedAssets
+            ? "Traditional single-pool milestones, measured against your liquid net worth."
+            : "Track your progress toward each milestone."}
+        </p>
         <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-[0.85rem] mt-4">
           <FireMilestone
             label="Coast FIRE"
             description={`Enough invested today to reach Full FIRE by age 65 with no further contributions.`}
             target={coastFireNumber}
-            current={currentNetWorth}
+            current={hasLockedAssets ? liquidNetWorth : currentNetWorth}
             currency={currency}
           />
           <FireMilestone
             label="Lean FIRE"
             description={`${fireMultiplier}× a 40%-reduced annual expense budget.`}
             target={leanFireNumber}
-            current={currentNetWorth}
+            current={hasLockedAssets ? liquidNetWorth : currentNetWorth}
             currency={currency}
           />
           <FireMilestone
             label="Full FIRE"
             description={`${fireMultiplier}× your current annual expenses (${(100 / fireMultiplier).toFixed(1)}% SWR).`}
             target={fireNumber}
-            current={currentNetWorth}
+            current={hasLockedAssets ? liquidNetWorth : currentNetWorth}
             currency={currency}
           />
         </div>

@@ -25,6 +25,7 @@ export type SampleDataset = {
   fireCurrentAge: number;
   fireAnnualReturn: number;
   fireMultiplier: number;
+  firePreservationAge: number;
 };
 
 // ─── Category definitions ─────────────────────────────────────────────────────
@@ -151,6 +152,7 @@ const SAMPLE_ACCOUNT_ENTRIES: AccountEntry[] = [
   { id: "smpl_savings", name: "High Interest Savings", bucket: "Bank", kind: "asset", value: 24800 },
   { id: "smpl_etf", name: "Vanguard ETF", bucket: "Stocks", kind: "asset", value: 21500 },
   { id: "smpl_crypto", name: "Crypto", bucket: "Crypto", kind: "asset", value: 4200 },
+  { id: "smpl_super", name: "Superannuation", bucket: "Super", kind: "asset", value: 32000, lockedUntilAge: 60 },
   { id: "smpl_credit", name: "Credit Card", bucket: "Credit", kind: "liability", value: 1840 },
 ];
 
@@ -384,4 +386,5 @@ export const SAMPLE_DATASET: SampleDataset = {
   fireCurrentAge: 28,
   fireAnnualReturn: 7,
   fireMultiplier: 25,
+  firePreservationAge: 60,
 };

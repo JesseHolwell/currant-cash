@@ -84,6 +84,7 @@ interface DashboardProps {
   fireCurrentAge: number;
   fireAnnualReturn: number;
   fireMultiplier: number;
+  firePreservationAge: number;
   openaiApiKey: string;
   aiSuggestions: AiSuggestionsState;
 
@@ -138,6 +139,7 @@ interface DashboardProps {
   onFireCurrentAgeChange: (age: number) => void;
   onFireAnnualReturnChange: (rate: number) => void;
   onFireMultiplierChange: (multiplier: number) => void;
+  onFirePreservationAgeChange: (age: number) => void;
   displayName: string;
   onDisplayNameChange: (name: string) => void;
   birthYear: number;
@@ -253,6 +255,7 @@ export function Dashboard({
   fireCurrentAge,
   fireAnnualReturn,
   fireMultiplier,
+  firePreservationAge,
   openaiApiKey,
   aiSuggestions,
   derived,
@@ -299,6 +302,7 @@ export function Dashboard({
   onFireCurrentAgeChange,
   onFireAnnualReturnChange,
   onFireMultiplierChange,
+  onFirePreservationAgeChange,
   displayName,
   onDisplayNameChange,
   birthYear,
@@ -612,9 +616,11 @@ export function Dashboard({
               currentAge={fireCurrentAge}
               annualReturn={fireAnnualReturn}
               fireMultiplier={fireMultiplier}
+              preservationAge={firePreservationAge}
               onCurrentAgeChange={onFireCurrentAgeChange}
               onAnnualReturnChange={onFireAnnualReturnChange}
               onFireMultiplierChange={onFireMultiplierChange}
+              onPreservationAgeChange={onFirePreservationAgeChange}
               fireNumber={derived.fireInsightsData.fireNumber}
               leanFireNumber={derived.fireInsightsData.leanFireNumber}
               coastFireNumber={derived.fireInsightsData.coastFireNumber}
@@ -622,6 +628,17 @@ export function Dashboard({
               projectedFireAge={derived.fireInsightsData.projectedFireAge}
               savingsRate={derived.fireInsightsData.savingsRate}
               projectionData={derived.fireInsightsData.projectionData}
+              hasLockedAssets={derived.fireInsightsData.hasLockedAssets}
+              liquidNetWorth={derived.fireInsightsData.liquidNetWorth}
+              lockedNetWorth={derived.fireInsightsData.lockedNetWorth}
+              bridgeYears={derived.fireInsightsData.bridgeYears}
+              bridgeTarget={derived.fireInsightsData.bridgeTarget}
+              perpetualTarget={derived.fireInsightsData.perpetualTarget}
+              lockedTargetToday={derived.fireInsightsData.lockedTargetToday}
+              projectedLockedAtPreservation={derived.fireInsightsData.projectedLockedAtPreservation}
+              bridgeAchieved={derived.fireInsightsData.bridgeAchieved}
+              perpetualAchieved={derived.fireInsightsData.perpetualAchieved}
+              twoPhaseAchieved={derived.fireInsightsData.twoPhaseAchieved}
             />
           ) : null}
         </section>
